@@ -893,6 +893,24 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/(dashboard)/notes/page.tsx`
 
+## BUG-094 | 2026-04-29 | SEVERITY: High
+
+**Gejala:** Tombol preview (icon mata) di editor blog belum menjalankan apa pun, sehingga user tidak bisa meninjau artikel saat sedang menulis tanpa publish dulu.
+**Root Cause:** Toolbar editor hanya menampilkan affordance preview, tetapi belum punya handler dan belum ada surface preview yang bisa merender draft/article state saat ini.
+**Fix:** Tambahkan preview modal artikel yang bisa merender konten draft lokal lengkap dengan cover, metadata, dan prose content langsung dari state editor.
+**Pelajaran:** Pada CMS, affordance seperti preview bukan ornamen; kalau tombolnya terlihat seperti fitur inti, ia harus usable bahkan sebelum ada publish flow.
+**Status:** RESOLVED
+**Terkait:** `src/app/(dashboard)/blog/new/page.tsx`, `src/app/(dashboard)/blog/[id]/edit/page.tsx`, `src/components/modules/blog/BlogPreviewModal.tsx`
+
+## BUG-095 | 2026-04-29 | SEVERITY: Medium
+
+**Gejala:** Pengelolaan kategori/tags blog belum matang; user hanya bisa memilih tag yang ada atau menambahkan nama sementara dari editor, tetapi belum punya panel CRUD tag yang nyata di Blog CMS.
+**Root Cause:** API read tag sudah ada, tetapi belum ada server action CRUD tag dan belum ada UI manajemen tag terpusat di halaman Blog CMS.
+**Fix:** Tambahkan server action create/update/delete tag dan panel manajemen kategori/tags di Blog CMS lengkap dengan warna, slug, jumlah post, edit, dan hapus.
+**Pelajaran:** Kalau taxonomy dipakai untuk struktur konten publik, ia perlu panel manajemen sendiri; mengandalkan input ad-hoc di editor cepat membuat CMS terasa setengah jadi.
+**Status:** RESOLVED
+**Terkait:** `src/actions/blog.actions.ts`, `src/app/(dashboard)/blog/page.tsx`, `src/hooks/use-blog.ts`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

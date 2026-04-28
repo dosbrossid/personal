@@ -18,3 +18,15 @@ export function mapBlogPostWithTags(post: BlogPostWithTagRows): BlogPost {
       .filter((tag): tag is BlogTag => tag !== null),
   };
 }
+
+export function getPublicBlogPostUrl(slug: string) {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname.toLowerCase();
+
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return `/public-blog/blog/${slug}`;
+    }
+  }
+
+  return `https://zmaula.web.id/blog/${slug}`;
+}

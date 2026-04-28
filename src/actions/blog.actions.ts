@@ -117,6 +117,39 @@ async function ensureBlogTagIds(
   return Array.from(resolvedTagIds)
 }
 
+async function resolveUniqueBlogTagSlug(
+  supabase: Awaited<ReturnType<typeof createServerClient>>,
+  userId: string,
+  baseName: string,
+  excludeId?: string
+) {
+  const baseSlug = generateSlug(baseName) || 'kategori';
+  let slug = baseSlug;
+  let attempt = 1;
+
+  while (true) {
+    let query = supabase
+      .from('blog_tags')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('slug', slug)
+      .eq('is_deleted', false);
+
+    if (excludeId) {
+      query = query.neq('id', excludeId);
+    }
+
+    const { data: existing } = await query.maybeSingle();
+
+    if (!existing?.id) {
+      return slug;
+    }
+
+    attempt += 1;
+    slug = `${baseSlug}-${attempt}`;
+  }
+}
+
 async function refreshTagPostCounts(
   supabase: Awaited<ReturnType<typeof createServerClient>>,
   tagIds: string[]
@@ -303,6 +336,106 @@ export async function deleteBlogPost(id: string): Promise<ActionResult<null>> {
       .from('blog_posts')
       .update({ is_deleted: true })
       .eq('id', id)
+
+    if (error) return { data: null, error: error.message }
+    return { data: null, error: null }
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Terjadi kesalahan' }
+  }
+}
+
+export async function createBlogTag(data: {
+  name: string
+  description?: string
+  color?: string
+}): Promise<ActionResult<{ id: string }>> {
+  try {
+    const user = await requireAuth()
+    const supabase = await createServerClient()
+    const name = data.name.trim()
+
+    if (!name) {
+      return { data: null, error: 'Nama kategori wajib diisi' }
+    }
+
+    const slug = await resolveUniqueBlogTagSlug(supabase, user.id, name)
+    const { data: tag, error } = await supabase
+      .from('blog_tags')
+      .insert({
+        user_id: user.id,
+        name,
+        slug,
+        description: data.description?.trim() || null,
+        color: data.color || '#0f766e',
+      })
+      .select('id')
+      .single()
+
+    if (error) return { data: null, error: error.message }
+    return { data: tag, error: null }
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Terjadi kesalahan' }
+  }
+}
+
+export async function updateBlogTag(
+  id: string,
+  updates: {
+    name: string
+    description?: string
+    color?: string
+  }
+): Promise<ActionResult<null>> {
+  try {
+    const user = await requireAuth()
+    const supabase = await createServerClient()
+    const name = updates.name.trim()
+
+    if (!name) {
+      return { data: null, error: 'Nama kategori wajib diisi' }
+    }
+
+    const slug = await resolveUniqueBlogTagSlug(supabase, user.id, name, id)
+    const { error } = await supabase
+      .from('blog_tags')
+      .update({
+        name,
+        slug,
+        description: updates.description?.trim() || null,
+        color: updates.color || '#0f766e',
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
+
+    if (error) return { data: null, error: error.message }
+    return { data: null, error: null }
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Terjadi kesalahan' }
+  }
+}
+
+export async function deleteBlogTag(id: string): Promise<ActionResult<null>> {
+  try {
+    const user = await requireAuth()
+    const supabase = await createServerClient()
+
+    const { error: relationError } = await supabase
+      .from('blog_post_tags')
+      .delete()
+      .eq('tag_id', id)
+
+    if (relationError) {
+      return { data: null, error: relationError.message }
+    }
+
+    const { error } = await supabase
+      .from('blog_tags')
+      .update({
+        is_deleted: true,
+        post_count: 0,
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
 
     if (error) return { data: null, error: error.message }
     return { data: null, error: null }

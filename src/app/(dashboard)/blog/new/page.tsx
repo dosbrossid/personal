@@ -26,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { createBlogPost, generateBlogAIContent, updateBlogPost } from '@/actions/blog.actions';
 import { toast } from 'sonner';
 import { BlogRichTextEditor } from '@/components/modules/blog/BlogRichTextEditor';
+import { BlogPreviewModal } from '@/components/modules/blog/BlogPreviewModal';
 import { uploadCompressedPublicImage } from '@/lib/client-image';
 import { getBlogWordStats, stripBlogContent } from '@/lib/blog-editor';
 import { isFutureSchedule, toScheduledAtIso } from '@/lib/blog-schedule';
@@ -47,6 +48,7 @@ export default function BlogEditorPage() {
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [coverImageAlt, setCoverImageAlt] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleCoverFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,6 +155,23 @@ export default function BlogEditorPage() {
 
   const stats = getBlogWordStats(content);
   const isScheduling = isFutureSchedule(toScheduledAtIso(scheduledAt));
+  const previewSlug =
+    title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled';
+  const previewTags = [
+    ...tags.filter((tag) => selectedTagIds.includes(tag.id)),
+    ...pendingTagNames.map((tagName) => ({
+      id: `pending-${tagName}`,
+      user_id: '',
+      name: tagName,
+      slug: tagName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      description: null,
+      color: '#0f766e',
+      post_count: 0,
+      is_deleted: false,
+      created_at: '',
+      updated_at: '',
+    })),
+  ];
 
   const handleGenerateSeo = async () => {
     setIsGeneratingSeo(true);
@@ -199,7 +218,13 @@ export default function BlogEditorPage() {
         </div>
         
         <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
-          <Button variant="outline" size="sm" className="h-8 gap-2 rounded-lg border-border/60 bg-transparent px-2 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground sm:px-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsPreviewOpen(true)}
+            className="h-8 gap-2 rounded-lg border-border/60 bg-transparent px-2 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground sm:px-3"
+          >
             <Eye className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Preview</span>
           </Button>
@@ -494,6 +519,22 @@ export default function BlogEditorPage() {
           </div>
         </aside>
       </div>
+
+      <BlogPreviewModal
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+        title={title}
+        slug={previewSlug}
+        excerpt={excerpt}
+        contentHtml={content}
+        coverImageUrl={coverImageUrl}
+        coverImageAlt={coverImageAlt}
+        tags={previewTags}
+        visibility={visibility}
+        statusLabel={isScheduling ? 'Scheduled Draft' : 'Draft'}
+        scheduledAt={toScheduledAtIso(scheduledAt)}
+        publicUrl={null}
+      />
     </div>
   );
 }

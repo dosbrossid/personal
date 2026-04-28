@@ -25,11 +25,13 @@ import { BLOG_STATUSES } from '@/core/constants';
 import type { BlogPost } from '@/core/types';
 import { generateBlogAIContent, updateBlogPost } from '@/actions/blog.actions';
 import { BlogRichTextEditor } from '@/components/modules/blog/BlogRichTextEditor';
+import { BlogPreviewModal } from '@/components/modules/blog/BlogPreviewModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { uploadCompressedPublicImage } from '@/lib/client-image';
 import { getBlogEditorHtml, getBlogWordStats, stripBlogContent } from '@/lib/blog-editor';
+import { getPublicBlogPostUrl } from '@/lib/blog';
 import { isFutureSchedule, toDateTimeLocalValue, toScheduledAtIso } from '@/lib/blog-schedule';
 
 export default function BlogEditorEditPage() {
@@ -66,10 +68,26 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(post.featured_image_url || null);
   const [coverImageAlt, setCoverImageAlt] = useState(post.featured_image_alt || '');
   const [scheduledAt, setScheduledAt] = useState(toDateTimeLocalValue(post.scheduled_at));
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const statusConfig = BLOG_STATUSES[currentStatus];
   const stats = getBlogWordStats(content);
   const isScheduling = currentStatus !== 'published' && isFutureSchedule(toScheduledAtIso(scheduledAt));
+  const previewTags = [
+    ...tags.filter((tag) => selectedTagIds.includes(tag.id)),
+    ...pendingTagNames.map((tagName) => ({
+      id: `pending-${tagName}`,
+      user_id: '',
+      name: tagName,
+      slug: tagName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      description: null,
+      color: '#0f766e',
+      post_count: 0,
+      is_deleted: false,
+      created_at: '',
+      updated_at: '',
+    })),
+  ];
 
   const handleGenerateSeo = async () => {
     setIsGeneratingSeo(true);
@@ -213,7 +231,13 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
         </div>
 
         <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
-          <Button variant="outline" size="sm" className="h-8 gap-2 rounded-lg border-border/60 bg-transparent px-2 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground sm:px-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsPreviewOpen(true)}
+            className="h-8 gap-2 rounded-lg border-border/60 bg-transparent px-2 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground sm:px-3"
+          >
             <Eye className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Preview</span>
           </Button>
@@ -505,6 +529,23 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
           </div>
         </aside>
       </div>
+
+      <BlogPreviewModal
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+        title={title}
+        slug={post.slug}
+        excerpt={excerpt}
+        contentHtml={content}
+        coverImageUrl={coverImageUrl}
+        coverImageAlt={coverImageAlt}
+        tags={previewTags}
+        visibility={visibility}
+        statusLabel={isScheduling ? 'Scheduled Draft' : statusConfig.label}
+        scheduledAt={toScheduledAtIso(scheduledAt)}
+        publishedAt={post.published_at}
+        publicUrl={currentStatus === 'published' ? getPublicBlogPostUrl(post.slug) : null}
+      />
     </div>
   );
 }

@@ -20,6 +20,7 @@ import {
   FileText,
   BarChart3,
   ArrowUpRight,
+  Tag,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -34,14 +35,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
-import { useBlogPosts } from '@/hooks/use-blog';
+import { useBlogPosts, useBlogTags } from '@/hooks/use-blog';
 import { BLOG_STATUSES } from '@/core/constants';
-import type { BlogPost, BlogStatus, BlogVisibility } from '@/core/types';
+import type { BlogPost, BlogStatus, BlogTag, BlogVisibility } from '@/core/types';
 import { Loader2 } from 'lucide-react';
-import { deleteBlogPost, updateBlogPost } from '@/actions/blog.actions';
+import { createBlogTag, deleteBlogPost, deleteBlogTag, updateBlogPost, updateBlogTag } from '@/actions/blog.actions';
 import { toast } from 'sonner';
 import { isScheduledDraft } from '@/lib/blog-schedule';
+import { getPublicBlogPostUrl } from '@/lib/blog';
+import { Textarea } from '@/components/ui/textarea';
 
 function BlogPostActions({
   post,
@@ -65,7 +76,7 @@ function BlogPostActions({
         </Link>
         {post.status === 'published' && (
           <DropdownMenuItem
-            onClick={() => window.open(`/public-blog/blog/${post.slug}`, '_blank', 'noopener,noreferrer')}
+            onClick={() => window.open(getPublicBlogPostUrl(post.slug), '_blank', 'noopener,noreferrer')}
             className="gap-2 rounded-lg text-[13px] focus:bg-muted focus:text-foreground"
           >
             <Globe className="h-4 w-4 text-muted-foreground" /> Lihat Publik
@@ -213,12 +224,70 @@ function BlogPostMobileCard({
   );
 }
 
+function BlogTagRow({
+  tag,
+  onEdit,
+  onDelete,
+}: {
+  tag: BlogTag;
+  onEdit: (tag: BlogTag) => void;
+  onDelete: (tagId: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/70 p-4 shadow-sm sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className="inline-flex h-3.5 w-3.5 rounded-full border border-white/50 shadow-sm"
+            style={{ backgroundColor: tag.color }}
+          />
+          <h3 className="text-[14px] font-semibold text-foreground">{tag.name}</h3>
+          <Badge variant="outline" className="rounded-full border-border/60 bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+            {tag.post_count} post
+          </Badge>
+          <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+            /tag/{tag.slug}
+          </span>
+        </div>
+        <p className="text-[12px] leading-relaxed text-muted-foreground">
+          {tag.description?.trim() || 'Belum ada deskripsi kategori. Tambahkan supaya struktur kontenmu lebih rapi.'}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 self-start">
+        <Button type="button" variant="outline" size="sm" onClick={() => onEdit(tag)} className="rounded-xl border-border/60">
+          <Edit3 className="mr-1.5 h-3.5 w-3.5" />
+          Edit
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onDelete(tag.id)}
+          className="rounded-xl border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-500"
+        >
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+          Hapus
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 
 export default function BlogCMSPage() {
   const { posts: allPosts, isLoading, mutate } = useBlogPosts();
+  const { tags, mutate: mutateTags } = useBlogTags();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | BlogStatus>('all');
+  const [isTagDialogOpen, setIsTagDialogOpen] = useState(false);
+  const [tagDialogMode, setTagDialogMode] = useState<'create' | 'edit'>('create');
+  const [editingTagId, setEditingTagId] = useState<string | null>(null);
+  const [tagName, setTagName] = useState('');
+  const [tagDescription, setTagDescription] = useState('');
+  const [tagColor, setTagColor] = useState('#0f766e');
+  const [isTagSaving, setIsTagSaving] = useState(false);
 
   const filteredPosts = allPosts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -230,6 +299,28 @@ export default function BlogCMSPage() {
   const totalViews = allPosts.reduce((acc, p) => acc + p.view_count, 0);
   const publishedCount = allPosts.filter(p => p.status === 'published').length;
   const draftCount = allPosts.filter(p => p.status === 'draft').length;
+
+  const resetTagForm = () => {
+    setEditingTagId(null);
+    setTagName('');
+    setTagDescription('');
+    setTagColor('#0f766e');
+    setTagDialogMode('create');
+  };
+
+  const openCreateTagDialog = () => {
+    resetTagForm();
+    setIsTagDialogOpen(true);
+  };
+
+  const openEditTagDialog = (tag: BlogTag) => {
+    setTagDialogMode('edit');
+    setEditingTagId(tag.id);
+    setTagName(tag.name);
+    setTagDescription(tag.description || '');
+    setTagColor(tag.color || '#0f766e');
+    setIsTagDialogOpen(true);
+  };
 
   const getVisibilityIcon = (visibility: BlogVisibility) => {
     switch (visibility) {
@@ -261,6 +352,50 @@ export default function BlogCMSPage() {
     }
 
     toast.success('Artikel dihapus');
+    mutate();
+  };
+
+  const handleSaveTag = async () => {
+    if (isTagSaving) return;
+
+    setIsTagSaving(true);
+    const payload = {
+      name: tagName,
+      description: tagDescription,
+      color: tagColor,
+    };
+
+    const result =
+      tagDialogMode === 'create'
+        ? await createBlogTag(payload)
+        : await updateBlogTag(editingTagId || '', payload);
+
+    setIsTagSaving(false);
+
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success(tagDialogMode === 'create' ? 'Kategori berhasil dibuat' : 'Kategori berhasil diperbarui');
+    setIsTagDialogOpen(false);
+    resetTagForm();
+    mutateTags();
+    mutate();
+  };
+
+  const handleDeleteTag = async (tagId: string) => {
+    const approved = window.confirm('Hapus kategori ini dari CMS? Relasi tag pada artikel juga akan dilepas.');
+    if (!approved) return;
+
+    const result = await deleteBlogTag(tagId);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success('Kategori berhasil dihapus');
+    mutateTags();
     mutate();
   };
 
@@ -515,6 +650,107 @@ export default function BlogCMSPage() {
           )}
         </div>
       </div>
+
+      <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-4 border-b border-border/50 pb-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-[18px] font-semibold text-foreground">Kategori & Tags</h2>
+            <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
+              Atur taxonomy blog dari satu tempat. Kategori ini dipakai di editor artikel, halaman tag publik, dan struktur konten di zmaula.web.id.
+            </p>
+          </div>
+          <Button type="button" onClick={openCreateTagDialog} className="rounded-xl">
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Kategori
+          </Button>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          {tags.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/60 bg-muted/20 px-5 py-10 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                <Tag className="h-5 w-5" />
+              </div>
+              <h3 className="text-[14px] font-semibold text-foreground">Belum ada kategori blog</h3>
+              <p className="mt-1 text-[12px] text-muted-foreground">
+                Buat taxonomy pertamamu supaya artikel lebih mudah dikelompokkan dan dibaca pengunjung.
+              </p>
+            </div>
+          ) : (
+            tags.map((tag) => (
+              <BlogTagRow
+                key={tag.id}
+                tag={tag}
+                onEdit={openEditTagDialog}
+                onDelete={handleDeleteTag}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
+      <Dialog open={isTagDialogOpen} onOpenChange={(open) => {
+        setIsTagDialogOpen(open);
+        if (!open) resetTagForm();
+      }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {tagDialogMode === 'create' ? 'Tambah Kategori Blog' : 'Edit Kategori Blog'}
+            </DialogTitle>
+            <DialogDescription>
+              Kategori ini akan muncul di editor artikel dan halaman tag publik. Gunakan nama yang jelas supaya struktur blog terasa rapi.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[12px] font-medium text-foreground">Nama Kategori</label>
+              <Input
+                value={tagName}
+                onChange={(event) => setTagName(event.target.value)}
+                placeholder="Contoh: Digital Marketing"
+                className="rounded-xl"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[12px] font-medium text-foreground">Deskripsi</label>
+              <Textarea
+                value={tagDescription}
+                onChange={(event) => setTagDescription(event.target.value)}
+                placeholder="Jelaskan kategori ini akan menampung tulisan seperti apa."
+                className="min-h-[110px] rounded-xl"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[12px] font-medium text-foreground">Warna</label>
+              <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+                <input
+                  type="color"
+                  value={tagColor}
+                  onChange={(event) => setTagColor(event.target.value)}
+                  className="h-10 w-12 cursor-pointer rounded-lg border border-border/60 bg-transparent"
+                />
+                <div>
+                  <p className="text-[12px] font-medium text-foreground">{tagColor.toUpperCase()}</p>
+                  <p className="text-[11px] text-muted-foreground">Dipakai untuk chip dan identitas visual kategori.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsTagDialogOpen(false)} className="rounded-xl">
+              Batal
+            </Button>
+            <Button type="button" onClick={handleSaveTag} disabled={isTagSaving} className="rounded-xl">
+              {isTagSaving ? 'Menyimpan...' : tagDialogMode === 'create' ? 'Buat Kategori' : 'Simpan Perubahan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
