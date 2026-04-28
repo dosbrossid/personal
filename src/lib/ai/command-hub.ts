@@ -4,13 +4,33 @@
 // ============================================================
 
 import { createServerClient } from '@/lib/supabase/server'
-import { buildSystemPrompt } from '@/lib/ai/prompts'
+import { buildAssistantSystemPrompt, buildSystemPrompt } from '@/lib/ai/prompts'
 import type { AIResponseItem, UserPreferences } from '@/core/types'
 import type { RoleContext } from '@/core/constants'
 
-interface CommandHubMessage {
-  role: 'system' | 'user'
+type MessageContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail?: 'auto' | 'low' | 'high' } }
+
+export interface CommandHubMessage {
+  role: 'system' | 'user' | 'assistant'
+  content: string | MessageContentPart[]
+}
+
+interface AssistantConversationMessage {
+  role: 'user' | 'assistant'
   content: string
+}
+
+interface AssistantAttachment {
+  mimeType: string
+  dataUrl: string
+}
+
+interface AssistantMessageOptions {
+  input: string
+  conversation?: AssistantConversationMessage[]
+  attachment?: AssistantAttachment | null
 }
 
 export async function buildAICommandMessages(
@@ -33,6 +53,64 @@ export async function buildAICommandMessages(
     { role: 'system', content: systemPrompt },
     { role: 'user', content: input.trim() },
   ]
+}
+
+export async function buildAIAssistantMessages(
+  userId: string,
+  options: AssistantMessageOptions
+): Promise<CommandHubMessage[]> {
+  const { userCategories, timezone } = await getPromptContext(userId)
+
+  const activeRoles: RoleContext[] = ['dosen', 'creator', 'affiliate', 'consultant', 'general']
+
+  const systemPrompt = buildAssistantSystemPrompt({
+    currentDatetimeISO: new Date().toISOString(),
+    userTimezone: timezone,
+    utcOffset: '+07:00',
+    userCategories,
+    userActiveRoles: activeRoles,
+  })
+
+  const history = (options.conversation ?? [])
+    .filter((message) => typeof message.content === 'string' && message.content.trim())
+    .slice(-8)
+    .map((message) => ({
+      role: message.role,
+      content: message.content.trim(),
+    }))
+
+  const messages: CommandHubMessage[] = [{ role: 'system', content: systemPrompt }]
+
+  for (const message of history) {
+    messages.push({
+      role: message.role,
+      content: message.content,
+    })
+  }
+
+  const trimmedInput = options.input.trim()
+  if (options.attachment?.dataUrl && options.attachment.mimeType.startsWith('image/')) {
+    messages.push({
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: `${trimmedInput}\n\nAda gambar terlampir untuk dianalisis. Jika user hanya minta analisa atau diskusi, jawab di ai_message tanpa membuat item. Jika user minta simpan ke vault, minta link karena vault hanya menerima URL.`,
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: options.attachment.dataUrl,
+            detail: 'auto',
+          },
+        },
+      ],
+    })
+  } else {
+    messages.push({ role: 'user', content: trimmedInput })
+  }
+
+  return messages
 }
 
 export async function executeAIResponseItems(
@@ -240,6 +318,8 @@ async function insertDraftItem(
     }
 
     case 'ACADEMIC': {
+      if (!item.data.source_url?.trim()) return null
+
       const { data, error } = await supabase
         .from('academic_vault_items')
         .insert({
@@ -247,8 +327,8 @@ async function insertDraftItem(
           title: item.data.title,
           description: item.data.description ?? '',
           document_type: detectDocType(item),
-          file_format: item.data.file_format ?? 'pdf',
-          file_url: item.data.source_url ?? '',
+          file_format: item.data.file_format ?? 'link',
+          file_url: item.data.source_url,
           semester: item.data.semester,
           mata_kuliah: item.data.mata_kuliah,
         })

@@ -749,6 +749,15 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/globals.css`, `src/app/(dashboard)/layout.tsx`, `src/components/modules/blog/BlogRichTextEditor.tsx`, `src/app/(dashboard)/blog/new/page.tsx`, `src/app/(dashboard)/blog/[id]/edit/page.tsx`, `src/app/(dashboard)/blog/page.tsx`, `src/app/(dashboard)/vault/page.tsx`
 
+## BUG-082 | 2026-04-28 | SEVERITY: High
+
+**Gejala:** Bubble chat AI di mobile masih terasa desktop-first, belum nyaman untuk diskusi natural, dan belum punya jalur upload gambar sekali pakai untuk analisa cepat.
+**Root Cause:** Komponen `AIChatBubble` hanya mendukung input teks dan request command parser tunggal, dengan panel fixed-width desktop, tanpa attachment state, tanpa history diskusi, dan tanpa aturan eksplisit bahwa `vault` di chat hanya menerima link.
+**Fix:** Ubah bubble menjadi mobile-friendly, tambahkan upload gambar client-side ke base64 tanpa storage, kirim riwayat diskusi singkat ke backend, pakai prompt hybrid diskusi+draft, dan kunci agar item `ACADEMIC` hanya dibuat saat ada URL/link eksplisit.
+**Pelajaran:** AI chat produktivitas tidak cukup hanya “bisa kirim prompt”; ia perlu mode diskusi yang natural, affordance mobile yang sehat, dan guardrail domain-specific supaya hasilnya tidak terlihat pintar tapi salah workflow.
+**Status:** RESOLVED
+**Terkait:** `src/components/shared/AIChatBubble.tsx`, `src/app/api/ai/command/route.ts`, `src/lib/ai/command-hub.ts`, `src/lib/ai/prompts.ts`, `src/lib/ai/client.ts`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -80,10 +80,6 @@ export function AppSidebar() {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('') || 'U';
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
 
   const resolvedMenuGroups = menuGroups.map((group) => ({
     ...group,

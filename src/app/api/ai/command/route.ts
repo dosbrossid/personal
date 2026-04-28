@@ -7,15 +7,35 @@
 import { type NextRequest } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { callLLM, callLLMStream, logAIInteraction } from '@/lib/ai/client'
-import { buildAICommandMessages, buildAIExecutionMessage, executeAIResponseItems } from '@/lib/ai/command-hub'
+import {
+  buildAICommandMessages,
+  buildAIAssistantMessages,
+  buildAIExecutionMessage,
+  executeAIResponseItems,
+} from '@/lib/ai/command-hub'
 import { parseAIResponse, mapDraftDetail } from '@/lib/ai/parser'
 import type { AIResponseItem } from '@/core/types'
+
+interface ConversationMessagePayload {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+interface ImageAttachmentPayload {
+  name?: string
+  mimeType?: string
+  dataUrl?: string
+}
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
     const body = await request.json()
     const input = typeof body.input === 'string' ? body.input : ''
+    const conversation = Array.isArray(body.conversation)
+      ? body.conversation.filter(isConversationMessage).slice(-8)
+      : []
+    const attachment = isImageAttachment(body.attachment) ? body.attachment : null
     const mode = body.mode === 'execute' ? 'execute' : 'draft'
 
     if (mode === 'execute') {
@@ -116,7 +136,16 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Input tidak boleh kosong' }, { status: 400 })
     }
 
-    const messages = await buildAICommandMessages(user.id, input.trim())
+    const messages = await buildAIAssistantMessages(user.id, {
+      input: input.trim(),
+      conversation,
+      attachment: attachment
+        ? {
+            mimeType: attachment.mimeType!,
+            dataUrl: attachment.dataUrl!,
+          }
+        : null,
+    })
 
     const startTime = Date.now()
     const encoder = new TextEncoder()
@@ -142,7 +171,7 @@ export async function POST(request: NextRequest) {
                 // Don't await logging — fire and forget
                 logAIInteraction({
                   userId: user.id,
-                  rawInput: input,
+                  rawInput: buildLoggedInput(input, attachment?.name),
                   aiResponse: null,
                   status: 'failed',
                   errorMessage: 'AI response could not be parsed as JSON',
@@ -174,7 +203,7 @@ export async function POST(request: NextRequest) {
               // Don't await logging
               logAIInteraction({
                 userId: user.id,
-                rawInput: input,
+                rawInput: buildLoggedInput(input, attachment?.name),
                 aiResponse,
                 status: 'draft',
                 tokensUsed,
@@ -239,4 +268,34 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function isConversationMessage(value: unknown): value is ConversationMessagePayload {
+  if (!value || typeof value !== 'object') return false
+
+  const candidate = value as Record<string, unknown>
+  return (
+    (candidate.role === 'user' || candidate.role === 'assistant') &&
+    typeof candidate.content === 'string'
+  )
+}
+
+function isImageAttachment(value: unknown): value is ImageAttachmentPayload {
+  if (!value || typeof value !== 'object') return false
+
+  const candidate = value as Record<string, unknown>
+  if (typeof candidate.mimeType !== 'string' || !candidate.mimeType.startsWith('image/')) {
+    return false
+  }
+
+  if (typeof candidate.dataUrl !== 'string' || !candidate.dataUrl.startsWith('data:image/')) {
+    return false
+  }
+
+  return true
+}
+
+function buildLoggedInput(input: string, attachmentName?: string) {
+  if (!attachmentName) return input
+  return `${input}\n[Image attached: ${attachmentName}]`
 }

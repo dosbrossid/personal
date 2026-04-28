@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import {
     Send,
     Sparkles,
@@ -10,7 +11,11 @@ import {
     X,
     Minus,
     MessageCircle,
+    ImagePlus,
+    Link2,
+    Trash2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { DraftPreview } from './DraftPreview';
@@ -18,12 +23,20 @@ import type { AIResponseItem } from '@/core/types';
 import type { RoleContext } from '@/core/constants';
 
 const HISTORY_STORAGE_KEY = 'secondbrain-ai-chat-history';
+const MAX_ATTACHMENT_SIZE_BYTES = 4 * 1024 * 1024;
 
 interface Message {
     role: 'user' | 'assistant';
     content: string;
     timestamp: string;
     isStreaming?: boolean;
+}
+
+interface ImageAttachment {
+    name: string;
+    mimeType: string;
+    dataUrl: string;
+    sizeBytes: number;
 }
 
 export interface DraftItem {
@@ -37,13 +50,30 @@ export interface DraftItem {
 /** Strip markdown formatting from AI messages for clean display */
 function stripMarkdown(text: string): string {
     return text
-        .replace(/\*\*(.*?)\*\*/g, '$1')   // **bold** → bold
-        .replace(/\*(.*?)\*/g, '$1')        // *italic* → italic
-        .replace(/#{1,6}\s?/g, '')          // ## heading → heading
-        .replace(/^[-*+]\s/gm, '• ')        // - bullet → • bullet
-        .replace(/`([^`]+)`/g, '$1')        // `code` → code
-        .replace(/\n{3,}/g, '\n\n')         // collapse multiple newlines
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/#{1,6}\s?/g, '')
+        .replace(/^[-*+]\s/gm, '• ')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/\n{3,}/g, '\n\n')
         .trim();
+}
+
+function formatFileSize(sizeBytes: number) {
+    if (sizeBytes < 1024 * 1024) {
+        return `${Math.round(sizeBytes / 102.4) / 10} KB`;
+    }
+
+    return `${Math.round(sizeBytes / 104857.6) / 10} MB`;
+}
+
+function readImageAsDataUrl(file: File) {
+    return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+        reader.onerror = () => reject(new Error('Gagal membaca file gambar.'));
+        reader.readAsDataURL(file);
+    });
 }
 
 export function AIChatBubble() {
@@ -55,9 +85,13 @@ export function AIChatBubble() {
     const [draftItems, setDraftItems] = useState<DraftItem[]>([]);
     const [showDraft, setShowDraft] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [attachment, setAttachment] = useState<ImageAttachment | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const abortRef = useRef<AbortController | null>(null);
+
+    const isPanelVisible = isOpen && !isMinimized;
 
     useEffect(() => {
         try {
@@ -90,12 +124,18 @@ export function AIChatBubble() {
     }, [messages, showDraft]);
 
     useEffect(() => {
-        if (isOpen && !isMinimized && inputRef.current) {
-            setTimeout(() => inputRef.current?.focus(), 300);
+        if (isPanelVisible && inputRef.current) {
+            setTimeout(() => inputRef.current?.focus(), 250);
         }
-    }, [isOpen, isMinimized]);
+    }, [isPanelVisible]);
 
     const toggleOpen = useCallback(() => {
+        if (isOpen && isMinimized) {
+            setIsMinimized(false);
+            setUnreadCount(0);
+            return;
+        }
+
         if (isOpen) {
             setIsOpen(false);
             setIsMinimized(false);
@@ -104,43 +144,98 @@ export function AIChatBubble() {
             setIsMinimized(false);
             setUnreadCount(0);
         }
-    }, [isOpen]);
+    }, [isMinimized, isOpen]);
+
+    async function handleAttachmentChange(event: React.ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            toast.error('Yang didukung hanya file gambar.');
+            return;
+        }
+
+        if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+            toast.error('Ukuran gambar maksimal 4MB agar analisa tetap ringan.');
+            return;
+        }
+
+        try {
+            const dataUrl = await readImageAsDataUrl(file);
+            if (!dataUrl) {
+                toast.error('Gagal membaca gambar.');
+                return;
+            }
+
+            setAttachment({
+                name: file.name,
+                mimeType: file.type,
+                dataUrl,
+                sizeBytes: file.size,
+            });
+        } catch {
+            toast.error('Gagal menyiapkan gambar untuk analisa.');
+        }
+    }
 
     async function handleSubmit(e?: React.FormEvent) {
         e?.preventDefault();
-        if (isSubmitting || !input.trim()) return;
+        if (isSubmitting || (!input.trim() && !attachment)) return;
         setIsSubmitting(true);
+
+        const conversation = messages
+            .filter((message) => !message.isStreaming)
+            .slice(-8)
+            .map((message) => ({
+                role: message.role,
+                content: message.content,
+            }));
+
+        const normalizedInput = input.trim() || 'Tolong analisa gambar ini dan jelaskan secara ringkas.';
+        const attachmentForRequest = attachment;
+        const userBubbleContent = attachmentForRequest
+            ? `${normalizedInput}\n\n[📷 Gambar terlampir untuk dianalisis]`
+            : normalizedInput;
 
         const userMsg: Message = {
             role: 'user',
-            content: input.trim(),
+            content: userBubbleContent,
             timestamp: new Date().toISOString(),
         };
-        setMessages((prev) => [...prev, userMsg]);
-        setInput('');
 
-        // Add a placeholder assistant message for streaming
         const placeholderMsg: Message = {
             role: 'assistant',
             content: '',
             timestamp: new Date().toISOString(),
             isStreaming: true,
         };
-        setMessages((prev) => [...prev, placeholderMsg]);
 
-        // Abort controller for cancellation
+        setMessages((prev) => [...prev, userMsg, placeholderMsg]);
+        setInput('');
+        setAttachment(null);
+
         abortRef.current = new AbortController();
 
         try {
             const res = await fetch('/api/ai/command', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ input: userMsg.content }),
+                body: JSON.stringify({
+                    input: normalizedInput,
+                    conversation,
+                    attachment: attachmentForRequest
+                        ? {
+                              name: attachmentForRequest.name,
+                              mimeType: attachmentForRequest.mimeType,
+                              dataUrl: attachmentForRequest.dataUrl,
+                          }
+                        : null,
+                }),
                 signal: abortRef.current.signal,
             });
 
             if (!res.ok) {
-                // Non-streaming error response
                 const errData = await res.json().catch(() => ({ error: 'Terjadi kesalahan' }));
                 setMessages((prev) => {
                     const updated = [...prev];
@@ -160,7 +255,6 @@ export function AIChatBubble() {
             const contentType = res.headers.get('content-type') || '';
 
             if (contentType.includes('text/event-stream')) {
-                // ── Streaming SSE Response ──
                 const reader = res.body?.getReader();
                 if (!reader) throw new Error('No response body');
 
@@ -184,8 +278,6 @@ export function AIChatBubble() {
                             const event = JSON.parse(jsonStr);
 
                             if (event.type === 'token') {
-                                // Accumulate tokens silently — don't show raw JSON to user
-                                // Just keep the "thinking" animation active
                                 setMessages((prev) => {
                                     const updated = [...prev];
                                     const lastIdx = updated.length - 1;
@@ -199,7 +291,6 @@ export function AIChatBubble() {
                                     return updated;
                                 });
                             } else if (event.type === 'complete') {
-                                // Finalize the assistant message with ai_message
                                 const aiMessage = stripMarkdown(
                                     event.response?.ai_message || 'Draft telah dibuat. Silakan review dan simpan.'
                                 );
@@ -215,7 +306,6 @@ export function AIChatBubble() {
                                     return updated;
                                 });
 
-                                // Process draft items
                                 if (event.items && event.items.length > 0) {
                                     const drafts: DraftItem[] = event.items.map(
                                         (item: AIResponseItem & { detail: string }) => ({
@@ -253,7 +343,6 @@ export function AIChatBubble() {
                     }
                 }
 
-                // Ensure streaming flag is cleared
                 setMessages((prev) => {
                     const updated = [...prev];
                     const lastIdx = updated.length - 1;
@@ -263,7 +352,6 @@ export function AIChatBubble() {
                     return updated;
                 });
             } else {
-                // ── Non-streaming JSON fallback ──
                 const data = await res.json();
 
                 if (data.error) {
@@ -312,7 +400,6 @@ export function AIChatBubble() {
             }
         } catch (err) {
             if (err instanceof DOMException && err.name === 'AbortError') {
-                // User cancelled — clean up
                 setMessages((prev) => {
                     const updated = [...prev];
                     const lastIdx = updated.length - 1;
@@ -366,6 +453,7 @@ export function AIChatBubble() {
         setDraftItems([]);
         setShowDraft(false);
         setUnreadCount(0);
+        setAttachment(null);
         try {
             window.sessionStorage.removeItem(HISTORY_STORAGE_KEY);
         } catch {
@@ -389,7 +477,6 @@ export function AIChatBubble() {
             },
         ]);
 
-        // Invalidate SWR caches for affected modules
         import('swr').then(({ mutate }) => {
             mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/tasks'));
             mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/notes'));
@@ -401,37 +488,42 @@ export function AIChatBubble() {
 
     return (
         <>
-            {/* ── Chat Panel ── */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAttachmentChange}
+            />
+
             <div
                 className={cn(
-                    'fixed bottom-24 right-6 z-50 flex flex-col',
-                    'w-[400px] max-h-[600px]',
-                    'rounded-2xl border border-border',
-                    'bg-card/95 backdrop-blur-xl',
-                    'shadow-2xl shadow-black/10 dark:shadow-black/30',
-                    'transition-all duration-300 ease-out',
-                    'origin-bottom-right',
-                    isOpen && !isMinimized
+                    'fixed inset-x-3 bottom-20 z-50 flex flex-col overflow-hidden',
+                    'max-h-[calc(100vh-7rem)] rounded-2xl border border-border bg-card/95 backdrop-blur-xl',
+                    'shadow-2xl shadow-black/10 dark:shadow-black/30 transition-all duration-300 ease-out',
+                    'origin-bottom-right sm:inset-x-auto sm:bottom-24 sm:right-6 sm:w-[400px] sm:max-h-[600px]',
+                    isPanelVisible
                         ? 'scale-100 opacity-100 translate-y-0 pointer-events-auto'
                         : 'scale-95 opacity-0 translate-y-4 pointer-events-none'
                 )}
             >
-                {/* ─── Header ─── */}
-                <div className="flex items-center gap-3 px-5 py-4 border-b border-border/60">
-                    <div className="relative">
-                        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary/20 to-emerald-300/20 dark:from-primary/30 dark:to-emerald-400/20 flex items-center justify-center">
+                <div className="flex items-start gap-3 border-b border-border/60 px-4 py-4 sm:px-5">
+                    <div className="relative shrink-0">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-emerald-300/20 dark:from-primary/30 dark:to-emerald-400/20">
                             <Sparkles className="h-4.5 w-4.5 text-primary" />
                         </div>
-                        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-card">
-                            <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-50" />
+                        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
+                            <span className="absolute inset-0 rounded-full bg-emerald-400 opacity-50 animate-ping" />
                         </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-foreground leading-tight">
+                    <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-semibold leading-tight text-foreground">
                             Asisten Pribadi
                         </h3>
-                        <p className="text-[11px] text-muted-foreground">
-                            {isSubmitting ? 'Sedang menyusun jawaban dan draft...' : 'Bisa bantu task, agenda, catatan, dan ide cepat'}
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                            {isSubmitting
+                                ? 'Sedang menganalisis, berdiskusi, atau menyusun draft...'
+                                : 'Bisa diajak diskusi, analisa gambar, atau bantu task, agenda, catatan, dan link vault'}
                         </p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -444,14 +536,14 @@ export function AIChatBubble() {
                         </button>
                         <button
                             onClick={() => setIsMinimized(true)}
-                            className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
                             aria-label="Minimize"
                         >
                             <Minus className="h-4 w-4" />
                         </button>
                         <button
                             onClick={toggleOpen}
-                            className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
                             aria-label="Close"
                         >
                             <X className="h-4 w-4" />
@@ -459,33 +551,31 @@ export function AIChatBubble() {
                     </div>
                 </div>
 
-                {/* ─── Messages Area ─── */}
                 <div
                     ref={scrollRef}
-                    className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-[200px] max-h-[340px] scrollbar-thin"
+                    className="min-h-[180px] flex-1 space-y-3 overflow-y-auto px-3 py-4 scrollbar-thin sm:max-h-[340px] sm:px-4"
                 >
-                    {/* Empty state */}
                     {messages.length === 0 && (
-                        <div className="flex flex-col items-center justify-center h-full text-center py-8">
-                            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/15 to-emerald-300/15 flex items-center justify-center mb-3">
+                        <div className="flex h-full flex-col items-center justify-center py-8 text-center">
+                            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-emerald-300/15">
                                 <Sparkles className="h-7 w-7 text-primary" />
                             </div>
-                            <h3 className="text-sm font-semibold text-foreground mb-1">
-                                Halo, mau dibantu yang mana dulu?
+                            <h3 className="mb-1 text-sm font-semibold text-foreground">
+                                Halo, mau ngobrol atau bikin apa dulu?
                             </h3>
-                            <p className="text-xs text-muted-foreground max-w-[280px] leading-relaxed">
-                                Tulis seperti kamu ngobrol biasa. Saya bantu pecah jadi task, agenda, catatan, atau draft yang siap disimpan.
+                            <p className="max-w-[280px] text-xs leading-relaxed text-muted-foreground">
+                                Kamu bisa diskusi biasa, kirim gambar untuk dianalisis, atau minta saya bantu pecah jadi task, agenda, catatan, dan draft link vault.
                             </p>
-                            <div className="mt-4 flex flex-wrap gap-1.5 justify-center">
+                            <div className="mt-4 flex flex-wrap justify-center gap-1.5">
                                 {[
                                     'Besok jam 10 meeting klien',
-                                    'Catat ide hook FOMO TikTok',
-                                    'Upload RPS Algoritma',
+                                    'Bantu susun ide konten dari topik AI',
+                                    'Simpan link jurnal ini ke vault',
                                 ].map((suggestion) => (
                                     <button
                                         key={suggestion}
                                         onClick={() => setInput(suggestion)}
-                                        className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all duration-200"
+                                        className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-[11px] text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
                                     >
                                         {suggestion}
                                     </button>
@@ -494,33 +584,32 @@ export function AIChatBubble() {
                         </div>
                     )}
 
-                    {/* Message bubbles */}
                     {messages.map((msg, i) => (
                         <div
-                            key={i}
+                            key={`${msg.timestamp}-${i}`}
                             className={cn(
                                 'flex gap-2.5 animate-in fade-in-0 slide-in-from-bottom-2 duration-300',
                                 msg.role === 'user' ? 'justify-end' : 'justify-start'
                             )}
                         >
                             {msg.role === 'assistant' && (
-                                <div className="h-7 w-7 shrink-0 rounded-full bg-gradient-to-br from-primary/20 to-emerald-300/20 flex items-center justify-center mt-0.5">
+                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-emerald-300/20">
                                     <Bot className="h-3.5 w-3.5 text-primary" />
                                 </div>
                             )}
 
                             <div
                                 className={cn(
-                                    'max-w-[78%] px-3.5 py-2.5 text-[13px] leading-relaxed',
+                                    'max-w-[85%] px-3.5 py-2.5 text-[13px] leading-relaxed sm:max-w-[78%]',
                                     msg.role === 'user'
-                                        ? 'bg-primary text-primary-foreground rounded-2xl rounded-br-md shadow-sm shadow-primary/20'
-                                        : 'bg-muted/80 text-foreground rounded-2xl rounded-bl-md border border-border/50'
+                                        ? 'rounded-2xl rounded-br-md bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                                        : 'rounded-2xl rounded-bl-md border border-border/50 bg-muted/80 text-foreground'
                                 )}
                             >
-                                <p className="whitespace-pre-wrap">
+                                <p className="whitespace-pre-wrap break-words">
                                     {msg.content}
                                     {msg.isStreaming && (
-                                        <span className="inline-block w-1.5 h-4 ml-0.5 bg-primary/70 animate-pulse rounded-sm align-text-bottom" />
+                                        <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary/70 align-text-bottom" />
                                     )}
                                 </p>
                                 {!msg.isStreaming && (
@@ -538,7 +627,7 @@ export function AIChatBubble() {
                             </div>
 
                             {msg.role === 'user' && (
-                                <div className="h-7 w-7 shrink-0 rounded-full bg-muted border border-border flex items-center justify-center mt-0.5">
+                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-muted">
                                     <User className="h-3.5 w-3.5 text-muted-foreground" />
                                 </div>
                             )}
@@ -546,7 +635,6 @@ export function AIChatBubble() {
                     ))}
                 </div>
 
-                {/* ─── Draft Preview ─── */}
                 {showDraft && draftItems.length > 0 && (
                     <DraftPreview
                         items={draftItems}
@@ -555,78 +643,124 @@ export function AIChatBubble() {
                     />
                 )}
 
-                {/* ─── Input Area ─── */}
                 <form onSubmit={handleSubmit} className="border-t border-border/60 p-3">
-                    <div className="relative flex items-end gap-2 rounded-xl bg-muted/50 border border-border/60 p-1.5 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10 transition-all duration-200">
-                        <textarea
-                            ref={inputRef}
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Ketik perintah, ide, atau URL..."
-                            rows={1}
-                            className="max-h-24 min-h-[36px] flex-1 resize-none bg-transparent px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
-                        />
-                        <button
-                            type="submit"
-                            disabled={isSubmitting || !input.trim()}
-                            className={cn(
-                                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200',
-                                input.trim()
-                                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/25'
-                                    : 'bg-transparent text-muted-foreground/40'
-                            )}
-                        >
-                            {isSubmitting ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Send className="h-3.5 w-3.5" />
-                            )}
-                        </button>
-                    </div>
-                    <div className="mt-1.5 flex items-center justify-between gap-2">
-                        <p className="text-[10px] text-muted-foreground/50">
-                            Enter untuk kirim · Shift+Enter untuk baris baru
-                        </p>
-                        {isSubmitting && (
+                    {attachment && (
+                        <div className="mb-2 rounded-xl border border-primary/20 bg-primary/[0.04] p-2.5">
+                            <div className="flex items-start gap-3">
+                                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-border/60">
+                                    <Image
+                                        src={attachment.dataUrl}
+                                        alt={attachment.name}
+                                        fill
+                                        sizes="56px"
+                                        className="object-cover"
+                                        unoptimized
+                                    />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-xs font-medium text-foreground">{attachment.name}</p>
+                                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                        {formatFileSize(attachment.sizeBytes)} · Hanya dianalisa sekali, tidak disimpan
+                                    </p>
+                                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                                        Kalau mau masuk vault, kirim link-nya. Upload gambar di sini hanya untuk diskusi atau analisa cepat.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setAttachment(null)}
+                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                    aria-label="Hapus gambar"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="rounded-xl border border-border/60 bg-muted/50 p-1.5 transition-all duration-200 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
+                        <div className="flex items-end gap-2">
+                            <textarea
+                                ref={inputRef}
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Ketik pertanyaan, ide, perintah, atau link..."
+                                rows={1}
+                                className="min-h-[36px] max-h-28 flex-1 resize-none bg-transparent px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                            />
                             <button
-                                type="button"
-                                onClick={handleCancelRequest}
-                                className="text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                                type="submit"
+                                disabled={isSubmitting || (!input.trim() && !attachment)}
+                                className={cn(
+                                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200',
+                                    input.trim() || attachment
+                                        ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90'
+                                        : 'bg-transparent text-muted-foreground/40'
+                                )}
                             >
-                                Batalkan
+                                {isSubmitting ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Send className="h-3.5 w-3.5" />
+                                )}
                             </button>
-                        )}
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+                                >
+                                    <ImagePlus className="h-3.5 w-3.5" />
+                                    Analisa gambar
+                                </button>
+                                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70">
+                                    <Link2 className="h-3 w-3" />
+                                    Vault di chat hanya menerima link
+                                </span>
+                            </div>
+                            {isSubmitting && (
+                                <button
+                                    type="button"
+                                    onClick={handleCancelRequest}
+                                    className="text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                                >
+                                    Batalkan
+                                </button>
+                            )}
+                        </div>
                     </div>
+
+                    <p className="mt-1.5 text-[10px] text-muted-foreground/50">
+                        Enter untuk kirim · Shift+Enter untuk baris baru
+                    </p>
                 </form>
             </div>
 
-            {/* ── Floating Action Button (FAB) ── */}
             <button
                 onClick={toggleOpen}
-                aria-label={isOpen ? 'Close AI Chat' : 'Open AI Chat'}
+                aria-label={isPanelVisible ? 'Close AI Chat' : 'Open AI Chat'}
                 className={cn(
-                    'fixed bottom-6 right-6 z-50',
-                    'h-14 w-14 rounded-full',
-                    'flex items-center justify-center',
-                    'shadow-xl transition-all duration-300 ease-out',
-                    'group',
-                    isOpen
-                        ? 'bg-muted text-foreground border border-border hover:bg-muted/80 shadow-lg shadow-black/5 dark:shadow-black/20'
-                        : 'bg-gradient-to-br from-primary to-emerald-600 dark:from-primary dark:to-emerald-500 text-primary-foreground hover:scale-105 hover:shadow-2xl hover:shadow-primary/30 active:scale-95'
+                    'fixed bottom-6 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-xl transition-all duration-300 ease-out group sm:right-6',
+                    isPanelVisible
+                        ? 'border border-border bg-muted text-foreground shadow-lg shadow-black/5 hover:bg-muted/80 dark:shadow-black/20'
+                        : 'bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground hover:scale-105 hover:shadow-2xl hover:shadow-primary/30 active:scale-95 dark:from-primary dark:to-emerald-500'
                 )}
             >
-                {isOpen ? (
+                {isPanelVisible ? (
                     <X className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />
                 ) : (
                     <>
                         <MessageCircle className="h-6 w-6 transition-transform group-hover:scale-110" />
                         {unreadCount > 0 && (
-                            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-sm animate-in zoom-in-50">
+                            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm animate-in zoom-in-50">
                                 {unreadCount > 9 ? '9+' : unreadCount}
                             </span>
                         )}
-                        <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping opacity-30 pointer-events-none" />
+                        <span className="pointer-events-none absolute inset-0 rounded-full bg-primary/20 opacity-30 animate-ping" />
                     </>
                 )}
             </button>

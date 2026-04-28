@@ -16,7 +16,12 @@ const OPENCODE_MODEL = process.env.OPENCODE_MODEL || 'minimax-m2.5'
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
-  content: string
+  content:
+    | string
+    | Array<
+        | { type: 'text'; text: string }
+        | { type: 'image_url'; image_url: { url: string; detail?: 'auto' | 'low' | 'high' } }
+      >
 }
 
 interface OpenCodeResponse {
