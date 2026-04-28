@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Clock, GraduationCap, MessageCircleMore, Rss } from 'lucide-react';
+import { ArrowRight, Clock, GraduationCap, Rss } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { createServerClient } from '@/lib/supabase/server';
@@ -9,21 +9,22 @@ import { getDashboardLoginUrl } from '@/lib/app-routing';
 import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-routing';
 import { PublicSubscribeForm } from '@/components/modules/blog/PublicSubscribeForm';
 
-const SOCIAL_LINKS = [
+const SERVICE_OFFERS = [
   {
-    label: 'Instagram',
-    value: '@zmaula',
-    href: 'https://instagram.com/zmaula',
+    title: 'System Integrator',
+    description: 'Untuk bisnis yang ingin merapikan alur kerja dan menghubungkan teknologi ke proses operasionalnya.',
   },
   {
-    label: 'Threads',
-    value: '@zmaula',
-    href: 'https://www.threads.net/@zmaula',
+    title: 'Konsultan Bisnis Digital',
+    description: 'Sesi diskusi untuk strategi digitalisasi, pertumbuhan bisnis, dan arah eksekusi yang lebih rapi.',
   },
   {
-    label: 'WhatsApp',
-    value: '085156680447',
-    href: 'https://wa.me/6285156680447',
+    title: 'Web App untuk Bisnis',
+    description: 'Membantu merancang dan membangun aplikasi internal atau tools kerja yang benar-benar dipakai.',
+  },
+  {
+    title: 'Digital Marketing',
+    description: 'Pendampingan untuk pemasaran digital yang lebih terarah, terukur, dan selaras dengan tujuan bisnis.',
   },
 ] as const;
 
@@ -65,49 +66,39 @@ export default async function PublicBlogHome() {
   return (
     <div className="space-y-10 pb-10 md:space-y-14">
       <section className="border-b border-border/70 pb-8">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-end">
-          <div className="space-y-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              <GraduationCap className="h-3.5 w-3.5" />
-              Blog
-            </div>
-
-            <div className="space-y-3">
-              <h1 className="max-w-4xl text-4xl font-black tracking-tight text-foreground md:text-6xl md:leading-[1.04]">
-                Ziaul Maula, SE, M.Si
-              </h1>
-              <p className="max-w-3xl text-[16px] leading-8 text-muted-foreground md:text-[17px]">
-                Dosen Fakultas Ekonomi dan Bisnis UNSAM. Menulis tentang bisnis digital, pemasaran digital,
-                e-business, web app, dan hal-hal yang sedang saya pelajari.
-              </p>
-            </div>
+        <div className="space-y-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+            <GraduationCap className="h-3.5 w-3.5" />
+            Blog
           </div>
 
-          <div className="rounded-[28px] border border-border/70 bg-card p-5 shadow-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Tentang Singkat
+          <div className="space-y-3">
+            <h1 className="max-w-4xl text-4xl font-black tracking-tight text-foreground md:text-6xl md:leading-[1.04]">
+              Ziaul Maula, SE, M.Si
+            </h1>
+            <p className="max-w-3xl text-[16px] leading-8 text-muted-foreground md:text-[17px]">
+              Dosen Fakultas Ekonomi dan Bisnis UNSAM. Saya menulis tentang bisnis digital, pemasaran digital,
+              e-business, web app, dan hal-hal yang sedang saya pelajari.
             </p>
-            <p className="mt-3 text-[14px] leading-7 text-muted-foreground">
-              Halaman ini adalah rumah untuk tulisan, catatan, dan ide yang ingin saya simpan terbuka.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                href={dashboardLoginUrl}
-                className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-background px-3.5 py-2 text-[12px] font-semibold text-foreground transition hover:bg-muted"
-              >
-                Masuk Dashboard
-                <ArrowRight className="h-3.5 w-3.5" />
-              </a>
-              <a
-                href="/api/public/rss"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-background px-3.5 py-2 text-[12px] font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              >
-                <Rss className="h-3.5 w-3.5" />
-                RSS
-              </a>
-            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={dashboardLoginUrl}
+              className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-background px-3.5 py-2 text-[12px] font-semibold text-foreground transition hover:bg-muted"
+            >
+              Masuk Dashboard
+              <ArrowRight className="h-3.5 w-3.5" />
+            </a>
+            <a
+              href="/api/public/rss"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-background px-3.5 py-2 text-[12px] font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
+              <Rss className="h-3.5 w-3.5" />
+              RSS
+            </a>
           </div>
         </div>
       </section>
@@ -204,29 +195,6 @@ export default async function PublicBlogHome() {
                 Saya mengajar Pemasaran Digital dan E-Business di FEB UNSAM, sambil tetap aktif di
                 digital marketing, sistem kerja digital, dan pengembangan web app.
               </p>
-            </div>
-
-            <div className="rounded-[28px] border border-border/70 bg-card p-5 shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                Temui Saya
-              </p>
-              <div className="mt-4 space-y-3">
-                {SOCIAL_LINKS.map((item) => (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 px-4 py-3 text-[13px] transition hover:bg-muted/50"
-                  >
-                    <div className="flex items-center gap-2 text-foreground">
-                      <MessageCircleMore className="h-4 w-4" />
-                      <span className="font-semibold">{item.label}</span>
-                    </div>
-                    <span className="text-muted-foreground">{item.value}</span>
-                  </a>
-                ))}
-              </div>
             </div>
           </aside>
         </section>
@@ -328,6 +296,39 @@ export default async function PublicBlogHome() {
             </div>
           </div>
         </aside>
+      </section>
+
+      <section className="border-t border-border/70 pt-10">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+              Open Commission
+            </p>
+            <h2 className="text-3xl font-black tracking-tight text-foreground">
+              Saya juga membuka kerja kolaboratif
+            </h2>
+            <p className="max-w-3xl text-[15px] leading-8 text-muted-foreground">
+              Kalau kamu butuh partner untuk digitalisasi bisnis, membangun web app, atau menata sistem kerja digital,
+              saya membuka beberapa bentuk kerja yang relevan.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {SERVICE_OFFERS.map((service) => (
+              <div
+                key={service.title}
+                className="rounded-[24px] border border-border/70 bg-card p-5 shadow-sm"
+              >
+                <h3 className="text-[18px] font-bold tracking-tight text-foreground">
+                  {service.title}
+                </h3>
+                <p className="mt-3 text-[14px] leading-7 text-muted-foreground">
+                  {service.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
     </div>
   );
