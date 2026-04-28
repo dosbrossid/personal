@@ -1,6 +1,16 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Briefcase, Clock, GraduationCap, Megaphone, Monitor, Rss, Workflow } from 'lucide-react';
+import {
+  ArrowRight,
+  Briefcase,
+  Clock,
+  GraduationCap,
+  Megaphone,
+  Monitor,
+  Rss,
+  Sparkles,
+  Workflow,
+} from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { createServerClient } from '@/lib/supabase/server';
@@ -13,23 +23,35 @@ import { PublicSubscribeForm } from '@/components/modules/blog/PublicSubscribeFo
 const SERVICE_OFFERS = [
   {
     title: 'System Integrator',
-    description: 'Untuk bisnis yang ingin merapikan alur kerja dan menghubungkan teknologi ke proses operasionalnya.',
+    description:
+      'Untuk bisnis yang ingin merapikan alur kerja dan menghubungkan teknologi ke proses operasionalnya.',
     icon: Workflow,
+    gradient: 'from-emerald-500/20 to-cyan-500/20',
+    iconColor: 'text-emerald-500',
   },
   {
     title: 'Konsultan Bisnis Digital',
-    description: 'Sesi diskusi untuk strategi digitalisasi, pertumbuhan bisnis, dan arah eksekusi yang lebih rapi.',
+    description:
+      'Sesi diskusi untuk strategi digitalisasi, pertumbuhan bisnis, dan arah eksekusi yang lebih rapi.',
     icon: Briefcase,
+    gradient: 'from-violet-500/20 to-indigo-500/20',
+    iconColor: 'text-violet-500',
   },
   {
     title: 'Web App untuk Bisnis',
-    description: 'Membantu merancang dan membangun aplikasi internal atau tools kerja yang benar-benar dipakai.',
+    description:
+      'Membantu merancang dan membangun aplikasi internal atau tools kerja yang benar-benar dipakai.',
     icon: Monitor,
+    gradient: 'from-blue-500/20 to-cyan-500/20',
+    iconColor: 'text-blue-500',
   },
   {
     title: 'Digital Marketing',
-    description: 'Pendampingan untuk pemasaran digital yang lebih terarah, terukur, dan selaras dengan tujuan bisnis.',
+    description:
+      'Pendampingan untuk pemasaran digital yang lebih terarah, terukur, dan selaras dengan tujuan bisnis.',
     icon: Megaphone,
+    gradient: 'from-amber-500/20 to-orange-500/20',
+    iconColor: 'text-amber-500',
   },
 ] as const;
 
@@ -97,298 +119,354 @@ export default async function PublicBlogHome() {
   const morePosts = latestPosts.filter((post) => post.id !== featuredPost?.id);
 
   return (
-    <div className="space-y-12 pb-12 md:space-y-16">
-      <section className="border-b border-border/70 pb-10 md:pb-12">
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-end">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-            <GraduationCap className="h-3.5 w-3.5" />
-            Blog
+    <div className="relative overflow-hidden">
+      {/* ── Decorative gradient orbs ── */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+        aria-hidden="true"
+      >
+        <div className="absolute -right-32 -top-32 h-[500px] w-[500px] rounded-full bg-[var(--accent-cyan)] opacity-[0.08] blur-[120px]" />
+        <div className="absolute -left-48 top-[700px] h-[420px] w-[420px] rounded-full bg-primary opacity-[0.07] blur-[110px]" />
+        <div className="absolute right-0 top-[1500px] h-[380px] w-[380px] rounded-full bg-[var(--accent-violet)] opacity-[0.06] blur-[100px]" />
+      </div>
+
+      <div className="relative space-y-16 pb-16 md:space-y-24">
+        {/* ═══════════════════════════════════════════
+            HERO SECTION
+        ═══════════════════════════════════════════ */}
+        <section className="pt-8 md:pt-20">
+          <div className="mx-auto max-w-4xl text-center">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2.5 rounded-full border border-primary/20 bg-primary/[0.06] px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.2em] text-primary">
+              <GraduationCap className="h-4 w-4" />
+              Blog · Bisnis Digital
             </div>
 
-            <div className="space-y-4">
-              <h1 className="max-w-5xl text-4xl font-black tracking-[-0.04em] text-foreground md:text-[4.5rem] md:leading-[0.98]">
-                Catatan, ide, dan proses belajar saya di dunia bisnis digital.
-              </h1>
-              <p className="max-w-3xl text-[17px] leading-8 text-muted-foreground md:text-[18px]">
-                Saya Ziaul Maula, SE, M.Si, dosen Fakultas Ekonomi dan Bisnis UNSAM. Di sini saya menulis tentang
-                pemasaran digital, e-business, web app, sistem kerja digital, dan hal-hal yang sedang saya pelajari.
-              </p>
-            </div>
+            {/* Headline */}
+            <h1 className="mt-8 text-[2.75rem] font-black leading-[1.08] tracking-[-0.04em] md:text-[4.5rem] lg:text-[5.5rem]">
+              <span className="gradient-text-hero">Catatan, ide,</span>
+              <br />
+              <span className="text-foreground">dan proses belajar saya.</span>
+            </h1>
 
-            <div className="flex flex-wrap gap-3">
+            {/* Subheading */}
+            <p className="mx-auto mt-7 max-w-2xl text-[17px] leading-[1.85] text-muted-foreground md:text-[18px]">
+              Saya{' '}
+              <span className="font-semibold text-foreground">
+                Ziaul Maula, SE, M.Si
+              </span>{' '}
+              — dosen Fakultas Ekonomi dan Bisnis UNSAM. Di sini saya menulis
+              tentang pemasaran digital, e-business, web app, sistem kerja
+              digital, dan hal-hal yang sedang saya pelajari.
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <a
-                href={dashboardLoginUrl}
-                className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-foreground px-5 py-2.5 text-[13px] font-semibold text-background transition hover:opacity-90"
+                href="#latest-articles"
+                className="cta-glow group inline-flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-primary to-[var(--accent-cyan)] px-8 py-4 text-[14px] font-bold text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/35"
               >
-                Masuk Dashboard
-                <ArrowRight className="h-3.5 w-3.5" />
+                Jelajahi Tulisan
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </a>
               <a
-                href="/api/public/rss"
+                href="https://wa.me/6285156680447"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-border/70 px-5 py-2.5 text-[13px] font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                className="inline-flex items-center gap-2.5 rounded-2xl border border-border bg-card px-8 py-4 text-[14px] font-bold text-foreground shadow-sm transition-all duration-300 hover:border-primary/30 hover:bg-muted hover:shadow-md"
               >
-                <Rss className="h-3.5 w-3.5" />
-                RSS
+                Hubungi Saya
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </a>
             </div>
           </div>
-
-          <div className="border-l border-border/70 pl-0 xl:pl-8">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Tentang
-            </p>
-            <p className="mt-3 text-[15px] leading-8 text-muted-foreground">
-              Blog ini adalah tempat saya menyusun tulisan yang lebih rapi dari apa yang biasanya hanya lewat
-              kepala, chat, atau catatan kerja sehari-hari.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-4 border-b border-border/70 pb-8">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-[12px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-            Kategori
-          </h2>
-          <span className="text-[12px] text-muted-foreground">{latestPosts.length} tulisan terbaru</span>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={withPublicBlogBase(blogBasePath, '/')}
-            className="rounded-full border border-border/70 bg-foreground px-4 py-2 text-[13px] font-semibold text-background transition hover:opacity-90"
-          >
-            Semua
-          </Link>
-          {blogTags.map((tag) => (
-            <Link
-              key={tag.id}
-              href={withPublicBlogBase(blogBasePath, `/tag/${tag.slug}`)}
-              className="rounded-full border border-border/70 bg-background px-4 py-2 text-[13px] font-semibold text-foreground transition hover:border-foreground/30 hover:bg-muted"
-            >
-              {tag.name}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {featuredPost && (
-        <section className="grid gap-10 border-b border-border/70 pb-12 xl:grid-cols-[minmax(0,1.15fr)_360px]">
-          <Link
-            href={withPublicBlogBase(blogBasePath, `/${featuredPost.slug}`)}
-            className="group grid gap-8 xl:grid-cols-[minmax(0,0.92fr)_minmax(380px,0.78fr)]"
-          >
-            <div className="order-2 flex flex-col justify-between space-y-6 xl:order-1">
-              <div className="space-y-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                  Tulisan Pilihan
-                </p>
-                <h2 className="max-w-3xl text-3xl font-black leading-tight tracking-[-0.04em] text-foreground md:text-[3.5rem]">
-                  {featuredPost.title}
-                </h2>
-                <p className="max-w-3xl text-[16px] leading-8 text-muted-foreground">
-                  {featuredPost.excerpt}
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {featuredPost.tags?.slice(0, 3).map((tag) => (
-                    <span
-                      key={tag.id}
-                      className="rounded-full border border-border/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
-                    >
-                      {tag.name}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 text-[12px] text-muted-foreground">
-                  <span>
-                    {featuredPost.published_at
-                      ? format(parseISO(featuredPost.published_at), 'd MMMM yyyy', { locale: id })
-                      : ''}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {featuredPost.reading_time_minutes} menit baca
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="order-1 relative aspect-[16/10] overflow-hidden rounded-[28px] bg-muted xl:order-2">
-              {featuredPost.featured_image_url ? (
-                <Image
-                  src={featuredPost.featured_image_url}
-                  alt={featuredPost.featured_image_alt || featuredPost.title}
-                  fill
-                  preload
-                  sizes="(max-width: 1279px) 100vw, 42vw"
-                  className="object-cover transition duration-500 group-hover:scale-[1.02]"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_40%),linear-gradient(135deg,_rgba(15,23,42,0.04),_rgba(15,23,42,0.12))]" />
-              )}
-            </div>
-          </Link>
-
-          <aside className="border-l border-border/70 pl-0 xl:pl-8">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Fokus
-            </p>
-            <div className="mt-4 space-y-4">
-              <p className="text-[15px] leading-8 text-muted-foreground">
-                Saya mengajar Pemasaran Digital dan E-Business di FEB UNSAM, sambil tetap aktif di digital marketing,
-                sistem kerja digital, dan pengembangan web app.
-              </p>
-              <p className="text-[15px] leading-8 text-muted-foreground">
-                Tulisan-tulisan di sini biasanya lahir dari materi kuliah, eksperimen tools, percakapan bisnis, dan
-                ide yang sedang saya uji.
-              </p>
-            </div>
-          </aside>
         </section>
-      )}
 
-      <section id="latest-articles" className="grid gap-12 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3 border-b border-border/70 pb-4">
+        {/* ═══════════════════════════════════════════
+            CATEGORY TAGS
+        ═══════════════════════════════════════════ */}
+        <section>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-[12px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+              Kategori
+            </h2>
+            <span className="text-[12px] text-muted-foreground/70">
+              {latestPosts.length} tulisan terbaru
+            </span>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2.5">
+            <Link
+              href={withPublicBlogBase(blogBasePath, '/')}
+              className="rounded-full bg-gradient-to-r from-primary to-[var(--accent-cyan)] px-5 py-2.5 text-[13px] font-semibold text-white shadow-md shadow-primary/20 transition hover:shadow-lg hover:shadow-primary/30"
+            >
+              Semua
+            </Link>
+            {blogTags.map((tag) => (
+              <Link
+                key={tag.id}
+                href={withPublicBlogBase(blogBasePath, `/tag/${tag.slug}`)}
+                className="rounded-full border border-border/70 bg-card px-5 py-2.5 text-[13px] font-semibold text-foreground shadow-sm transition-all duration-200 hover:border-primary/40 hover:bg-primary/[0.06] hover:text-primary"
+              >
+                {tag.name}
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════
+            FEATURED POST
+        ═══════════════════════════════════════════ */}
+        {featuredPost && (
+          <section>
+            <p className="mb-6 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.24em] text-primary">
+              <Sparkles className="h-4 w-4" />
+              Tulisan Pilihan
+            </p>
+
+            <Link
+              href={withPublicBlogBase(blogBasePath, `/${featuredPost.slug}`)}
+              className="blog-card group block overflow-hidden rounded-3xl border border-border/70 bg-card shadow-lg shadow-black/[0.04] dark:shadow-black/[0.15]"
+            >
+              <div className="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                {/* Image */}
+                <div className="relative aspect-[16/10] overflow-hidden bg-muted lg:aspect-auto lg:min-h-[380px]">
+                  {featuredPost.featured_image_url ? (
+                    <Image
+                      src={featuredPost.featured_image_url}
+                      alt={featuredPost.featured_image_alt || featuredPost.title}
+                      fill
+                      preload
+                      sizes="(max-width: 1023px) 100vw, 55vw"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 via-[var(--accent-cyan)]/10 to-[var(--accent-violet)]/10">
+                      <Sparkles className="h-16 w-16 text-primary/30" />
+                    </div>
+                  )}
+                  {/* Subtle gradient overlay on image edge */}
+                  <div className="absolute inset-y-0 right-0 hidden w-24 bg-gradient-to-l from-card to-transparent lg:block" />
+                </div>
+
+                {/* Content */}
+                <div className="flex flex-col justify-center gap-6 p-8 lg:p-10">
+                  <div className="space-y-5">
+                    <h2 className="text-[1.75rem] font-black leading-[1.15] tracking-[-0.03em] text-foreground transition-colors duration-300 group-hover:text-primary md:text-[2.5rem]">
+                      {featuredPost.title}
+                    </h2>
+                    <p className="line-clamp-3 text-[16px] leading-[1.85] text-muted-foreground">
+                      {featuredPost.excerpt}
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-2">
+                      {featuredPost.tags?.slice(0, 3).map((tag) => (
+                        <span
+                          key={tag.id}
+                          className="rounded-full bg-primary/[0.08] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary"
+                        >
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Meta */}
+                    <div className="flex flex-wrap items-center gap-4 text-[13px] text-muted-foreground">
+                      <span>
+                        {featuredPost.published_at
+                          ? format(
+                              parseISO(featuredPost.published_at),
+                              'd MMMM yyyy',
+                              { locale: id }
+                            )
+                          : ''}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
+                        {featuredPost.reading_time_minutes} menit baca
+                      </span>
+                    </div>
+
+                    {/* Read CTA */}
+                    <span className="inline-flex items-center gap-2 text-[14px] font-bold text-primary transition-all duration-300 group-hover:gap-3">
+                      Baca Selengkapnya
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </section>
+        )}
+
+        {/* ═══════════════════════════════════════════
+            LATEST POSTS GRID
+        ═══════════════════════════════════════════ */}
+        <section id="latest-articles">
+          <div className="mb-10 flex items-end justify-between gap-4">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                 Tulisan Terbaru
               </p>
-              <h2 className="mt-2 text-3xl font-black tracking-tight text-foreground">
+              <h2 className="mt-2 text-3xl font-black tracking-tight text-foreground md:text-[2.5rem]">
                 Postingan blog saya
               </h2>
             </div>
           </div>
 
-          <div className="divide-y divide-border/70">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {morePosts.map((post) => (
               <Link
                 key={post.id}
                 href={withPublicBlogBase(blogBasePath, `/${post.slug}`)}
-                className="group grid gap-6 py-7 md:grid-cols-[minmax(0,1fr)_260px]"
+                className="blog-card group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card"
               >
-                <div className="space-y-3">
-                  <div className="flex flex-wrap gap-2">
+                {/* Card Image */}
+                <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+                  {post.featured_image_url ? (
+                    <Image
+                      src={post.featured_image_url}
+                      alt={post.featured_image_alt || post.title}
+                      fill
+                      sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-600 ease-out group-hover:scale-[1.06]"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/[0.06] via-[var(--accent-cyan)]/[0.06] to-[var(--accent-violet)]/[0.06]">
+                      <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                        <Sparkles className="h-5 w-5 text-primary/40" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Content */}
+                <div className="flex flex-1 flex-col gap-3 p-5 pb-6">
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-1.5">
                     {post.tags?.slice(0, 2).map((tag) => (
                       <span
                         key={tag.id}
-                        className="rounded-full border border-border/60 bg-muted/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+                        className="rounded-full bg-primary/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary"
                       >
                         {tag.name}
                       </span>
                     ))}
                   </div>
 
-                  <div className="space-y-2">
-                    <h3 className="text-[28px] font-bold leading-tight tracking-[-0.03em] text-foreground transition group-hover:text-foreground/80">
-                      {post.title}
-                    </h3>
-                    <p className="line-clamp-3 max-w-3xl text-[15px] leading-8 text-muted-foreground">
-                      {post.excerpt}
-                    </p>
-                  </div>
+                  {/* Title */}
+                  <h3 className="text-[18px] font-bold leading-snug tracking-[-0.02em] text-foreground transition-colors duration-200 group-hover:text-primary">
+                    {post.title}
+                  </h3>
 
-                  <div className="flex flex-wrap items-center gap-4 text-[12px] text-muted-foreground">
+                  {/* Excerpt */}
+                  <p className="line-clamp-2 flex-1 text-[14px] leading-relaxed text-muted-foreground">
+                    {post.excerpt}
+                  </p>
+
+                  {/* Meta */}
+                  <div className="mt-auto flex items-center gap-3 border-t border-border/50 pt-4 text-[12px] text-muted-foreground">
                     <span>
                       {post.published_at
-                        ? format(parseISO(post.published_at), 'd MMM yyyy', { locale: id })
+                        ? format(parseISO(post.published_at), 'd MMM yyyy', {
+                            locale: id,
+                          })
                         : ''}
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {post.reading_time_minutes} menit baca
+                      <Clock className="h-3 w-3" />
+                      {post.reading_time_minutes} min
                     </span>
                   </div>
-                </div>
-
-                <div className="relative overflow-hidden rounded-[20px] bg-muted">
-                  {post.featured_image_url ? (
-                    <Image
-                      src={post.featured_image_url}
-                      alt={post.featured_image_alt || post.title}
-                      fill
-                      sizes="(max-width: 767px) 100vw, 260px"
-                      className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                    />
-                  ) : (
-                    <div className="flex h-full min-h-[180px] w-full items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_40%),linear-gradient(135deg,_rgba(15,23,42,0.04),_rgba(15,23,42,0.12))]" />
-                  )}
                 </div>
               </Link>
             ))}
           </div>
-        </div>
+        </section>
 
-        <aside className="space-y-6">
-          <div className="border-l border-border/70 pl-0 xl:pl-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Tentang Blog
-            </p>
-            <p className="mt-3 text-[15px] leading-8 text-muted-foreground">
-              Saya memakai halaman ini untuk menyimpan catatan belajar, ide, eksperimen, dan tulisan
-              yang rasanya layak dibagikan.
-            </p>
-          </div>
-
-          <div id="subscribe" className="border-t border-border/70 pt-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Subscribe
-            </p>
-            <h3 className="mt-3 text-[24px] font-bold tracking-tight text-foreground">
-              Ikuti tulisan terbaru
-            </h3>
-            <p className="mt-2 text-[15px] leading-8 text-muted-foreground">
-              Kalau kamu ingin sesekali menerima update tulisan baru, tinggalkan emailmu di sini.
-            </p>
-            <div className="mt-5">
-              <PublicSubscribeForm sourcePath="/" compact />
-            </div>
-          </div>
-        </aside>
-      </section>
-
-      <section className="border-t border-border/70 pt-10">
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+        {/* ═══════════════════════════════════════════
+            SERVICES / OPEN COMMISSION
+        ═══════════════════════════════════════════ */}
+        <section>
+          <div className="mb-10">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-primary">
               Open Commission
             </p>
-            <h2 className="max-w-3xl text-3xl font-black tracking-[-0.04em] text-foreground md:text-[2.6rem]">
+            <h2 className="mt-2 max-w-3xl text-3xl font-black tracking-[-0.04em] text-foreground md:text-[2.5rem]">
               Saya juga membuka kerja kolaboratif
             </h2>
-            <p className="max-w-3xl text-[15px] leading-8 text-muted-foreground">
-              Kalau kamu butuh partner untuk digitalisasi bisnis, membangun web app, atau menata sistem kerja digital,
-              saya membuka beberapa bentuk kerja yang relevan.
+            <p className="mt-4 max-w-2xl text-[16px] leading-[1.85] text-muted-foreground">
+              Kalau kamu butuh partner untuk digitalisasi bisnis, membangun web
+              app, atau menata sistem kerja digital — saya membuka beberapa
+              bentuk kerja yang relevan.
             </p>
           </div>
 
-          <div className="divide-y divide-border/70 border-y border-border/70">
+          <div className="grid gap-5 sm:grid-cols-2">
             {SERVICE_OFFERS.map((service) => (
               <div
                 key={service.title}
-                className="grid gap-4 py-5 md:grid-cols-[60px_minmax(0,220px)_minmax(0,1fr)] md:items-start"
+                className="service-card group flex gap-5 rounded-2xl border border-border/70 bg-card p-6"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/70 bg-muted/30 text-foreground">
-                  <service.icon className="h-5 w-5" />
+                {/* Icon */}
+                <div
+                  className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${service.gradient}`}
+                >
+                  <service.icon className={`h-6 w-6 ${service.iconColor}`} />
                 </div>
-                <h3 className="text-[18px] font-bold tracking-tight text-foreground">
-                  {service.title}
-                </h3>
-                <p className="text-[14px] leading-7 text-muted-foreground">
-                  {service.description}
-                </p>
+
+                {/* Text */}
+                <div className="space-y-2">
+                  <h3 className="text-[17px] font-bold tracking-tight text-foreground">
+                    {service.title}
+                  </h3>
+                  <p className="text-[14px] leading-relaxed text-muted-foreground">
+                    {service.description}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* ═══════════════════════════════════════════
+            SUBSCRIBE
+        ═══════════════════════════════════════════ */}
+        <section
+          id="subscribe"
+          className="relative overflow-hidden rounded-3xl border border-primary/15 bg-gradient-to-br from-primary/[0.04] via-[var(--accent-cyan)]/[0.03] to-[var(--accent-violet)]/[0.03] p-8 md:p-12"
+        >
+          {/* Decorative orb inside */}
+          <div
+            className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary opacity-[0.06] blur-[80px]"
+            aria-hidden="true"
+          />
+
+          <div className="relative">
+            <div className="flex items-center gap-2 text-primary">
+              <Sparkles className="h-4 w-4" />
+              <p className="text-[12px] font-semibold uppercase tracking-[0.24em]">
+                Subscribe
+              </p>
+            </div>
+
+            <h2 className="mt-3 text-[1.75rem] font-black tracking-tight text-foreground md:text-[2rem]">
+              Ikuti tulisan terbaru
+            </h2>
+            <p className="mt-2 max-w-xl text-[15px] leading-[1.85] text-muted-foreground">
+              Kalau kamu ingin sesekali menerima update tulisan baru, tinggalkan
+              emailmu di sini. Tidak ada spam — hanya notifikasi posting terbaru.
+            </p>
+
+            <div className="mt-8 max-w-3xl">
+              <PublicSubscribeForm sourcePath="/" />
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

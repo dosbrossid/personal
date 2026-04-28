@@ -63,28 +63,46 @@ export default async function BlogLayout({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <nav className="sticky top-0 z-50 border-b border-border/70 bg-background/92 backdrop-blur-xl">
+      {/* ── Top gradient accent line ── */}
+      <div className="gradient-accent-line h-[3px]" />
+
+      {/* ── Navbar ── */}
+      <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-2xl">
         <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-6">
-          <Link href={homeHref} className="flex items-baseline gap-3">
+          <Link href={homeHref} className="flex items-baseline gap-3 transition-opacity hover:opacity-80">
             <span className="text-[17px] font-black tracking-tight text-foreground">Ziaul Maula</span>
-            <span className="hidden text-[12px] text-muted-foreground md:inline">Blog</span>
+            <span className="hidden text-[12px] font-medium text-muted-foreground md:inline">Blog</span>
           </Link>
           
-          <div className="flex items-center gap-3 text-sm font-medium md:gap-5">
-            <Link href={homeHref} className="text-muted-foreground transition-colors hover:text-foreground">Home</Link>
-            <a href={articleListHref} className="text-muted-foreground transition-colors hover:text-foreground">Tulisan</a>
+          <div className="flex items-center gap-2 text-sm font-medium md:gap-4">
+            <Link
+              href={homeHref}
+              className="rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              Home
+            </Link>
+            <a
+              href={articleListHref}
+              className="rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              Tulisan
+            </a>
             <a
               href="/api/public/rss"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title="RSS Feed"
             >
               <Rss className="h-4 w-4" />
             </a>
+
+            {/* Separator */}
+            <div className="mx-1 hidden h-5 w-px bg-border/70 md:block" />
+
             <a
               href={dashboardLoginUrl}
-              className="inline-flex h-9 items-center rounded-xl border border-border/70 bg-background px-3.5 text-[13px] font-semibold text-foreground transition hover:bg-muted"
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-[var(--accent-cyan)] px-4 text-[13px] font-semibold text-white shadow-sm shadow-primary/20 transition-all duration-300 hover:shadow-md hover:shadow-primary/30"
             >
               Login
             </a>
@@ -93,22 +111,27 @@ export default async function BlogLayout({
         </div>
       </nav>
 
-      <main className="mx-auto max-w-[1400px] px-6 py-10 md:py-12">
+      <main className="mx-auto max-w-[1400px] px-6 py-10 md:py-14">
         {children}
       </main>
 
-      <footer className="mt-20 border-t border-border/70 py-10 text-sm text-muted-foreground">
-        <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-6 text-center md:flex-row md:items-center md:justify-between md:text-left">
-          <div className="space-y-1">
-            <p>© {new Date().getFullYear()} Ziaul Maula, SE, M.Si.</p>
-            <p>Catatan tentang bisnis digital, pemasaran digital, e-business, dan web app.</p>
+      {/* ── Footer ── */}
+      <footer className="border-t border-border/60 bg-card/40">
+        <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-10 text-center text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:text-left">
+          <div className="space-y-1.5">
+            <p className="font-semibold text-foreground/80">
+              © {new Date().getFullYear()} Ziaul Maula, SE, M.Si.
+            </p>
+            <p>
+              Catatan tentang bisnis digital, pemasaran digital, e-business, dan web app.
+            </p>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[13px] md:justify-end">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13px] md:justify-end">
             <a
               href="https://instagram.com/zmaula"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 transition hover:text-foreground"
+              className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all hover:bg-muted hover:text-foreground"
             >
               <InstagramGlyph />
               Instagram
@@ -117,7 +140,7 @@ export default async function BlogLayout({
               href="https://www.threads.net/@zmaula"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 transition hover:text-foreground"
+              className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all hover:bg-muted hover:text-foreground"
             >
               <ThreadsGlyph />
               Threads
@@ -126,7 +149,7 @@ export default async function BlogLayout({
               href="https://wa.me/6285156680447"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 transition hover:text-foreground"
+              className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all hover:bg-muted hover:text-foreground"
             >
               <WhatsAppGlyph />
               WhatsApp

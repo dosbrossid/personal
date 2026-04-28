@@ -326,3 +326,82 @@
   opacity: 0.3;
   filter: blur(4px);
 }
+
+/* ─── Landing / Public Blog ─── */
+.gradient-text-hero {
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--accent-cyan) 45%,
+    var(--accent-blue) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.blog-card {
+  transition:
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.28s ease;
+}
+.blog-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.12);
+  border-color: var(--primary);
+}
+.dark .blog-card:hover {
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.45);
+}
+
+.service-card {
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.25s ease;
+}
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary);
+}
+.dark .service-card:hover {
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.4);
+}
+
+/* CTA button glow */
+.cta-glow {
+  position: relative;
+  overflow: hidden;
+}
+.cta-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  box-shadow: 0 0 20px 4px var(--primary);
+  transition: opacity 0.3s ease;
+}
+.cta-glow:hover::after {
+  opacity: 0.2;
+}
+
+/* Gradient border effect on hover */
+.gradient-border-hover {
+  position: relative;
+}
+.gradient-border-hover::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--primary), var(--accent-cyan), var(--accent-violet));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+.gradient-border-hover:hover::before {
+  opacity: 1;
+}

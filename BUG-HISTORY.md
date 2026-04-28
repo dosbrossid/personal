@@ -695,6 +695,15 @@
 **Status:** RESOLVED
 **Terkait:** `src/components/shared/AppSidebar.tsx`, `src/hooks/use-dashboard-stats.ts`, `src/app/api/dashboard/stats/route.ts`
 
+## BUG-076 | 2026-04-28 | SEVERITY: High
+
+**Gejala:** Layout dashboard di mobile tidak usable karena sidebar desktop selalu fixed, konten selalu menggeser `260px`, dan tidak ada hamburger menu atau drawer navigasi.
+**Root Cause:** Shell `(dashboard)` hanya dirancang untuk desktop: `AppSidebar` selalu tampil fixed dan `main` selalu memakai `ml-[260px]`, tanpa breakpoint behavior atau navigasi mobile terpisah.
+**Fix:** Tambahkan top bar mobile dengan hamburger, ubah `AppSidebar` menjadi dual-mode desktop/mobile memakai `Sheet`, dan buat layout utama responsif dengan `ml-0` di mobile plus padding-top yang mengakomodasi header mobile.
+**Pelajaran:** Responsiveness tidak cukup di level page; kalau shell navigasinya desktop-only, semua halaman di bawahnya otomatis ikut terasa rusak di mobile.
+**Status:** RESOLVED
+**Terkait:** `src/app/(dashboard)/layout.tsx`, `src/components/shared/AppSidebar.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

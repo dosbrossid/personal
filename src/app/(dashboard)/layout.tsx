@@ -11,11 +11,11 @@ export default function DashboardLayout({
     <div className="flex min-h-screen bg-background">
       <AppSidebar />
       <CommandPalette />
-      <main className="flex-1 ml-[260px] relative">
+      <main className="relative ml-0 flex-1 md:ml-[260px]">
         {/* Top gradient accent line */}
-        <div className="gradient-accent-line h-[2px] w-full sticky top-0 z-30" />
+        <div className="gradient-accent-line sticky top-0 z-30 hidden h-[2px] w-full md:block" />
         {/* Content area with dot grid pattern */}
-        <div className="min-h-screen bg-dot-grid py-6 px-8">{children}</div>
+        <div className="min-h-screen bg-dot-grid px-4 py-5 pt-20 sm:px-5 md:px-8 md:py-6 md:pt-6">{children}</div>
       </main>
       <AIChatBubble />
     </div>
