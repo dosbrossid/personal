@@ -37,6 +37,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ─── App API routes handle auth inside each route handler ───
+  // Skip proxy-level auth/redirect here to avoid API redirect/rewrite noise.
+  if (pathname.startsWith('/api')) {
+    return NextResponse.next();
+  }
+
   // ─── Trusted machine routes — skip cookie auth, validate secrets in handlers ───
   if (pathname.startsWith('/api/webhook') || pathname.startsWith('/api/cron')) {
     return NextResponse.next();

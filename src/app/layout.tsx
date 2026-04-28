@@ -3,6 +3,7 @@ import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
+import { SWRProvider } from "@/components/providers/SWRProvider";
 
 export const metadata: Metadata = {
   title: "SecondBrain — AI Personal Dashboard",
@@ -25,8 +26,10 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <TooltipProvider>{children}</TooltipProvider>
-          <Toaster richColors position="top-center" />
+          <SWRProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+            <Toaster richColors position="top-center" />
+          </SWRProvider>
         </ThemeProvider>
       </body>
     </html>

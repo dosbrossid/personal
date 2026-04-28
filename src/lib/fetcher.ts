@@ -8,7 +8,11 @@ export const fetcher = async (url: string) => {
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: 'Request failed' }))
-    throw new Error(error.error || 'Request failed')
+    const fetchError = new Error(error.error || 'Request failed') as Error & {
+      status?: number
+    }
+    fetchError.status = res.status
+    throw fetchError
   }
 
   return res.json()

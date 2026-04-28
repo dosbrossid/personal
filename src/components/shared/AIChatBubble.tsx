@@ -528,6 +528,7 @@ export function AIChatBubble() {
                     </div>
                     <div className="flex items-center gap-1">
                         <button
+                            type="button"
                             onClick={handleClearConversation}
                             className="rounded-lg px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
                             aria-label="Clear conversation"
@@ -535,6 +536,7 @@ export function AIChatBubble() {
                             Reset
                         </button>
                         <button
+                            type="button"
                             onClick={() => setIsMinimized(true)}
                             className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
                             aria-label="Minimize"
@@ -542,6 +544,7 @@ export function AIChatBubble() {
                             <Minus className="h-4 w-4" />
                         </button>
                         <button
+                            type="button"
                             onClick={toggleOpen}
                             className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
                             aria-label="Close"
@@ -574,6 +577,7 @@ export function AIChatBubble() {
                                 ].map((suggestion) => (
                                     <button
                                         key={suggestion}
+                                        type="button"
                                         onClick={() => setInput(suggestion)}
                                         className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-[11px] text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
                                     >
@@ -741,6 +745,7 @@ export function AIChatBubble() {
             </div>
 
             <button
+                type="button"
                 onClick={toggleOpen}
                 aria-label={isPanelVisible ? 'Close AI Chat' : 'Open AI Chat'}
                 className={cn(

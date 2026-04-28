@@ -758,6 +758,15 @@
 **Status:** RESOLVED
 **Terkait:** `src/components/shared/AIChatBubble.tsx`, `src/app/api/ai/command/route.ts`, `src/lib/ai/command-hub.ts`, `src/lib/ai/prompts.ts`, `src/lib/ai/client.ts`
 
+## BUG-083 | 2026-04-28 | SEVERITY: High
+
+**Gejala:** Saat bubble chat dibuka, konsol/dev log terlihat seperti loop API tak berujung karena hook dashboard berulang kali menembak endpoint `/api/*` yang gagal, terutama `404`.
+**Root Cause:** Layer proxy masih ikut menangani request app API padahal route handler sudah punya auth sendiri, lalu SWR tetap melakukan retry pada error `404/401`, sehingga error endpoint kecil terasa seperti loop besar saat komponen lain memicu revalidation.
+**Fix:** Keluarkan `/api/*` dari auth guard di `proxy.ts`, tambahkan status-aware error di fetcher, hentikan retry SWR untuk `401/404`, dan tambahkan guard `type="button"` pada tombol non-submit di bubble agar tidak ada submit tak sengaja.
+**Pelajaran:** Pada app hybrid dengan SWR, problem “loop API” sering bukan dari satu komponen yang spam fetch, tetapi dari kombinasi proxy redirect, retry default, dan tombol UI yang tidak diberi batas perilaku eksplisit.
+**Status:** RESOLVED
+**Terkait:** `src/proxy.ts`, `src/lib/fetcher.ts`, `src/app/layout.tsx`, `src/components/shared/AIChatBubble.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 
