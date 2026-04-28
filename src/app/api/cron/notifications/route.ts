@@ -1,6 +1,6 @@
 // ============================================================
 // Route Handler: /api/cron/notifications
-// GET — Dispatch pending notifications from a trusted scheduler.
+// GET/POST — Dispatch pending notifications from a trusted scheduler.
 // ============================================================
 
 import { type NextRequest } from 'next/server'
@@ -37,6 +37,14 @@ function getTelegramChatId(row: PendingNotification) {
 }
 
 export async function GET(request: NextRequest) {
+  return handleDispatch(request)
+}
+
+export async function POST(request: NextRequest) {
+  return handleDispatch(request)
+}
+
+async function handleDispatch(request: NextRequest) {
   if (!isAuthorized(request)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }

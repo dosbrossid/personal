@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Personal Dashboard
 
-## Getting Started
+Personal productivity dashboard berbasis `Next.js + Supabase` untuk workflow harian owner: task, agenda, catatan, habit, vault, AI command, notifikasi, dan integrasi Telegram.
 
-First, run the development server:
+## Local Development
+
+Jalankan server lokal:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App akan tersedia di [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Project ini butuh `.env.local` yang minimal memuat:
 
-## Learn More
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `CRON_SECRET`
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_WEBHOOK_SECRET`
 
-To learn more about Next.js, take a look at the following resources:
+Contoh awal tersedia di `.env.example`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scheduler Notifications
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Project ini **tidak lagi memakai Vercel Cron** untuk dispatch notifikasi, karena Vercel Hobby hanya mengizinkan cron harian.
 
-## Deploy on Vercel
+Scheduler yang dipakai sekarang:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Hosting endpoint: `Vercel`
+- Scheduler: `Supabase pg_cron`
+- Endpoint dispatch: `/api/cron/notifications`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Setup Supabase Cron
+
+1. Pastikan `pg_cron`, `pg_net`, dan Vault aktif di project Supabase.
+2. Simpan secret berikut di Supabase Vault:
+   - `personal_dashboard_project_url`
+   - `personal_dashboard_cron_secret`
+3. Pastikan `personal_dashboard_cron_secret` nilainya sama dengan `CRON_SECRET` di Vercel.
+4. Jalankan script:
+
+```sql
+-- file:
+-- supabase/scripts/006_schedule_notifications_via_supabase_cron.sql
+```
+
+File SQL siap pakai ada di `supabase/scripts/006_schedule_notifications_via_supabase_cron.sql`.
+
+Secara default script itu menjadwalkan dispatch setiap `5 menit`.
+
+## Database
+
+Schema dan helper SQL utama ada di:
+
+- `supabase/migrations`
+- `supabase/scripts`
+
+Untuk rebuild manual public schema, gunakan:
+
+- `supabase/scripts/001_rebuild_public_schema.sql`
+
+## Notes
+
+- Endpoint `/api/cron/notifications` menerima `GET` dan `POST`
+- Auth scheduler memakai `Authorization: Bearer <CRON_SECRET>` atau `?secret=...`
+- Rich text ringan untuk notes mendukung bold, italic, bullet, dan numbering langsung di editor

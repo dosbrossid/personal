@@ -587,6 +587,15 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/(dashboard)/notes/page.tsx`
 
+## BUG-064 | 2026-04-28 | SEVERITY: Medium
+
+**Gejala:** Deploy Vercel gagal karena repo masih mendefinisikan cron `* * * * *`, padahal plan Hobby hanya mengizinkan cron sekali per hari.
+**Root Cause:** Konfigurasi scheduler belum dipindahkan dari asumsi Vercel Pro/per-minute ke infrastruktur yang benar-benar tersedia pada stack aktual, yaitu Supabase `pg_cron`.
+**Fix:** Hapus cron dari konfigurasi Vercel, buat endpoint dispatch notifikasi kompatibel dengan pemanggilan `Supabase Cron`, dan sediakan script SQL terpisah untuk menjadwalkan job melalui `pg_cron` + `pg_net`.
+**Pelajaran:** Scheduler perlu mengikuti batas plan deploy yang nyata; untuk stack Supabase, lebih stabil menjadikan Vercel sebagai host endpoint dan Supabase sebagai pemicu jadwal.
+**Status:** RESOLVED
+**Terkait:** `vercel.json`, `src/app/api/cron/notifications/route.ts`, `supabase/scripts/*`, `README.md`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 
