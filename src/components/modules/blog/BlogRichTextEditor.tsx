@@ -16,10 +16,13 @@ import {
   ListOrdered,
   Palette,
   Quote,
+  Sparkles,
   Upload,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { generateBlogAIContent } from '@/actions/blog.actions';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { sanitizeBlogHtml } from '@/lib/blog-editor';
 import { uploadCompressedPublicImage } from '@/lib/client-image';
 import { cn } from '@/lib/utils';
@@ -28,16 +31,22 @@ interface BlogRichTextEditorProps {
   value: string;
   onChange: (nextValue: string) => void;
   className?: string;
+  documentTitle?: string;
 }
 
 type ImageAlign = 'left' | 'center' | 'right';
 
 const IMAGE_ID_ATTR = 'data-editor-image-id';
 
-export function BlogRichTextEditor({ value, onChange, className }: BlogRichTextEditorProps) {
+export function BlogRichTextEditor({ value, onChange, className, documentTitle = '' }: BlogRichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const selectionRangeRef = useRef<Range | null>(null);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [selectedText, setSelectedText] = useState('');
+  const [isRunningAI, setIsRunningAI] = useState(false);
 
   const selectedImageMeta = (() => {
     const image = getImageElement(editorRef.current, selectedImageId);
@@ -146,10 +155,12 @@ export function BlogRichTextEditor({ value, onChange, className }: BlogRichTextE
     if (target instanceof HTMLImageElement) {
       ensureEditorImageIds(target.closest('[contenteditable="true"]') as HTMLDivElement | null);
       setSelectedImageId(target.getAttribute(IMAGE_ID_ATTR));
+      captureSelectionState();
       return;
     }
 
     setSelectedImageId(null);
+    captureSelectionState();
   };
 
   const updateSelectedImage = (patch: Partial<{ widthPercent: number; align: ImageAlign }>) => {
@@ -166,6 +177,123 @@ export function BlogRichTextEditor({ value, onChange, className }: BlogRichTextE
 
   const clearSelectedImage = () => {
     setSelectedImageId(null);
+  };
+
+  const captureSelectionState = () => {
+    if (!editorRef.current || typeof window === 'undefined') return;
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    if (!editorRef.current.contains(range.commonAncestorContainer)) return;
+
+    selectionRangeRef.current = range.cloneRange();
+    setSelectedText(selection.toString().trim());
+  };
+
+  const getInsertionRange = () => {
+    if (!editorRef.current) return null;
+
+    const savedRange = selectionRangeRef.current;
+    if (savedRange && editorRef.current.contains(savedRange.commonAncestorContainer)) {
+      return savedRange.cloneRange();
+    }
+
+    const fallbackRange = document.createRange();
+    fallbackRange.selectNodeContents(editorRef.current);
+    fallbackRange.collapse(false);
+    return fallbackRange;
+  };
+
+  const insertHtmlAtRange = (html: string, replaceSelection: boolean) => {
+    if (!editorRef.current) return;
+
+    const range = getInsertionRange();
+    if (!range) return;
+
+    editorRef.current.focus();
+
+    if (replaceSelection) {
+      range.deleteContents();
+    }
+
+    const fragment = range.createContextualFragment(html);
+    const lastNode = fragment.lastChild;
+    range.insertNode(fragment);
+
+    const nextRange = document.createRange();
+    if (lastNode?.parentNode) {
+      nextRange.setStartAfter(lastNode);
+    } else {
+      nextRange.selectNodeContents(editorRef.current);
+      nextRange.collapse(false);
+    }
+    nextRange.collapse(true);
+    selectionRangeRef.current = nextRange.cloneRange();
+
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(nextRange);
+
+    setSelectedText('');
+    syncValue();
+  };
+
+  const handleAISelectionEdit = async () => {
+    if (!selectedText) {
+      toast.error('Blok teks yang ingin diedit dulu.');
+      return;
+    }
+
+    if (!aiPrompt.trim()) {
+      toast.error('Tulis arahan edit untuk AI dulu.');
+      return;
+    }
+
+    setIsRunningAI(true);
+    const result = await generateBlogAIContent({
+      mode: 'selection_edit',
+      title: documentTitle,
+      content: value,
+      prompt: aiPrompt,
+      selection: selectedText,
+    });
+    setIsRunningAI(false);
+
+    if (result.error || !result.data?.html) {
+      toast.error(result.error || 'AI belum menghasilkan revisi yang valid.');
+      return;
+    }
+
+    insertHtmlAtRange(result.data.html, true);
+    setAiPrompt('');
+    toast.success('Bagian terpilih berhasil diedit oleh AI');
+  };
+
+  const handleAISectionGenerate = async () => {
+    if (!aiPrompt.trim() && !documentTitle.trim()) {
+      toast.error('Tulis arahan section atau isi judul artikel dulu.');
+      return;
+    }
+
+    setIsRunningAI(true);
+    const result = await generateBlogAIContent({
+      mode: 'section_generate',
+      title: documentTitle,
+      content: value,
+      prompt: aiPrompt,
+    });
+    setIsRunningAI(false);
+
+    if (result.error || !result.data?.html) {
+      toast.error(result.error || 'AI belum menghasilkan section yang valid.');
+      return;
+    }
+
+    insertHtmlAtRange(`${result.data.html}<p><br /></p>`, false);
+    setAiPrompt('');
+    toast.success('Section baru berhasil ditambahkan ke editor');
   };
 
   return (
@@ -223,7 +351,71 @@ export function BlogRichTextEditor({ value, onChange, className }: BlogRichTextE
         <ToolbarButton onClick={handleUploadClick} label="Upload image">
           <Upload className="h-4 w-4" />
         </ToolbarButton>
+        <ToolbarButton onClick={() => setIsAIPanelOpen((current) => !current)} label="AI assistant">
+          <Sparkles className="h-4 w-4" />
+        </ToolbarButton>
       </div>
+
+      {isAIPanelOpen && (
+        <div className="rounded-2xl border border-violet-500/15 bg-violet-500/[0.04] p-3 sm:p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[12px] font-semibold text-foreground">AI Writing Assistant</p>
+              <p className="text-[11px] text-muted-foreground">
+                Blok teks lalu beri instruksi untuk rewrite, atau minta AI menambah section baru langsung di editor.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsAIPanelOpen(false)}
+              className="h-8 rounded-lg px-3 text-[12px]"
+            >
+              Tutup
+            </Button>
+          </div>
+
+          {selectedText && (
+            <div className="mt-3 rounded-xl border border-border/50 bg-background/60 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Teks Terpilih</p>
+              <p className="mt-2 line-clamp-4 whitespace-pre-wrap break-words text-[12px] leading-relaxed text-foreground/85">
+                {selectedText}
+              </p>
+            </div>
+          )}
+
+          <div className="mt-3 space-y-2">
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Instruksi AI</label>
+            <Textarea
+              value={aiPrompt}
+              onChange={(event) => setAiPrompt(event.target.value)}
+              placeholder={selectedText ? 'Contoh: buat lebih ringkas, lebih persuasif, atau ubah jadi lebih formal.' : 'Contoh: tulis section pembuka tentang pentingnya pemasaran digital untuk UMKM.'}
+              className="min-h-[88px] resize-none rounded-xl border-border/60 bg-background/70 text-[13px]"
+            />
+          </div>
+
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Button
+              type="button"
+              onClick={handleAISelectionEdit}
+              disabled={isRunningAI || !selectedText}
+              className="h-9 rounded-xl bg-violet-600 text-[12px] font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+            >
+              {isRunningAI ? 'Memproses...' : 'AI Edit Selection'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAISectionGenerate}
+              disabled={isRunningAI}
+              className="h-9 rounded-xl border-border/60 text-[12px]"
+            >
+              {isRunningAI ? 'Memproses...' : 'AI Generate Section'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {selectedImageMeta && (
         <div className="rounded-2xl border border-primary/15 bg-primary/[0.04] p-3">
@@ -310,6 +502,8 @@ export function BlogRichTextEditor({ value, onChange, className }: BlogRichTextE
         onInput={syncValue}
         onBlur={syncValue}
         onClick={handleEditorClick}
+        onKeyUp={captureSelectionState}
+        onMouseUp={captureSelectionState}
         onPaste={(event) => {
           event.preventDefault();
           const pastedText = event.clipboardData.getData('text/plain');

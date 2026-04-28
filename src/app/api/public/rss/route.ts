@@ -6,9 +6,9 @@
 import { createServerClient } from '@/lib/supabase/server'
 
 const BASE_URL = 'https://zmaula.web.id'
-const BLOG_TITLE = 'Z A Maula Blog'
-const BLOG_DESCRIPTION = 'Tulisan tentang teknologi, AI, bisnis, dan produktivitas.'
-const AUTHOR = 'Z A Maula'
+const BLOG_TITLE = 'Ziaul Maula Blog'
+const BLOG_DESCRIPTION = 'Tulisan tentang bisnis digital, pemasaran digital, e-business, web app, dan proses belajar.'
+const AUTHOR = 'Ziaul Maula'
 
 function escapeXml(str: string): string {
   return str
@@ -43,8 +43,8 @@ export async function GET() {
         return `
     <item>
       <title>${escapeXml(post.title)}</title>
-      <link>${BASE_URL}/public-blog/${escapeXml(post.slug)}</link>
-      <guid isPermaLink="true">${BASE_URL}/public-blog/${escapeXml(post.slug)}</guid>
+      <link>${BASE_URL}/blog/${escapeXml(post.slug)}</link>
+      <guid isPermaLink="true">${BASE_URL}/blog/${escapeXml(post.slug)}</guid>
       <description>${escapeXml(description)}</description>
       <pubDate>${pubDate}</pubDate>
       <author>${escapeXml(AUTHOR)}</author>${
@@ -60,7 +60,7 @@ export async function GET() {
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>${escapeXml(BLOG_TITLE)}</title>
-    <link>${BASE_URL}/public-blog</link>
+    <link>${BASE_URL}/</link>
     <description>${escapeXml(BLOG_DESCRIPTION)}</description>
     <language>id</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>

@@ -5,6 +5,7 @@
 
 import { type NextRequest } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/service'
+import { publishDueScheduledPosts } from '@/lib/blog-publishing'
 import { sendTelegramMessage } from '@/lib/telegram'
 
 interface PendingNotification {
@@ -50,6 +51,7 @@ async function handleDispatch(request: NextRequest) {
   }
 
   try {
+    const { publishedCount } = await publishDueScheduledPosts()
     const supabase = createServiceRoleClient()
     const now = new Date()
 
@@ -108,7 +110,7 @@ async function handleDispatch(request: NextRequest) {
       }
     }
 
-    return Response.json({ processed: pending.length, sent, failed })
+    return Response.json({ processed: pending.length, sent, failed, publishedPosts: publishedCount })
   } catch (e) {
     return Response.json(
       { error: e instanceof Error ? e.message : 'Internal server error' },

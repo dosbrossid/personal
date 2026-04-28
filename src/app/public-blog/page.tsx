@@ -222,7 +222,7 @@ export default async function PublicBlogHome() {
             </p>
 
             <Link
-              href={withPublicBlogBase(blogBasePath, `/${featuredPost.slug}`)}
+              href={withPublicBlogBase(blogBasePath, `/blog/${featuredPost.slug}`)}
               className="blog-card group block overflow-hidden rounded-3xl border border-border/70 bg-card shadow-lg shadow-black/[0.04] dark:shadow-black/[0.15]"
             >
               <div className="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
@@ -318,7 +318,7 @@ export default async function PublicBlogHome() {
             {morePosts.map((post) => (
               <Link
                 key={post.id}
-                href={withPublicBlogBase(blogBasePath, `/${post.slug}`)}
+                href={withPublicBlogBase(blogBasePath, `/blog/${post.slug}`)}
                 className="blog-card group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card"
               >
                 {/* Card Image */}

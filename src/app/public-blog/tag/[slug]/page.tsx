@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!tag) return { title: 'Tag Not Found' };
 
   return {
-    title: `${tag.name} — Blog Z A Maula`,
+    title: `${tag.name} — Blog Ziaul Maula`,
     description: tag.description || `Artikel dengan tag ${tag.name}`,
   };
 }
@@ -134,7 +134,7 @@ export default async function TagPage({ params }: Props) {
           {posts.map((post) => (
             <Link
               key={post.id}
-              href={withPublicBlogBase(blogBasePath, `/${post.slug}`)}
+              href={withPublicBlogBase(blogBasePath, `/blog/${post.slug}`)}
               className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-slate-900/8 dark:bg-[#0a0a0f] dark:hover:shadow-primary/10"
             >
               <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">

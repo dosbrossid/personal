@@ -571,9 +571,10 @@ function NoteDetailModal({
   const safeHref = getSafeExternalHref(note.source_url);
   const sourceLabel = getSafeHostname(note.source_url);
   const renderedHtml = getNoteRenderHtml(note.content_body);
+  const plainContent = stripNoteContent(note.content_body);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(stripNoteContent(note.content_body));
+    navigator.clipboard.writeText(plainContent);
     toast.success('Konten disalin ke clipboard!');
   };
 
@@ -633,7 +634,7 @@ function NoteDetailModal({
                   <pre className="whitespace-pre-wrap leading-relaxed">{note.content_body}</pre>
                 ) : (
                     <div
-                      className="prose prose-sm max-w-none whitespace-normal leading-relaxed text-inherit dark:prose-invert prose-p:my-0 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-img:my-4 prose-img:max-h-[420px] prose-img:rounded-xl prose-img:border prose-img:border-border/60 prose-img:object-contain"
+                      className="prose prose-sm max-w-none break-words whitespace-normal leading-relaxed text-inherit dark:prose-invert prose-p:my-0 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-img:my-4 prose-img:max-h-[420px] prose-img:rounded-xl prose-img:border prose-img:border-border/60 prose-img:object-contain"
                       dangerouslySetInnerHTML={{ __html: renderedHtml || '<p>Catatan masih kosong.</p>' }}
                     />
                 )}
@@ -685,8 +686,12 @@ function NoteDetailModal({
               </div>
 
               <div className="rounded-xl border border-border/40 bg-muted/20 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ringkas</p>
-                <p className="mt-2 text-[13px] leading-relaxed text-foreground/85">{getNoteExcerpt(note.content_body, 180)}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Teks Bersih</p>
+                <div className="mt-2 max-h-[240px] overflow-y-auto rounded-lg bg-background/40 px-3 py-3 text-[13px] leading-relaxed text-foreground/85 scrollbar-thin">
+                  <p className="whitespace-pre-wrap break-words">
+                    {plainContent || 'Catatan masih kosong.'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

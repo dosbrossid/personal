@@ -41,6 +41,7 @@ import type { BlogPost, BlogStatus, BlogVisibility } from '@/core/types';
 import { Loader2 } from 'lucide-react';
 import { deleteBlogPost, updateBlogPost } from '@/actions/blog.actions';
 import { toast } from 'sonner';
+import { isScheduledDraft } from '@/lib/blog-schedule';
 
 function BlogPostActions({
   post,
@@ -64,7 +65,7 @@ function BlogPostActions({
         </Link>
         {post.status === 'published' && (
           <DropdownMenuItem
-            onClick={() => window.open(`/public-blog/${post.slug}`, '_blank', 'noopener,noreferrer')}
+            onClick={() => window.open(`/public-blog/blog/${post.slug}`, '_blank', 'noopener,noreferrer')}
             className="gap-2 rounded-lg text-[13px] focus:bg-muted focus:text-foreground"
           >
             <Globe className="h-4 w-4 text-muted-foreground" /> Lihat Publik
@@ -109,6 +110,8 @@ function BlogPostMobileCard({
   onTogglePublish: (postId: string, nextStatus: Extract<BlogStatus, 'draft' | 'published'>) => void;
   onDelete: (postId: string) => void;
 }) {
+  const isScheduled = isScheduledDraft(post);
+
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
       <div className="flex items-start gap-3">
@@ -140,11 +143,11 @@ function BlogPostMobileCard({
                 <span
                   className="flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
                   style={{
-                    backgroundColor: `${BLOG_STATUSES[post.status].color}15`,
-                    color: BLOG_STATUSES[post.status].color,
+                    backgroundColor: isScheduled ? '#8b5cf615' : `${BLOG_STATUSES[post.status].color}15`,
+                    color: isScheduled ? '#8b5cf6' : BLOG_STATUSES[post.status].color,
                   }}
                 >
-                  {BLOG_STATUSES[post.status].icon} {BLOG_STATUSES[post.status].label}
+                  {isScheduled ? '◔ Scheduled' : `${BLOG_STATUSES[post.status].icon} ${BLOG_STATUSES[post.status].label}`}
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-muted/40 px-2 py-0.5 text-muted-foreground">
                   {getVisibilityIcon(post.visibility)}
@@ -188,11 +191,16 @@ function BlogPostMobileCard({
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-border/40 pt-3 text-[11px]">
-        <span className="truncate font-mono text-muted-foreground/70">/{post.slug}</span>
+        <span className="truncate font-mono text-muted-foreground/70">/blog/{post.slug}</span>
         {post.status === 'published' && post.published_at ? (
           <div className="text-right">
             <p className="font-medium text-emerald-500 dark:text-emerald-400">Published</p>
             <p className="text-muted-foreground">{format(parseISO(post.published_at), 'd MMM y', { locale: id })}</p>
+          </div>
+        ) : isScheduled && post.scheduled_at ? (
+          <div className="text-right">
+            <p className="font-medium text-violet-500 dark:text-violet-400">Scheduled</p>
+            <p className="text-muted-foreground">{format(parseISO(post.scheduled_at), 'd MMM y • HH:mm', { locale: id })}</p>
           </div>
         ) : (
           <div className="text-right">
@@ -232,7 +240,10 @@ export default function BlogCMSPage() {
   };
 
   const handleTogglePublish = async (postId: string, nextStatus: Extract<BlogStatus, 'draft' | 'published'>) => {
-    const result = await updateBlogPost(postId, { status: nextStatus });
+    const result = await updateBlogPost(postId, {
+      status: nextStatus,
+      scheduled_at: null,
+    });
     if (result.error) {
       toast.error(result.error);
       return;
@@ -400,7 +411,10 @@ export default function BlogCMSPage() {
               </div>
 
               <div className="hidden divide-y divide-border/40 md:block">
-                {filteredPosts.map((post) => (
+                {filteredPosts.map((post) => {
+                  const isScheduled = isScheduledDraft(post);
+
+                  return (
                   <div
                     key={post.id}
                     className="group grid grid-cols-12 items-center gap-4 px-5 py-4 transition-all duration-200 hover:bg-muted/30"
@@ -433,17 +447,17 @@ export default function BlogCMSPage() {
                             <span
                               className="flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
                               style={{
-                                backgroundColor: `${BLOG_STATUSES[post.status].color}15`,
-                                color: BLOG_STATUSES[post.status].color,
+                                backgroundColor: isScheduled ? '#8b5cf615' : `${BLOG_STATUSES[post.status].color}15`,
+                                color: isScheduled ? '#8b5cf6' : BLOG_STATUSES[post.status].color,
                               }}
                             >
-                              {BLOG_STATUSES[post.status].icon} {BLOG_STATUSES[post.status].label}
+                              {isScheduled ? '◔ Scheduled' : `${BLOG_STATUSES[post.status].icon} ${BLOG_STATUSES[post.status].label}`}
                             </span>
                             <span className="flex items-center gap-1 text-muted-foreground/70">
                               {getVisibilityIcon(post.visibility)}
                               <span className="capitalize">{post.visibility}</span>
                             </span>
-                            <span className="truncate font-mono text-[10px] text-muted-foreground/50">/{post.slug}</span>
+                            <span className="truncate font-mono text-[10px] text-muted-foreground/50">/blog/{post.slug}</span>
                           </div>
                         </div>
                       </div>
@@ -477,6 +491,11 @@ export default function BlogCMSPage() {
                           <span className="text-[11px] font-medium text-emerald-500 dark:text-emerald-400">Published</span>
                           <span className="text-[11px] text-muted-foreground">{format(parseISO(post.published_at), 'd MMM y', { locale: id })}</span>
                         </div>
+                      ) : isScheduled && post.scheduled_at ? (
+                        <div className="flex flex-col items-end">
+                          <span className="text-[11px] font-medium text-violet-500 dark:text-violet-400">Scheduled</span>
+                          <span className="text-[11px] text-muted-foreground">{format(parseISO(post.scheduled_at), 'd MMM y • HH:mm', { locale: id })}</span>
+                        </div>
                       ) : (
                         <div className="flex flex-col items-end">
                           <span className="text-[11px] font-medium text-muted-foreground">Edited</span>
@@ -489,7 +508,8 @@ export default function BlogCMSPage() {
                       <BlogPostActions post={post} onTogglePublish={handleTogglePublish} onDelete={handleDelete} />
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}

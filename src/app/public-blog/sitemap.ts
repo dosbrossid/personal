@@ -1,6 +1,6 @@
 // ============================================================
 // Sitemap: Auto-generated from published blog posts
-// Available at /public-blog/sitemap.xml
+// Available at /sitemap.xml on the public blog domain
 // ============================================================
 
 import type { MetadataRoute } from 'next'
@@ -29,7 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const sitemapEntries: MetadataRoute.Sitemap = [
     // Homepage
     {
-      url: `${BASE_URL}/public-blog`,
+      url: `${BASE_URL}/`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1,
@@ -40,7 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (posts) {
     for (const post of posts) {
       sitemapEntries.push({
-        url: `${BASE_URL}/public-blog/${post.slug}`,
+        url: `${BASE_URL}/blog/${post.slug}`,
         lastModified: post.updated_at ? new Date(post.updated_at) : new Date(),
         changeFrequency: 'weekly',
         priority: 0.8,
@@ -52,7 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (tags) {
     for (const tag of tags) {
       sitemapEntries.push({
-        url: `${BASE_URL}/public-blog/tag/${tag.slug}`,
+        url: `${BASE_URL}/tag/${tag.slug}`,
         lastModified: tag.updated_at ? new Date(tag.updated_at) : new Date(),
         changeFrequency: 'weekly',
         priority: 0.6,

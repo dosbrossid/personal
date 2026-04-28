@@ -23,13 +23,14 @@ import { toast } from 'sonner';
 import { useBlogPost, useBlogTags } from '@/hooks/use-blog';
 import { BLOG_STATUSES } from '@/core/constants';
 import type { BlogPost } from '@/core/types';
-import { updateBlogPost } from '@/actions/blog.actions';
+import { generateBlogAIContent, updateBlogPost } from '@/actions/blog.actions';
 import { BlogRichTextEditor } from '@/components/modules/blog/BlogRichTextEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { uploadCompressedPublicImage } from '@/lib/client-image';
 import { getBlogEditorHtml, getBlogWordStats, stripBlogContent } from '@/lib/blog-editor';
+import { isFutureSchedule, toDateTimeLocalValue, toScheduledAtIso } from '@/lib/blog-schedule';
 
 export default function BlogEditorEditPage() {
   const params = useParams();
@@ -57,15 +58,45 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
   const [excerpt, setExcerpt] = useState(post.excerpt || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(post.status);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(post.tags?.map((tag) => tag.id) ?? []);
   const [newTagInput, setNewTagInput] = useState('');
   const [pendingTagNames, setPendingTagNames] = useState<string[]>([]);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(post.featured_image_url || null);
   const [coverImageAlt, setCoverImageAlt] = useState(post.featured_image_alt || '');
+  const [scheduledAt, setScheduledAt] = useState(toDateTimeLocalValue(post.scheduled_at));
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const statusConfig = BLOG_STATUSES[currentStatus];
   const stats = getBlogWordStats(content);
+  const isScheduling = currentStatus !== 'published' && isFutureSchedule(toScheduledAtIso(scheduledAt));
+
+  const handleGenerateSeo = async () => {
+    setIsGeneratingSeo(true);
+    const result = await generateBlogAIContent({
+      mode: 'seo_generate',
+      title,
+      content,
+      excerpt,
+    });
+    setIsGeneratingSeo(false);
+
+    if (result.error || !result.data) {
+      toast.error(result.error || 'AI belum menghasilkan draft SEO yang valid');
+      return;
+    }
+
+    if (result.data.metaTitle) {
+      setMetaTitle(result.data.metaTitle.slice(0, 60));
+    }
+
+    const nextExcerpt = result.data.excerpt || result.data.metaDescription || '';
+    if (nextExcerpt) {
+      setExcerpt(nextExcerpt.slice(0, 160));
+    }
+
+    toast.success('Draft SEO berhasil dibuat oleh AI');
+  };
 
   const handleCoverFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -95,6 +126,9 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
     if (isSaving) return;
     setIsSaving(true);
 
+    const scheduledAtIso = toScheduledAtIso(scheduledAt);
+    const shouldSchedule = status === 'published' && currentStatus !== 'published' && isFutureSchedule(scheduledAtIso);
+
     const plainContent = stripBlogContent(content);
     const result = await updateBlogPost(post.id, {
       title: title || 'Untitled',
@@ -105,8 +139,9 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
       meta_description: excerpt || plainContent.slice(0, 160),
       featured_image_url: coverImageUrl,
       featured_image_alt: coverImageAlt || title || 'Cover article',
-      status,
+      status: shouldSchedule ? 'draft' : status,
       visibility,
+      scheduled_at: shouldSchedule || status === 'draft' ? scheduledAtIso : null,
       tag_ids: selectedTagIds,
       tag_names: pendingTagNames,
       ...stats,
@@ -119,8 +154,14 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
       return;
     }
 
-    setCurrentStatus(status);
-    toast.success(status === 'published' ? 'Artikel berhasil dipublish/update' : 'Draft berhasil disimpan');
+    setCurrentStatus(shouldSchedule ? 'draft' : status);
+    toast.success(
+      shouldSchedule
+        ? 'Artikel berhasil dijadwalkan'
+        : status === 'published'
+          ? 'Artikel berhasil dipublish/update'
+          : 'Draft berhasil disimpan'
+    );
   };
 
   const handleToggleTag = (tagId: string) => {
@@ -193,7 +234,7 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
             onClick={() => savePost('published')}
             className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-primary to-emerald-600 px-2 text-[12px] font-semibold text-white shadow-md shadow-primary/25 transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-50 sm:px-3"
           >
-            {isSaving ? 'Saving...' : currentStatus === 'published' ? 'Update' : 'Publish'}
+            {isSaving ? 'Saving...' : isScheduling ? 'Schedule' : currentStatus === 'published' ? 'Update' : 'Publish'}
             <ChevronDown className="h-3 w-3 opacity-70" />
           </Button>
         </div>
@@ -274,7 +315,7 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
               />
             </div>
 
-            <BlogRichTextEditor value={content} onChange={setContent} />
+            <BlogRichTextEditor value={content} onChange={setContent} documentTitle={title} />
           </div>
         </main>
 
@@ -294,11 +335,11 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
                   <span
                     className="rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize"
                     style={{
-                      backgroundColor: `${statusConfig.color}15`,
-                      color: statusConfig.color,
+                      backgroundColor: isScheduling ? '#8b5cf615' : `${statusConfig.color}15`,
+                      color: isScheduling ? '#8b5cf6' : statusConfig.color,
                     }}
                   >
-                    {statusConfig.label}
+                    {isScheduling ? 'Scheduled Draft' : statusConfig.label}
                   </span>
                 </div>
                 <div className="h-px bg-border/40" />
@@ -313,6 +354,32 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
                     <option value="unlisted">Unlisted</option>
                     <option value="private">Private</option>
                   </select>
+                </div>
+                <div className="h-px bg-border/40" />
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-muted-foreground">Jadwal Publish</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setScheduledAt('')}
+                      className="h-7 gap-1.5 rounded-lg px-2.5 text-[11px] text-primary hover:bg-primary/10 hover:text-primary"
+                    >
+                      <Clock className="h-3 w-3" />
+                      Reset
+                    </Button>
+                  </div>
+                  <Input
+                    type="datetime-local"
+                    value={scheduledAt}
+                    onChange={(event) => setScheduledAt(event.target.value)}
+                    className="h-8 rounded-lg border-border/60 bg-background text-[11px]"
+                  />
+                  <p className="text-[10px] leading-relaxed text-muted-foreground/70">
+                    Kosongkan untuk publish manual. Jika waktunya masih di masa depan,
+                    tombol publish akan berubah jadi schedule.
+                  </p>
                 </div>
                 <div className="h-px bg-border/40" />
                 <div className="flex items-center justify-between text-[12px] text-muted-foreground">
@@ -395,16 +462,22 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
                   </div>
                   SEO & Meta
                 </h3>
-                <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-lg px-2.5 text-[11px] text-primary hover:bg-primary/10 hover:text-primary">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleGenerateSeo}
+                  disabled={isGeneratingSeo}
+                  className="h-7 gap-1.5 rounded-lg px-2.5 text-[11px] text-primary hover:bg-primary/10 hover:text-primary"
+                >
                   <Sparkles className="h-3 w-3" />
-                  Generate AI
+                  {isGeneratingSeo ? 'Generating...' : 'Generate AI'}
                 </Button>
               </div>
 
               <div className="space-y-3 rounded-xl border border-border/60 bg-background/50 p-3.5">
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-medium text-muted-foreground">Slug (URL)</label>
-                  <Input defaultValue={post.slug} className="h-8 rounded-lg border-border/60 bg-background font-mono text-[11px]" />
+                  <Input value={`/blog/${post.slug}`} readOnly className="h-8 rounded-lg border-border/60 bg-background font-mono text-[11px]" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-medium text-muted-foreground">Meta Title</label>

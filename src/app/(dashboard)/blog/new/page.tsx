@@ -23,11 +23,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { createBlogPost, updateBlogPost } from '@/actions/blog.actions';
+import { createBlogPost, generateBlogAIContent, updateBlogPost } from '@/actions/blog.actions';
 import { toast } from 'sonner';
 import { BlogRichTextEditor } from '@/components/modules/blog/BlogRichTextEditor';
 import { uploadCompressedPublicImage } from '@/lib/client-image';
 import { getBlogWordStats, stripBlogContent } from '@/lib/blog-editor';
+import { isFutureSchedule, toScheduledAtIso } from '@/lib/blog-schedule';
 
 export default function BlogEditorPage() {
   const router = useRouter();
@@ -39,11 +40,13 @@ export default function BlogEditorPage() {
   const [excerpt, setExcerpt] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
   const [pendingTagNames, setPendingTagNames] = useState<string[]>([]);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [coverImageAlt, setCoverImageAlt] = useState('');
+  const [scheduledAt, setScheduledAt] = useState('');
   const coverInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleCoverFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,6 +77,9 @@ export default function BlogEditorPage() {
     if (isSaving) return;
     setIsSaving(true);
 
+    const scheduledAtIso = toScheduledAtIso(scheduledAt);
+    const shouldSchedule = status === 'published' && isFutureSchedule(scheduledAtIso);
+
     const createResult = await createBlogPost({ title: title || 'Untitled' });
     if (createResult.error) {
       toast.error(createResult.error);
@@ -98,8 +104,9 @@ export default function BlogEditorPage() {
       meta_description: excerpt || plainContent.slice(0, 160),
       featured_image_url: coverImageUrl,
       featured_image_alt: coverImageAlt || title || 'Cover article',
-      status,
+      status: shouldSchedule ? 'draft' : status,
       visibility,
+      scheduled_at: shouldSchedule || status === 'draft' ? scheduledAtIso : null,
       tag_ids: selectedTagIds,
       tag_names: pendingTagNames,
       ...stats,
@@ -112,7 +119,13 @@ export default function BlogEditorPage() {
       return;
     }
 
-    toast.success(status === 'published' ? 'Artikel berhasil dipublish' : 'Draft berhasil disimpan');
+    toast.success(
+      shouldSchedule
+        ? 'Artikel berhasil dijadwalkan'
+        : status === 'published'
+          ? 'Artikel berhasil dipublish'
+          : 'Draft berhasil disimpan'
+    );
     router.push(`/blog/${createdPost.id}/edit`);
   };
 
@@ -139,6 +152,34 @@ export default function BlogEditorPage() {
   };
 
   const stats = getBlogWordStats(content);
+  const isScheduling = isFutureSchedule(toScheduledAtIso(scheduledAt));
+
+  const handleGenerateSeo = async () => {
+    setIsGeneratingSeo(true);
+    const result = await generateBlogAIContent({
+      mode: 'seo_generate',
+      title,
+      content,
+      excerpt,
+    });
+    setIsGeneratingSeo(false);
+
+    if (result.error || !result.data) {
+      toast.error(result.error || 'AI belum menghasilkan draft SEO yang valid');
+      return;
+    }
+
+    if (result.data.metaTitle) {
+      setMetaTitle(result.data.metaTitle.slice(0, 60));
+    }
+
+    const nextExcerpt = result.data.excerpt || result.data.metaDescription || '';
+    if (nextExcerpt) {
+      setExcerpt(nextExcerpt.slice(0, 160));
+    }
+
+    toast.success('Draft SEO berhasil dibuat oleh AI');
+  };
 
   return (
     <div className="-mx-4 -my-6 flex min-h-[calc(100vh-2px)] w-auto flex-col overflow-x-hidden sm:-mx-8">
@@ -179,7 +220,7 @@ export default function BlogEditorPage() {
             onClick={() => savePost('published')}
             className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-primary to-emerald-600 px-2 text-[12px] font-semibold text-white shadow-md shadow-primary/25 transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-50 sm:px-3"
           >
-            {isSaving ? 'Saving...' : 'Publish'}
+            {isSaving ? 'Saving...' : isScheduling ? 'Schedule' : 'Publish'}
             <ChevronDown className="h-3 w-3 opacity-70" />
           </Button>
         </div>
@@ -264,7 +305,7 @@ export default function BlogEditorPage() {
             </div>
 
             {/* Toolbar */}
-            <BlogRichTextEditor value={content} onChange={setContent} />
+            <BlogRichTextEditor value={content} onChange={setContent} documentTitle={title} />
           </div>
         </main>
 
@@ -286,7 +327,9 @@ export default function BlogEditorPage() {
               <div className="space-y-3 rounded-xl border border-border/60 bg-background/50 p-3.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] text-muted-foreground">Status</span>
-                  <span className="rounded-full bg-amber-500/10 text-amber-500 dark:text-amber-400 px-2.5 py-0.5 text-[11px] font-medium">Draft</span>
+                  <span className="rounded-full bg-amber-500/10 text-amber-500 dark:text-amber-400 px-2.5 py-0.5 text-[11px] font-medium">
+                    {isScheduling ? 'Scheduled Draft' : 'Draft'}
+                  </span>
                 </div>
                 <div className="h-px bg-border/40" />
                 <div className="flex items-center justify-between">
@@ -302,12 +345,30 @@ export default function BlogEditorPage() {
                   </select>
                 </div>
                 <div className="h-px bg-border/40" />
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-muted-foreground">Schedule</span>
-                  <Button variant="ghost" size="sm" className="h-7 px-2.5 text-[11px] text-primary hover:bg-primary/10 hover:text-primary rounded-lg gap-1.5">
-                    <Clock className="h-3 w-3" />
-                    Set Date
-                  </Button>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-muted-foreground">Jadwal Publish</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setScheduledAt('')}
+                      className="h-7 px-2.5 text-[11px] text-primary hover:bg-primary/10 hover:text-primary rounded-lg gap-1.5"
+                    >
+                      <Clock className="h-3 w-3" />
+                      Reset
+                    </Button>
+                  </div>
+                  <Input
+                    type="datetime-local"
+                    value={scheduledAt}
+                    onChange={(event) => setScheduledAt(event.target.value)}
+                    className="h-8 rounded-lg border-border/60 bg-background text-[11px]"
+                  />
+                  <p className="text-[10px] leading-relaxed text-muted-foreground/70">
+                    Kosongkan untuk publish manual. Jika waktunya masih di masa depan,
+                    tombol publish akan berubah jadi schedule.
+                  </p>
                 </div>
               </div>
             </div>
@@ -385,16 +446,26 @@ export default function BlogEditorPage() {
                   </div>
                   SEO & Meta
                 </h3>
-                <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2.5 text-[11px] text-primary hover:bg-primary/10 hover:text-primary rounded-lg">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleGenerateSeo}
+                  disabled={isGeneratingSeo}
+                  className="h-7 gap-1.5 px-2.5 text-[11px] text-primary hover:bg-primary/10 hover:text-primary rounded-lg"
+                >
                   <Sparkles className="h-3 w-3" />
-                  Generate AI
+                  {isGeneratingSeo ? 'Generating...' : 'Generate AI'}
                 </Button>
               </div>
               
               <div className="space-y-3 rounded-xl border border-border/60 bg-background/50 p-3.5">
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-medium text-muted-foreground">Slug (URL)</label>
-                  <Input placeholder="auto-generated-slug" className="h-8 rounded-lg border-border/60 bg-background font-mono text-[11px]" />
+                  <Input
+                    value={title ? `/blog/${title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled'}` : '/blog/auto-generated-slug'}
+                    readOnly
+                    className="h-8 rounded-lg border-border/60 bg-background font-mono text-[11px]"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-medium text-muted-foreground">Meta Title</label>

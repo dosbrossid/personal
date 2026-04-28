@@ -25,6 +25,12 @@ function decodeHtmlEntities(value: string) {
     .replace(/&#039;/g, "'")
 }
 
+function normalizeEncodedNoteMarkup(value: string) {
+  return value
+    .replace(/&lt;\s*br\s*\/?\s*&gt;/gi, '<br />')
+    .replace(/&lt;\s*(\/?)\s*(p|strong|em|ul|ol|li|blockquote)\s*&gt;/gi, '<$1$2>')
+}
+
 export function stripBasicMarkdown(value: string) {
   return value
     .replace(/\*\*(.*?)\*\*/g, '$1')
@@ -37,13 +43,15 @@ export function stripBasicMarkdown(value: string) {
 export function stripNoteContent(value: string) {
   if (!value?.trim()) return ''
 
-  if (!isProbablyHtml(value)) {
-    return stripBasicMarkdown(value)
+  const normalizedInput = normalizeEncodedNoteMarkup(value)
+
+  if (!isProbablyHtml(normalizedInput)) {
+    return stripBasicMarkdown(normalizedInput)
       .replace(/\n{3,}/g, '\n\n')
       .trim()
   }
 
-  const normalized = value
+  const normalized = normalizedInput
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '')
     .replace(/<br\s*\/?>/gi, '\n')
@@ -126,7 +134,7 @@ export function markdownToHtml(value: string) {
 export function sanitizeNoteHtml(value: string) {
   if (!value.trim()) return ''
 
-  const normalized = value
+  const normalized = normalizeEncodedNoteMarkup(value)
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '')
     .replace(/<(\/?)b(\s[^>]*)?>/gi, '<$1strong>')
@@ -158,7 +166,8 @@ export function sanitizeNoteHtml(value: string) {
 
 export function getNoteRenderHtml(value: string) {
   if (!value.trim()) return ''
-  return isProbablyHtml(value) ? sanitizeNoteHtml(value) : markdownToHtml(value)
+  const normalizedInput = normalizeEncodedNoteMarkup(value)
+  return isProbablyHtml(normalizedInput) ? sanitizeNoteHtml(normalizedInput) : markdownToHtml(normalizedInput)
 }
 
 export function getNoteEditorHtml(value: string) {

@@ -236,6 +236,24 @@
 **Status:** RESOLVED
 **Terkait:** `src/lib/holidays.ts`, `src/app/api/calendar/route.ts`, `supabase/migrations/*`
 
+## BUG-091 | 2026-04-29 | SEVERITY: Medium
+
+**Gejala:** Detail Catatan masih memotong panel ringkas untuk note panjang, dan HTML ringan seperti `<br>` kadang tampil mentah alih-alih dirender sebagai line break.
+**Root Cause:** Ringkasan detail note masih memakai excerpt fixed-length, sementara parser note belum menormalkan markup HTML sederhana yang tersimpan dalam bentuk encoded text.
+**Fix:** Ubah panel detail note agar menampilkan teks bersih yang bisa di-scroll tanpa dipotong kasar, lalu normalisasi encoded markup ringan seperti `<br>` sebelum sanitize/render.
+**Pelajaran:** Konten long-form tidak boleh dipaksa masuk ke preview pendek di layar detail, dan parser rich text perlu toleran terhadap legacy markup yang setengah HTML setengah plain text.
+**Status:** RESOLVED
+**Terkait:** `src/app/(dashboard)/notes/page.tsx`, `src/lib/notes.ts`
+
+## BUG-092 | 2026-04-29 | SEVERITY: High
+
+**Gejala:** Blog CMS belum punya flow AI yang benar-benar usable di editor; tombol AI masih placeholder dan belum ada pola natural untuk `blok teks -> beri instruksi -> AI edit`.
+**Root Cause:** Integrasi AI blog belum punya action khusus untuk generation/editorial rewrite, dan editor belum menyimpan selection range untuk dipakai sebagai target replace.
+**Fix:** Tambahkan action AI khusus blog untuk `generate section`, `edit selection`, dan `generate SEO`, lalu sambungkan ke rich text editor dengan selection-aware workflow.
+**Pelajaran:** Fitur AI editor terasa berguna bukan ketika sekadar “ada tombol AI”, tapi ketika ia menempel ke gesture menulis yang natural dan hasilnya bisa langsung dipakai di dokumen.
+**Status:** RESOLVED
+**Terkait:** `src/components/modules/blog/BlogRichTextEditor.tsx`, `src/actions/blog.actions.ts`, `src/app/(dashboard)/blog/*`
+
 ## BUG-023 | 2026-04-27 | SEVERITY: High
 
 **Gejala:** Ringkasan dashboard berpotensi meleset karena kalkulasi hari ini dan kebiasaan 7 hari masih rentan timezone UTC, urutan log, dan query agregasi tanpa filter `user_id` eksplisit.
@@ -829,6 +847,24 @@
 **Pelajaran:** Kalau satu event bisa keluar ke beberapa channel, pemilihan channel harus diputuskan saat enqueue, bukan ditambal belakangan di dispatcher.
 **Status:** RESOLVED
 **Terkait:** `src/actions/tasks.actions.ts`, `src/actions/calendar.actions.ts`, `src/lib/ai/command-hub.ts`, `src/lib/notification-queue.ts`, `src/app/api/cron/notifications/route.ts`, `supabase/scripts/006_schedule_notifications_via_supabase_cron.sql`
+
+## BUG-089 | 2026-04-29 | SEVERITY: High
+
+**Gejala:** Tombol dan field schedule di Blog CMS belum benar-benar berfungsi; post yang diberi tanggal publish tetap tidak pernah terbit otomatis saat waktunya tiba.
+**Root Cause:** Tabel `blog_posts` memang sudah punya kolom `scheduled_at`, tetapi UI editor belum mengirim nilainya, server action belum memutuskan mode `scheduled draft`, dan cron 1 menit belum punya langkah untuk mempromosikan post terjadwal menjadi `published`.
+**Fix:** Hidupkan alur schedule end-to-end: editor kirim `scheduled_at`, server action menyimpan draft terjadwal dengan benar, dan cron notifikasi ikut menjalankan publisher untuk semua post yang sudah jatuh tempo.
+**Pelajaran:** Field database saja tidak cukup; fitur terjadwal baru hidup kalau keputusan status, UX editor, dan background job berbicara dengan aturan yang sama.
+**Status:** RESOLVED
+**Terkait:** `src/actions/blog.actions.ts`, `src/app/(dashboard)/blog/new/page.tsx`, `src/app/(dashboard)/blog/[id]/edit/page.tsx`, `src/app/api/cron/notifications/route.ts`
+
+## BUG-090 | 2026-04-29 | SEVERITY: Medium
+
+**Gejala:** Path artikel publik masih memakai pola lama yang terlalu datar, padahal artikel blog diinginkan berada di `zmaula.web.id/blog/slug` agar root path nantinya bisa dipakai untuk halaman statis/page builder.
+**Root Cause:** Link home/tag/RSS/sitemap dan route public article masih dibangun di level `/${slug}` (di balik prefix `/public-blog`), sehingga struktur URL belum dipisah antara `blog post` dan `page`.
+**Fix:** Pindahkan jalur artikel publik ke `/blog/[slug]`, ubah semua generator link publik mengikuti pola baru, dan redirect jalur artikel lama ke struktur baru agar backlink lama tidak putus.
+**Pelajaran:** Struktur URL publik perlu dipikirkan sebagai kontrak jangka panjang; memisahkan konten blog dari page lebih aman dilakukan sebelum page builder hadir.
+**Status:** RESOLVED
+**Terkait:** `src/app/public-blog/page.tsx`, `src/app/public-blog/[slug]/page.tsx`, `src/app/public-blog/blog/[slug]/page.tsx`, `src/app/public-blog/tag/[slug]/page.tsx`, `src/app/public-blog/sitemap.ts`, `src/app/api/public/rss/route.ts`, `src/proxy.ts`
 
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
