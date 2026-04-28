@@ -866,6 +866,24 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/public-blog/page.tsx`, `src/app/public-blog/[slug]/page.tsx`, `src/app/public-blog/blog/[slug]/page.tsx`, `src/app/public-blog/tag/[slug]/page.tsx`, `src/app/public-blog/sitemap.ts`, `src/app/api/public/rss/route.ts`, `src/proxy.ts`
 
+## BUG-091 | 2026-04-29 | SEVERITY: High
+
+**Gejala:** Saat mengetik lalu menghapus satu huruf di editor blog, caret/kursor pengetikan meloncat kembali ke awal artikel sehingga pengalaman menulis terasa rusak.
+**Root Cause:** Editor melakukan sinkronisasi `innerHTML` terkontrol terlalu agresif pada setiap input, sehingga DOM editor di-rewrite ulang setelah setiap perubahan kecil dan selection/caret hilang.
+**Fix:** Ubah strategi sinkronisasi editor agar input harian hanya mengirim HTML tersanitasi ke state tanpa me-rewrite DOM aktif; rewrite penuh hanya dilakukan saat hydration awal atau saat value eksternal benar-benar berubah.
+**Pelajaran:** Rich text editor tidak bisa diperlakukan seperti input biasa; kontrol penuh terhadap `innerHTML` pada setiap keystroke hampir selalu berujung pada caret jump atau selection loss.
+**Status:** RESOLVED
+**Terkait:** `src/components/modules/blog/BlogRichTextEditor.tsx`
+
+## BUG-092 | 2026-04-29 | SEVERITY: Medium
+
+**Gejala:** Aplikasi belum benar-benar installable sebagai PWA; belum ada manifest route, icon app yang proper, registrasi service worker, dan service worker saat ini hanya no-op.
+**Root Cause:** Setup web app masih berhenti di halaman web biasa tanpa metadata PWA dan tanpa lifecycle service worker yang didaftarkan dari client.
+**Fix:** Tambahkan manifest Next App Router, icon/apple-icon generator, provider registrasi service worker, dan service worker ringan untuk cache aset inti serta fallback offline dasar.
+**Pelajaran:** PWA yang terasa rapi butuh empat lapisan sekaligus: manifest, icon, service worker, dan registrasi client; satu lapisan saja tidak cukup untuk installability yang konsisten.
+**Status:** RESOLVED
+**Terkait:** `src/app/layout.tsx`, `src/app/manifest.ts`, `src/app/icon.tsx`, `src/app/apple-icon.tsx`, `public/sw.js`, `src/components/providers/PWAProvider.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

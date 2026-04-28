@@ -42,6 +42,7 @@ export function BlogRichTextEditor({ value, onChange, className, documentTitle =
   const editorRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const selectionRangeRef = useRef<Range | null>(null);
+  const lastSyncedValueRef = useRef<string>('');
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
@@ -56,20 +57,26 @@ export function BlogRichTextEditor({ value, onChange, className, documentTitle =
   useEffect(() => {
     if (!editorRef.current) return;
     const normalized = sanitizeBlogHtml(value) || '<p></p>';
-    if (editorRef.current.innerHTML !== normalized) {
+    const currentNormalized = sanitizeBlogHtml(editorRef.current.innerHTML) || '<p></p>';
+    const isFocused = typeof document !== 'undefined' && document.activeElement === editorRef.current;
+
+    if (normalized !== currentNormalized && (!isFocused || normalized !== lastSyncedValueRef.current)) {
       editorRef.current.innerHTML = normalized;
     }
     ensureEditorImageIds(editorRef.current);
+    lastSyncedValueRef.current = normalized;
   }, [value]);
 
-  const syncValue = () => {
+  const syncValue = (options?: { rewriteDom?: boolean }) => {
     if (!editorRef.current) return;
     const selectedImage = getImageElement(editorRef.current, selectedImageId);
     const selectedImageSrc = selectedImage?.getAttribute('src') || null;
     const normalized = sanitizeBlogHtml(editorRef.current.innerHTML) || '<p></p>';
-    if (editorRef.current.innerHTML !== normalized) {
+
+    if (options?.rewriteDom && editorRef.current.innerHTML !== normalized) {
       editorRef.current.innerHTML = normalized;
     }
+
     ensureEditorImageIds(editorRef.current);
     if (selectedImageSrc) {
       const replacement = Array.from(editorRef.current.querySelectorAll('img')).find(
@@ -77,6 +84,7 @@ export function BlogRichTextEditor({ value, onChange, className, documentTitle =
       );
       setSelectedImageId(replacement?.getAttribute(IMAGE_ID_ATTR) || null);
     }
+    lastSyncedValueRef.current = normalized;
     onChange(normalized);
   };
 
@@ -499,8 +507,8 @@ export function BlogRichTextEditor({ value, onChange, className, documentTitle =
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
-        onInput={syncValue}
-        onBlur={syncValue}
+        onInput={() => syncValue()}
+        onBlur={() => syncValue({ rewriteDom: true })}
         onClick={handleEditorClick}
         onKeyUp={captureSelectionState}
         onMouseUp={captureSelectionState}
@@ -508,7 +516,7 @@ export function BlogRichTextEditor({ value, onChange, className, documentTitle =
           event.preventDefault();
           const pastedText = event.clipboardData.getData('text/plain');
           document.execCommand('insertText', false, pastedText);
-          window.setTimeout(syncValue, 0);
+          window.setTimeout(() => syncValue(), 0);
         }}
         className="min-h-[320px] rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-[15px] leading-[1.8] text-foreground outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 sm:min-h-[420px] sm:px-5 sm:py-4 sm:text-[16px] [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:bg-muted/30 [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:italic [&_h1]:mt-6 [&_h1]:text-[1.75rem] [&_h1]:font-bold sm:[&_h1]:text-[2rem] [&_h2]:mt-5 [&_h2]:text-[1.35rem] [&_h2]:font-semibold sm:[&_h2]:text-[1.5rem] [&_img]:my-4 [&_img]:max-h-[420px] [&_img]:rounded-xl [&_img]:border [&_img]:border-border/60 [&_img]:object-contain [&_img]:shadow-sm [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:min-h-[1.6em] [&_p]:text-foreground [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
       />
