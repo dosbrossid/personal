@@ -265,8 +265,8 @@ function NoteEditorModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="flex max-h-[92vh] w-[calc(100vw-1.5rem)] flex-col overflow-hidden border-border/60 bg-card p-0 sm:max-w-5xl lg:h-[min(92vh,860px)]">
-        <DialogHeader className="shrink-0 border-b border-border/40 px-6 py-5 pb-4">
+      <DialogContent className="flex max-h-[92vh] w-[calc(100vw-1rem)] flex-col overflow-hidden border-border/60 bg-card p-0 sm:w-[calc(100vw-1.5rem)] sm:max-w-5xl lg:h-[min(92vh,860px)]">
+        <DialogHeader className="shrink-0 border-b border-border/40 px-4 py-4 pb-3 sm:px-6 sm:py-5 sm:pb-4">
           <DialogTitle className="flex items-center gap-2.5 text-[18px]">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md shadow-violet-500/20">
               {isEdit ? <Edit3 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
@@ -275,7 +275,7 @@ function NoteEditorModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-hidden px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-hidden px-4 py-4 sm:px-6 sm:py-5">
           <div className="flex h-full min-h-0 flex-col gap-5 lg:grid lg:grid-cols-[minmax(300px,0.82fr)_minmax(0,1.18fr)] lg:gap-6 lg:space-y-0">
             <div className="space-y-4 lg:min-h-0 lg:overflow-y-auto lg:pr-1 scrollbar-thin">
               <div className="space-y-1.5">
@@ -357,7 +357,7 @@ function NoteEditorModal({
                 <span className="text-[11px]">{isPinned ? 'Aktif' : 'Opsional'}</span>
               </button>
 
-              <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
+              <div className="rounded-2xl border border-border/60 bg-muted/20 p-4 max-sm:hidden">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Preview Ringkas</p>
                 <p className="mt-2 text-[15px] font-semibold text-foreground">{title.trim() || 'Judul catatan'}</p>
                 <p className="mt-1 text-[12px] text-muted-foreground">{getNoteExcerpt(content, 120)}</p>
@@ -377,11 +377,11 @@ function NoteEditorModal({
             </div>
 
             <div className="space-y-3 lg:flex lg:min-h-0 lg:flex-col lg:overflow-y-auto lg:pl-1 scrollbar-thin">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Konten</label>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {noteType !== 'snippet' ? (
-                    <div className="flex items-center gap-1 rounded-lg border border-border/60 bg-muted/20 p-1">
+                    <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border/60 bg-muted/20 p-1">
                       <button
                         onClick={() => applyRichCommand('bold')}
                         className="rounded-md px-2 py-1 text-[12px] font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -412,10 +412,7 @@ function NoteEditorModal({
                       Mode snippet
                     </span>
                   )}
-                  <button
-                    onClick={handleAIGenerate}
-                    className="flex items-center gap-1.5 text-[11px] font-medium text-violet-500 transition-colors hover:text-violet-600"
-                  >
+                  <button onClick={handleAIGenerate} className="flex items-center gap-1.5 text-[11px] font-medium text-violet-500 transition-colors hover:text-violet-600">
                     <Sparkles className="h-3 w-3" />
                     {isGeneratingSummary ? 'Generating...' : 'Generate AI'}
                   </button>
@@ -457,7 +454,7 @@ function NoteEditorModal({
                   </div>
                 )}
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+              <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] text-muted-foreground">
                   {noteType === 'idea' && 'Tulis cepat dulu, rapikan belakangan. Ide yang tertangkap lebih penting.'}
                   {noteType === 'snippet' && 'Snippet cocok untuk potongan kode, command, atau template teks teknis.'}
@@ -470,15 +467,15 @@ function NoteEditorModal({
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-border/40 bg-card/95 px-6 py-4 supports-backdrop-filter:backdrop-blur">
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" onClick={onClose} className="h-9 rounded-lg border-border/60 text-[12px]">
+        <div className="shrink-0 border-t border-border/40 bg-card/95 px-4 py-4 supports-backdrop-filter:backdrop-blur sm:px-6">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
+            <Button variant="outline" onClick={onClose} className="h-9 w-full rounded-lg border-border/60 text-[12px] sm:w-auto">
               Batal
             </Button>
             <Button
               onClick={handleSave}
               disabled={!title.trim() || isSaving}
-              className="h-9 gap-2 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-[12px] font-semibold text-white shadow-md shadow-violet-500/25 transition-all hover:opacity-90 disabled:opacity-40"
+              className="h-9 w-full gap-2 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-[12px] font-semibold text-white shadow-md shadow-violet-500/25 transition-all hover:opacity-90 disabled:opacity-40 sm:w-auto"
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
               {isSaving ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Simpan Catatan'}
@@ -631,14 +628,14 @@ function NoteDetailModal({
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-border/40 bg-card/95 px-6 py-4 supports-backdrop-filter:backdrop-blur">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleCopy} className="h-8 gap-1.5 rounded-lg border-border/60 text-[12px]">
+        <div className="shrink-0 border-t border-border/40 bg-card/95 px-4 py-4 supports-backdrop-filter:backdrop-blur sm:px-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleCopy} className="h-8 flex-1 gap-1.5 rounded-lg border-border/60 text-[12px] sm:flex-none">
                 <Copy className="h-3.5 w-3.5 text-blue-500" />
                 Copy
               </Button>
-              <Button variant="outline" size="sm" onClick={handleShare} className="h-8 gap-1.5 rounded-lg border-border/60 text-[12px]">
+              <Button variant="outline" size="sm" onClick={handleShare} className="h-8 flex-1 gap-1.5 rounded-lg border-border/60 text-[12px] sm:flex-none">
                 <Share2 className="h-3.5 w-3.5 text-violet-500" />
                 Share
               </Button>
@@ -646,7 +643,7 @@ function NoteDetailModal({
             <Button
               size="sm"
               onClick={() => { onClose(); onEdit(note); }}
-              className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-[12px] font-semibold text-white shadow-md shadow-violet-500/25"
+              className="h-8 w-full gap-1.5 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-[12px] font-semibold text-white shadow-md shadow-violet-500/25 sm:w-auto"
             >
               <Edit3 className="h-3.5 w-3.5" />
               Edit
@@ -839,21 +836,21 @@ export default function NotesPage() {
     <>
       <div className="space-y-6">
         {/* ─── Header ─── */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-[28px] font-bold text-foreground tracking-tight flex items-center gap-2.5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="flex items-center gap-2.5 text-[24px] font-bold tracking-tight text-foreground sm:text-[28px]">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/20">
                 <Brain className="h-5 w-5" />
               </div>
               Brain Notes
             </h1>
-            <p className="text-[14px] text-muted-foreground mt-1">
+            <p className="mt-1 max-w-2xl text-[13px] text-muted-foreground sm:text-[14px]">
               Repositori catatan, ide, link, dan snippet
             </p>
           </div>
           <button
             onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-foreground to-foreground/90 text-background text-[13px] font-medium hover:opacity-90 transition-all duration-200 shadow-lg shadow-foreground/10 active:scale-[0.97]"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-foreground to-foreground/90 px-5 py-2.5 text-[13px] font-medium text-background shadow-lg shadow-foreground/10 transition-all duration-200 hover:opacity-90 active:scale-[0.97] sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             Catatan Baru
@@ -914,7 +911,7 @@ export default function NotesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 xl:min-w-[280px]">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:min-w-[280px]">
               <div className="rounded-xl border border-border/40 bg-muted/20 px-3 py-3">
                 <p className="text-[11px] text-muted-foreground">Pinned</p>
                 <p className="mt-1 text-[18px] font-semibold text-foreground">{pinnedCount}</p>
@@ -1138,10 +1135,10 @@ function NoteCard({
   return (
     <div
       onClick={() => onPreview(note)}
-      className="group widget-card cursor-pointer rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-500/20 hover:shadow-md hover:shadow-violet-500/10"
+      className="group widget-card cursor-pointer rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-500/20 hover:shadow-md hover:shadow-violet-500/10 sm:p-5"
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0 flex items-center gap-2">
           <div
             className="flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-sm"
             style={{ background: `linear-gradient(135deg, ${typeColor}, ${typeColor}cc)` }}
@@ -1164,7 +1161,7 @@ function NoteCard({
         </div>
         <div onClick={(e) => e.stopPropagation()}>
           <DropdownMenu>
-            <DropdownMenuTrigger className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-muted transition-all duration-200">
+            <DropdownMenuTrigger className="rounded-lg p-1.5 text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground md:opacity-0 md:group-hover:opacity-100">
               <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44 border-border/60 bg-card shadow-xl rounded-xl">
@@ -1216,11 +1213,11 @@ function NoteCard({
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-3 border-t border-border/40">
-        <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', roleData.bgClass)}>
+      <div className="flex flex-col gap-2 border-t border-border/40 pt-3 sm:flex-row sm:items-center sm:justify-between">
+        <span className={cn('w-fit rounded-full px-2 py-0.5 text-[11px] font-medium', roleData.bgClass)}>
           {roleData.icon} {roleData.label}
         </span>
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground/60">
           <span>{getNoteWordCount(excerpt)} kata</span>
           <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
           <span>{formatRelativeTime(note.created_at)}</span>

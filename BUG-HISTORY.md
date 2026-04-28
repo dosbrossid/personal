@@ -713,6 +713,24 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/(dashboard)/page.tsx`
 
+## BUG-078 | 2026-04-28 | SEVERITY: Medium
+
+**Gejala:** Blog CMS terasa berat dan membingungkan di mobile karena daftar artikel masih dipresentasikan dengan pola tabel desktop, sementara header dan kontrol filter/search saling berebut ruang di layar kecil.
+**Root Cause:** Halaman blog admin mengandalkan satu layout grid 12 kolom untuk semua viewport, tanpa representasi card khusus mobile atau pemecahan ulang ritme header dan control bar.
+**Fix:** Ubah header dan search controls menjadi stack yang lebih lentur di mobile, lalu tambahkan representasi `BlogPostMobileCard` khusus untuk layar kecil sambil mempertahankan tabel ringkas untuk desktop.
+**Pelajaran:** Konten admin yang sifatnya list-heavy tidak cukup dibuat “responsive” dengan mengecilkan tabel; pada mobile, sering kali ia butuh bentuk UI yang benar-benar berbeda.
+**Status:** RESOLVED
+**Terkait:** `src/app/(dashboard)/blog/page.tsx`
+
+## BUG-079 | 2026-04-28 | SEVERITY: Medium
+
+**Gejala:** Halaman Catatan masih terasa canggung di mobile karena CTA header terlalu desktop, ringkasan toolbar terlalu padat, aksi kartu bergantung pada hover, dan modal editor/detail memaksa layout lebar ke viewport kecil.
+**Root Cause:** UX Catatan dibangun dari asumsi pointer desktop: aksi tersembunyi di hover, footer modal horizontal, preview panel selalu tampil, dan blok statistik/toolbar tidak dipecah ulang untuk layar ponsel.
+**Fix:** Rapikan header dan toolbar notes agar bertumpuk dengan sehat di mobile, tampilkan trigger aksi kartu tanpa hover dependency, dan sesuaikan modal editor/detail dengan padding, wrapping, serta footer button stack yang lebih nyaman di HP.
+**Pelajaran:** Mobile polish di modul produktivitas bukan hanya soal ukuran teks; pola interaksi seperti hover, split panel, dan action row harus dinilai ulang dari nol.
+**Status:** RESOLVED
+**Terkait:** `src/app/(dashboard)/notes/page.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

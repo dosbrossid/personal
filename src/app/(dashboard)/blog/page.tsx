@@ -36,10 +36,167 @@ import {
 
 import { useBlogPosts } from '@/hooks/use-blog';
 import { BLOG_STATUSES } from '@/core/constants';
-import type { BlogStatus, BlogVisibility } from '@/core/types';
+import type { BlogPost, BlogStatus, BlogVisibility } from '@/core/types';
 import { Loader2 } from 'lucide-react';
 import { deleteBlogPost, updateBlogPost } from '@/actions/blog.actions';
 import { toast } from 'sonner';
+
+function BlogPostActions({
+  post,
+  onTogglePublish,
+  onDelete,
+}: {
+  post: BlogPost;
+  onTogglePublish: (postId: string, nextStatus: Extract<BlogStatus, 'draft' | 'published'>) => void;
+  onDelete: (postId: string) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground/70 transition-all duration-200 hover:bg-muted hover:text-foreground">
+        <MoreVertical className="h-4 w-4" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/60 bg-card shadow-xl">
+        <Link href={`/blog/${post.id}/edit`}>
+          <DropdownMenuItem className="gap-2 rounded-lg text-[13px] focus:bg-muted focus:text-foreground">
+            <Edit3 className="h-4 w-4 text-muted-foreground" /> Edit Artikel
+          </DropdownMenuItem>
+        </Link>
+        {post.status === 'published' && (
+          <DropdownMenuItem
+            onClick={() => window.open(`/public-blog/${post.slug}`, '_blank', 'noopener,noreferrer')}
+            className="gap-2 rounded-lg text-[13px] focus:bg-muted focus:text-foreground"
+          >
+            <Globe className="h-4 w-4 text-muted-foreground" /> Lihat Publik
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator className="bg-border/40" />
+        {post.status === 'published' ? (
+          <DropdownMenuItem
+            onClick={() => onTogglePublish(post.id, 'draft')}
+            className="gap-2 rounded-lg text-[13px] focus:bg-muted focus:text-foreground"
+          >
+            <Archive className="h-4 w-4 text-amber-500/70" /> Unpublish (Draft)
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            onClick={() => onTogglePublish(post.id, 'published')}
+            className="gap-2 rounded-lg text-[13px] focus:bg-muted focus:text-foreground"
+          >
+            <CheckCircle2 className="h-4 w-4 text-emerald-500/70" /> Publish Sekarang
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator className="bg-border/40" />
+        <DropdownMenuItem
+          onClick={() => onDelete(post.id)}
+          className="gap-2 rounded-lg text-[13px] text-red-500 focus:bg-red-500/10 focus:text-red-500"
+        >
+          <Trash2 className="h-4 w-4" /> Hapus Artikel
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function BlogPostMobileCard({
+  post,
+  getVisibilityIcon,
+  onTogglePublish,
+  onDelete,
+}: {
+  post: BlogPost;
+  getVisibilityIcon: (visibility: BlogVisibility) => React.ReactNode;
+  onTogglePublish: (postId: string, nextStatus: Extract<BlogStatus, 'draft' | 'published'>) => void;
+  onDelete: (postId: string) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted">
+          {post.featured_image_url ? (
+            <img src={post.featured_image_url} alt={post.featured_image_alt || 'Cover'} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <PenSquare className="h-4 w-4 text-muted-foreground/50" />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <Link href={`/blog/${post.id}/edit`} className="group/link flex items-start gap-1.5">
+                <h3 className="line-clamp-2 text-[14px] font-semibold leading-snug text-foreground transition-colors group-hover/link:text-primary">
+                  {post.title}
+                </h3>
+                <ArrowUpRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/0 transition-all duration-200 group-hover/link:translate-x-0 group-hover/link:translate-y-0 group-hover/link:text-primary" />
+              </Link>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span
+                  className="flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
+                  style={{
+                    backgroundColor: `${BLOG_STATUSES[post.status].color}15`,
+                    color: BLOG_STATUSES[post.status].color,
+                  }}
+                >
+                  {BLOG_STATUSES[post.status].icon} {BLOG_STATUSES[post.status].label}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-muted/40 px-2 py-0.5 text-muted-foreground">
+                  {getVisibilityIcon(post.visibility)}
+                  <span className="capitalize">{post.visibility}</span>
+                </span>
+              </div>
+            </div>
+            <BlogPostActions post={post} onTogglePublish={onTogglePublish} onDelete={onDelete} />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {post.tags?.slice(0, 3).map((tag) => (
+          <Badge key={tag.id} variant="outline" className="rounded-full border-border/60 bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+            {tag.name}
+          </Badge>
+        ))}
+        {post.tags && post.tags.length > 3 && (
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground/70">
+            +{post.tags.length - 3} tag
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-border/50 bg-muted/15 p-3 text-[11px]">
+        <div>
+          <p className="text-muted-foreground">Views</p>
+          <p className="mt-1 flex items-center gap-1.5 font-medium text-foreground">
+            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+            {new Intl.NumberFormat('id-ID').format(post.view_count)}
+          </p>
+        </div>
+        <div>
+          <p className="text-muted-foreground">Durasi baca</p>
+          <p className="mt-1 flex items-center gap-1.5 font-medium text-foreground">
+            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+            {post.reading_time_minutes}m · {post.word_count}w
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-border/40 pt-3 text-[11px]">
+        <span className="truncate font-mono text-muted-foreground/70">/{post.slug}</span>
+        {post.status === 'published' && post.published_at ? (
+          <div className="text-right">
+            <p className="font-medium text-emerald-500 dark:text-emerald-400">Published</p>
+            <p className="text-muted-foreground">{format(parseISO(post.published_at), 'd MMM y', { locale: id })}</p>
+          </div>
+        ) : (
+          <div className="text-right">
+            <p className="font-medium text-muted-foreground">Edited</p>
+            <p className="text-muted-foreground/70">{formatDistanceToNow(parseISO(post.updated_at), { addSuffix: true, locale: id })}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 
 export default function BlogCMSPage() {
@@ -110,20 +267,20 @@ export default function BlogCMSPage() {
   return (
     <div className="space-y-6">
       {/* ─── Header ─── */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[28px] font-bold text-foreground tracking-tight flex items-center gap-2.5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="flex items-center gap-2.5 text-[24px] font-bold tracking-tight text-foreground sm:text-[28px]">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 text-white shadow-lg shadow-blue-500/20">
               <PenSquare className="h-5 w-5" />
             </div>
             Blog CMS
           </h1>
-          <p className="text-[14px] text-muted-foreground mt-1">
+          <p className="mt-1 max-w-2xl text-[13px] text-muted-foreground sm:text-[14px]">
             Kelola artikel, tutorial, dan ide untuk publish ke zmaula.web.id
           </p>
         </div>
         <Link href="/blog/new">
-          <Button className="gap-2 bg-gradient-to-r from-foreground to-foreground/90 text-background text-[13px] font-medium hover:opacity-90 transition-all duration-200 shadow-lg shadow-foreground/10 active:scale-[0.97] rounded-xl px-5 py-2.5 h-auto">
+          <Button className="h-auto w-full gap-2 rounded-xl bg-gradient-to-r from-foreground to-foreground/90 px-5 py-2.5 text-[13px] font-medium text-background shadow-lg shadow-foreground/10 transition-all duration-200 hover:opacity-90 active:scale-[0.97] sm:w-auto">
             <Plus className="h-4 w-4" />
             Tulis Artikel
           </Button>
@@ -153,7 +310,7 @@ export default function BlogCMSPage() {
       </div>
 
       {/* ─── Controls ─── */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-border/60 bg-card p-1 shadow-sm">
           <button
             onClick={() => setActiveTab('all')}
@@ -184,7 +341,7 @@ export default function BlogCMSPage() {
           ))}
         </div>
 
-        <div className="flex flex-1 items-center gap-3 md:max-w-md">
+        <div className="flex w-full flex-col gap-3 sm:flex-row xl:max-w-md">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -194,7 +351,7 @@ export default function BlogCMSPage() {
               className="h-10 w-full rounded-xl border-border/60 bg-card pl-9 text-[13px] text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-primary/50 shadow-sm"
             />
           </div>
-          <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-xl border-border/60 bg-card text-muted-foreground hover:bg-muted hover:text-foreground shadow-sm">
+          <Button variant="outline" size="icon" className="h-10 w-full shrink-0 rounded-xl border-border/60 bg-card text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground sm:w-10">
             <Filter className="h-4 w-4" />
           </Button>
         </div>
@@ -203,7 +360,7 @@ export default function BlogCMSPage() {
       {/* ─── Articles Table ─── */}
       <div className="widget-card rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
         {/* Table Header */}
-        <div className="grid grid-cols-12 gap-4 border-b border-border/60 bg-muted/50 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="hidden grid-cols-12 gap-4 border-b border-border/60 bg-muted/50 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:grid">
           <div className="col-span-6 md:col-span-5">Artikel</div>
           <div className="hidden md:block md:col-span-2">Tags</div>
           <div className="col-span-3 md:col-span-2 text-center">Stats</div>
@@ -222,137 +379,106 @@ export default function BlogCMSPage() {
               <p className="mt-1 text-[12px] text-muted-foreground">Coba ubah kata kunci pencarian atau filter tab.</p>
             </div>
           ) : (
-            filteredPosts.map((post) => (
-              <div
-                key={post.id}
-                className="grid grid-cols-12 items-center gap-4 px-5 py-4 transition-all duration-200 hover:bg-muted/30 group"
-              >
-                {/* Article Info */}
-                <div className="col-span-6 md:col-span-5">
-                  <div className="flex items-start gap-3">
-                    <div className="relative mt-0.5 hidden h-12 w-16 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted sm:block">
-                      {post.featured_image_url ? (
-                        <img src={post.featured_image_url} alt={post.featured_image_alt || 'Cover'} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110" />
+            <>
+              <div className="space-y-3 p-3 md:hidden">
+                {filteredPosts.map((post) => (
+                  <BlogPostMobileCard
+                    key={post.id}
+                    post={post}
+                    getVisibilityIcon={getVisibilityIcon}
+                    onTogglePublish={handleTogglePublish}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+
+              <div className="hidden divide-y divide-border/40 md:block">
+                {filteredPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="group grid grid-cols-12 items-center gap-4 px-5 py-4 transition-all duration-200 hover:bg-muted/30"
+                  >
+                    <div className="col-span-6 md:col-span-5">
+                      <div className="flex items-start gap-3">
+                        <div className="relative mt-0.5 hidden h-12 w-16 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted sm:block">
+                          {post.featured_image_url ? (
+                            <img src={post.featured_image_url} alt={post.featured_image_alt || 'Cover'} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <PenSquare className="h-4 w-4 text-muted-foreground/50" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <Link href={`/blog/${post.id}/edit`} className="group/link flex items-center gap-1.5">
+                            <h3 className="truncate text-[14px] font-semibold text-foreground transition-colors group-hover/link:text-primary">
+                              {post.title}
+                            </h3>
+                            <ArrowUpRight className="h-3.5 w-3.5 shrink-0 translate-x-0.5 -translate-y-0.5 text-muted-foreground/0 transition-all duration-200 group-hover/link:translate-x-0 group-hover/link:translate-y-0 group-hover/link:text-primary" />
+                          </Link>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-muted-foreground">
+                            <span
+                              className="flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
+                              style={{
+                                backgroundColor: `${BLOG_STATUSES[post.status].color}15`,
+                                color: BLOG_STATUSES[post.status].color,
+                              }}
+                            >
+                              {BLOG_STATUSES[post.status].icon} {BLOG_STATUSES[post.status].label}
+                            </span>
+                            <span className="flex items-center gap-1 text-muted-foreground/70">
+                              {getVisibilityIcon(post.visibility)}
+                              <span className="capitalize">{post.visibility}</span>
+                            </span>
+                            <span className="truncate font-mono text-[10px] text-muted-foreground/50">/{post.slug}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="hidden flex-wrap gap-1.5 md:col-span-2 md:flex">
+                      {post.tags?.slice(0, 2).map((tag) => (
+                        <Badge key={tag.id} variant="outline" className="rounded-full border-border/60 bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          {tag.name}
+                        </Badge>
+                      ))}
+                      {post.tags && post.tags.length > 2 && (
+                        <span className="text-[10px] font-medium text-muted-foreground/50">+{post.tags.length - 2}</span>
+                      )}
+                    </div>
+
+                    <div className="col-span-3 flex flex-col items-center justify-center gap-1.5 md:col-span-2">
+                      <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground" title="Views">
+                        <Eye className="h-3.5 w-3.5" />
+                        <span className="tabular-nums font-medium">{new Intl.NumberFormat('id-ID').format(post.view_count)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60" title="Reading time & words">
+                        <Clock className="h-3 w-3" />
+                        <span className="tabular-nums">{post.reading_time_minutes}m · {post.word_count}w</span>
+                      </div>
+                    </div>
+
+                    <div className="col-span-2 text-right">
+                      {post.status === 'published' && post.published_at ? (
+                        <div className="flex flex-col items-end">
+                          <span className="text-[11px] font-medium text-emerald-500 dark:text-emerald-400">Published</span>
+                          <span className="text-[11px] text-muted-foreground">{format(parseISO(post.published_at), 'd MMM y', { locale: id })}</span>
+                        </div>
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <PenSquare className="h-4 w-4 text-muted-foreground/50" />
+                        <div className="flex flex-col items-end">
+                          <span className="text-[11px] font-medium text-muted-foreground">Edited</span>
+                          <span className="text-[11px] text-muted-foreground/60">{formatDistanceToNow(parseISO(post.updated_at), { addSuffix: true, locale: id })}</span>
                         </div>
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <Link href={`/blog/${post.id}/edit`} className="group/link flex items-center gap-1.5">
-                        <h3 className="truncate text-[14px] font-semibold text-foreground group-hover/link:text-primary transition-colors">
-                          {post.title}
-                        </h3>
-                        <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/0 group-hover/link:text-primary transition-all duration-200 -translate-y-0.5 translate-x-0.5 group-hover/link:translate-y-0 group-hover/link:translate-x-0" />
-                      </Link>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-muted-foreground">
-                        <span 
-                          className="flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
-                          style={{ 
-                            backgroundColor: `${BLOG_STATUSES[post.status].color}15`, 
-                            color: BLOG_STATUSES[post.status].color 
-                          }}
-                        >
-                          {BLOG_STATUSES[post.status].icon} {BLOG_STATUSES[post.status].label}
-                        </span>
-                        <span className="flex items-center gap-1 text-muted-foreground/70">
-                          {getVisibilityIcon(post.visibility)}
-                          <span className="capitalize">{post.visibility}</span>
-                        </span>
-                        <span className="truncate text-muted-foreground/50 font-mono text-[10px]">/{post.slug}</span>
-                      </div>
+
+                    <div className="col-span-1 text-right">
+                      <BlogPostActions post={post} onTogglePublish={handleTogglePublish} onDelete={handleDelete} />
                     </div>
                   </div>
-                </div>
-
-                {/* Tags */}
-                <div className="hidden md:flex md:col-span-2 flex-wrap gap-1.5">
-                  {post.tags?.slice(0, 2).map(tag => (
-                    <Badge key={tag.id} variant="outline" className="border-border/60 bg-muted/50 text-muted-foreground text-[10px] font-medium px-2 py-0.5 rounded-full">
-                      {tag.name}
-                    </Badge>
-                  ))}
-                  {post.tags && post.tags.length > 2 && (
-                    <span className="text-[10px] text-muted-foreground/50 font-medium">+{post.tags.length - 2}</span>
-                  )}
-                </div>
-
-                {/* Stats */}
-                <div className="col-span-3 md:col-span-2 flex flex-col items-center justify-center gap-1.5">
-                  <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground" title="Views">
-                    <Eye className="h-3.5 w-3.5" />
-                    <span className="font-medium tabular-nums">{new Intl.NumberFormat('id-ID').format(post.view_count)}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60" title="Reading time & words">
-                    <Clock className="h-3 w-3" />
-                    <span className="tabular-nums">{post.reading_time_minutes}m · {post.word_count}w</span>
-                  </div>
-                </div>
-
-                {/* Last Edited / Published */}
-                <div className="col-span-2 text-right">
-                  {post.status === 'published' && post.published_at ? (
-                    <div className="flex flex-col items-end">
-                      <span className="text-[11px] font-medium text-emerald-500 dark:text-emerald-400">Published</span>
-                      <span className="text-[11px] text-muted-foreground">{format(parseISO(post.published_at), 'd MMM y', { locale: id })}</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-end">
-                      <span className="text-[11px] font-medium text-muted-foreground">Edited</span>
-                      <span className="text-[11px] text-muted-foreground/60">{formatDistanceToNow(parseISO(post.updated_at), { addSuffix: true, locale: id })}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="col-span-1 text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="h-8 w-8 rounded-lg text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted inline-flex items-center justify-center transition-all duration-200">
-                      <MoreVertical className="h-4 w-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 border-border/60 bg-card shadow-xl rounded-xl">
-                      <Link href={`/blog/${post.id}/edit`}>
-                        <DropdownMenuItem className="gap-2 text-[13px] focus:bg-muted focus:text-foreground rounded-lg">
-                          <Edit3 className="h-4 w-4 text-muted-foreground" /> Edit Artikel
-                        </DropdownMenuItem>
-                      </Link>
-                      {post.status === 'published' && (
-                        <DropdownMenuItem
-                          onClick={() => window.open(`/public-blog/${post.slug}`, '_blank', 'noopener,noreferrer')}
-                          className="gap-2 text-[13px] focus:bg-muted focus:text-foreground rounded-lg"
-                        >
-                          <Globe className="h-4 w-4 text-muted-foreground" /> Lihat Publik
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuSeparator className="bg-border/40" />
-                      {post.status === 'published' ? (
-                        <DropdownMenuItem
-                          onClick={() => handleTogglePublish(post.id, 'draft')}
-                          className="gap-2 text-[13px] focus:bg-muted focus:text-foreground rounded-lg"
-                        >
-                          <Archive className="h-4 w-4 text-amber-500/70" /> Unpublish (Draft)
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem
-                          onClick={() => handleTogglePublish(post.id, 'published')}
-                          className="gap-2 text-[13px] focus:bg-muted focus:text-foreground rounded-lg"
-                        >
-                          <CheckCircle2 className="h-4 w-4 text-emerald-500/70" /> Publish Sekarang
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuSeparator className="bg-border/40" />
-                      <DropdownMenuItem
-                        onClick={() => handleDelete(post.id)}
-                        className="gap-2 text-[13px] text-red-500 focus:bg-red-500/10 focus:text-red-500 rounded-lg"
-                      >
-                        <Trash2 className="h-4 w-4" /> Hapus Artikel
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                ))}
               </div>
-            ))
+            </>
           )}
         </div>
       </div>
