@@ -776,6 +776,24 @@
 **Status:** RESOLVED
 **Terkait:** `src/components/shared/AIChatBubble.tsx`
 
+## BUG-085 | 2026-04-28 | SEVERITY: High
+
+**Gejala:** Upload gambar di blog belum dikompres otomatis, cover image blog belum benar-benar fungsional, dan catatan belum punya jalur upload gambar yang konsisten.
+**Root Cause:** Upload image masih tersebar dan mentah: editor blog mengirim file asli ke server, cover image baru sebatas UI visual, dan editor catatan belum punya uploader sama sekali.
+**Fix:** Tambahkan util kompresi client-side ke WebP, sambungkan ke uploader blog/editor, hidupkan cover image blog, dan tambahkan upload gambar untuk editor catatan dengan sanitizer HTML yang mengizinkan render `<img>` secara aman.
+**Pelajaran:** Untuk media upload, performa tidak cukup ditangani di storage layer; kompresi dan format sebaiknya distandardisasi dekat sumber input agar semua modul mendapat perilaku yang konsisten.
+**Status:** RESOLVED
+**Terkait:** `src/lib/client-image.ts`, `src/app/api/blog/media/route.ts`, `src/components/modules/blog/BlogRichTextEditor.tsx`, `src/app/(dashboard)/blog/new/page.tsx`, `src/app/(dashboard)/blog/[id]/edit/page.tsx`, `src/app/(dashboard)/notes/page.tsx`, `src/lib/notes.ts`
+
+## BUG-086 | 2026-04-28 | SEVERITY: Low
+
+**Gejala:** AI bubble masih berpotensi menanyakan identitas dasar pemilik dashboard, padahal ini aplikasi personal satu user dan konteks profil pengguna seharusnya sudah dianggap known context.
+**Root Cause:** System prompt hanya membawa waktu, role, dan kategori, tetapi belum menyuntikkan profil inti pemilik workspace sebagai memory baseline.
+**Fix:** Tambahkan profil permanen pengguna ke prompt AI command dan prompt AI assistant, lalu berikan aturan eksplisit agar AI tidak menanyakan siapa user atau latar dasar user lagi kecuali benar-benar dibutuhkan untuk workflow spesifik.
+**Pelajaran:** Untuk asisten personal single-user, profil inti bukan dekorasi; ia harus hidup di system prompt supaya percakapan terasa cerdas dan kontekstual sejak awal.
+**Status:** RESOLVED
+**Terkait:** `src/lib/ai/prompts.ts`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

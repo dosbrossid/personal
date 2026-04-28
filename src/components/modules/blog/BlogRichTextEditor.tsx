@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { sanitizeBlogHtml } from '@/lib/blog-editor';
+import { uploadCompressedPublicImage } from '@/lib/client-image';
 import { cn } from '@/lib/utils';
 
 interface BlogRichTextEditorProps {
@@ -124,25 +125,14 @@ export function BlogRichTextEditor({ value, onChange, className }: BlogRichTextE
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const response = await fetch('/api/blog/media', {
-        method: 'POST',
-        body: formData,
+      const upload = await uploadCompressedPublicImage(file, {
+        context: 'blog',
+        registerBlogMedia: true,
+        maxDimension: 1920,
+        quality: 0.82,
       });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload.error || 'Gagal upload gambar');
-      }
-
-      if (!payload?.data?.publicUrl) {
-        throw new Error('URL gambar tidak ditemukan setelah upload');
-      }
-
-      insertImageIntoEditor(String(payload.data.publicUrl));
+      insertImageIntoEditor(String(upload.publicUrl));
       toast.success('Gambar berhasil diupload');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Gagal upload gambar');

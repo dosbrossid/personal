@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { 
   Search, 
@@ -113,7 +114,13 @@ function BlogPostMobileCard({
       <div className="flex items-start gap-3">
         <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted">
           {post.featured_image_url ? (
-            <img src={post.featured_image_url} alt={post.featured_image_alt || 'Cover'} className="h-full w-full object-cover" />
+            <Image
+              src={post.featured_image_url}
+              alt={post.featured_image_alt || 'Cover'}
+              fill
+              sizes="64px"
+              className="object-cover"
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
               <PenSquare className="h-4 w-4 text-muted-foreground/50" />
@@ -402,7 +409,13 @@ export default function BlogCMSPage() {
                       <div className="flex items-start gap-3">
                         <div className="relative mt-0.5 hidden h-12 w-16 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted sm:block">
                           {post.featured_image_url ? (
-                            <img src={post.featured_image_url} alt={post.featured_image_alt || 'Cover'} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                            <Image
+                              src={post.featured_image_url}
+                              alt={post.featured_image_alt || 'Cover'}
+                              fill
+                              sizes="64px"
+                              className="object-cover transition-transform duration-300 group-hover:scale-110"
+                            />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center">
                               <PenSquare className="h-4 w-4 text-muted-foreground/50" />

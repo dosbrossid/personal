@@ -15,6 +15,17 @@ interface PromptContext {
   userActiveRoles: RoleContext[]
 }
 
+const USER_PROFILE_CONTEXT = [
+  'USER PROFILE:',
+  '- Name: Ziaul Maula, SE, M.Si',
+  '- This dashboard belongs to the user above. Treat this as a single-user personal operating system.',
+  '- Roles and background: dosen Fakultas Ekonomi dan Bisnis UNSAM, pengajar Pemasaran Digital dan E-Business, digital marketer, vibe coder.',
+  '- Professional services: system integrator, digital business consultant, web app developer, and digital marketing consultant.',
+  '- Personal public writing is published on zmaula.web.id and dashboard/app lives at app.zmaula.web.id.',
+  '- Default language for replies: Indonesian.',
+  '- Do NOT ask the user who they are, what they do, or their basic background unless a very specific workflow truly requires reconfirmation.',
+].join('\n')
+
 export function buildSystemPrompt(ctx: PromptContext): string {
   const categoryList = ctx.userCategories
     .map((c) => `"${c.name}" (${c.role})`)
@@ -43,6 +54,7 @@ CONTEXT:
 - NOW: ${ctx.currentDatetimeISO} (${ctx.userTimezone}, ${ctx.utcOffset})
 - CATEGORIES: ${categoryList || '(empty)'}
 - ROLES: ${roleList}
+${USER_PROFILE_CONTEXT}
 
 RESPONSE FORMAT (STRICT JSON, nothing else):
 {"items":[{"action":"TASK|NOTE|CALENDAR|ACADEMIC","data":{"title":"string","description":"string|null","contextual_role":"dosen|creator|affiliate|consultant|general","category_names":["string"],"suggested_new_category":"string|null","due_date":"ISO8601|null","start_at":"ISO8601|null","end_at":"ISO8601|null","priority":"low|medium|high|urgent","source_url":"string|null","file_format":"string|null","reminder_minutes":15,"semester":"string|null","mata_kuliah":"string|null"}}],"ai_message":"string"}`
@@ -80,6 +92,7 @@ CONTEXT:
 - NOW: ${ctx.currentDatetimeISO} (${ctx.userTimezone}, ${ctx.utcOffset})
 - CATEGORIES: ${categoryList || '(empty)'}
 - ROLES: ${roleList}
+${USER_PROFILE_CONTEXT}
 
 RESPONSE FORMAT (STRICT JSON, nothing else):
 {"items":[{"action":"TASK|NOTE|CALENDAR|ACADEMIC","data":{"title":"string","description":"string|null","contextual_role":"dosen|creator|affiliate|consultant|general","category_names":["string"],"suggested_new_category":"string|null","due_date":"ISO8601|null","start_at":"ISO8601|null","end_at":"ISO8601|null","priority":"low|medium|high|urgent","source_url":"string|null","file_format":"string|null","reminder_minutes":15,"semester":"string|null","mata_kuliah":"string|null"}}],"ai_message":"string"}`

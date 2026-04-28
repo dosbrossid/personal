@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import Image from 'next/image';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
@@ -27,6 +28,7 @@ import { BlogRichTextEditor } from '@/components/modules/blog/BlogRichTextEditor
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { uploadCompressedPublicImage } from '@/lib/client-image';
 import { getBlogEditorHtml, getBlogWordStats, stripBlogContent } from '@/lib/blog-editor';
 
 export default function BlogEditorEditPage() {
@@ -54,12 +56,40 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
   const [metaTitle, setMetaTitle] = useState(post.meta_title || '');
   const [excerpt, setExcerpt] = useState(post.excerpt || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(post.status);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(post.tags?.map((tag) => tag.id) ?? []);
   const [newTagInput, setNewTagInput] = useState('');
   const [pendingTagNames, setPendingTagNames] = useState<string[]>([]);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(post.featured_image_url || null);
+  const [coverImageAlt, setCoverImageAlt] = useState(post.featured_image_alt || '');
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
   const statusConfig = BLOG_STATUSES[currentStatus];
   const stats = getBlogWordStats(content);
+
+  const handleCoverFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setIsUploadingCover(true);
+    try {
+      const upload = await uploadCompressedPublicImage(file, {
+        context: 'cover',
+        registerBlogMedia: true,
+        maxDimension: 2000,
+        quality: 0.84,
+      });
+
+      setCoverImageUrl(upload.publicUrl);
+      setCoverImageAlt((current) => current || title || file.name.replace(/\.[^.]+$/, ''));
+      toast.success('Cover image berhasil diupload dan dikompres ke WebP');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal upload cover image');
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
 
   const savePost = async (status: 'draft' | 'published') => {
     if (isSaving) return;
@@ -73,6 +103,8 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
       excerpt: excerpt || plainContent.slice(0, 160),
       meta_title: metaTitle || title || 'Untitled',
       meta_description: excerpt || plainContent.slice(0, 160),
+      featured_image_url: coverImageUrl,
+      featured_image_alt: coverImageAlt || title || 'Cover article',
       status,
       visibility,
       tag_ids: selectedTagIds,
@@ -170,29 +202,66 @@ function BlogEditorForm({ post }: { post: BlogPost }) {
       <div className="flex flex-1 flex-col overflow-x-hidden xl:flex-row">
         <main className="scrollbar-thin flex-1 overflow-y-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
           <div className="mx-auto max-w-3xl space-y-8">
-            {post.featured_image_url ? (
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={handleCoverFileChange}
+            />
+
+            {coverImageUrl ? (
               <div className="group relative h-40 w-full overflow-hidden rounded-2xl border border-border/60 sm:h-48">
-                <img
-                  src={post.featured_image_url}
-                  alt={post.featured_image_alt || 'Cover'}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                <Image
+                  src={coverImageUrl}
+                  alt={coverImageAlt || 'Cover'}
+                  fill
+                  sizes="(max-width: 640px) 100vw, 768px"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100">
-                  <Button variant="secondary" size="sm" className="rounded-lg shadow-lg">
-                    Change Cover
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3 text-white">
+                  <p className="text-[12px] font-medium">Cover siap dipakai</p>
+                  <p className="text-[11px] text-white/75">Sudah dikompres otomatis ke WebP</p>
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="rounded-lg shadow-lg"
+                    onClick={() => coverInputRef.current?.click()}
+                    disabled={isUploadingCover}
+                  >
+                    {isUploadingCover ? 'Uploading...' : 'Change Cover'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCoverImageUrl(null);
+                      setCoverImageAlt('');
+                    }}
+                    className="rounded-lg border-white/40 bg-black/20 text-white hover:bg-black/40"
+                  >
+                    Hapus
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="group relative flex h-40 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/60 bg-muted/30 transition-all duration-300 hover:border-primary/40 hover:bg-primary/[0.03] hover:shadow-lg hover:shadow-primary/5 sm:h-48">
+              <button
+                type="button"
+                onClick={() => coverInputRef.current?.click()}
+                className="group relative flex h-40 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/60 bg-muted/30 transition-all duration-300 hover:border-primary/40 hover:bg-primary/[0.03] hover:shadow-lg hover:shadow-primary/5 sm:h-48"
+              >
                 <div className="flex flex-col items-center gap-2.5 text-muted-foreground/60 transition-colors duration-300 group-hover:text-muted-foreground">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/80 transition-colors group-hover:bg-primary/10">
                     <ImageIcon className="h-6 w-6 transition-colors group-hover:text-primary" />
                   </div>
-                  <span className="text-[13px] font-medium">Add Cover Image</span>
-                  <span className="text-[11px]">Drag & drop or click to upload</span>
+                  <span className="text-[13px] font-medium">{isUploadingCover ? 'Uploading cover...' : 'Add Cover Image'}</span>
+                  <span className="text-[11px]">JPG/PNG/WEBP akan dikompres otomatis ke WebP</span>
                 </div>
-              </div>
+              </button>
             )}
 
             <div>

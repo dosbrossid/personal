@@ -33,6 +33,14 @@ export async function POST(request: Request) {
     const supabase = createServiceRoleClient();
     const formData = await request.formData();
     const file = formData.get('file');
+    const contextValue = formData.get('context');
+    const registerBlogMediaValue = formData.get('registerBlogMedia');
+
+    const context =
+      typeof contextValue === 'string' && ['blog', 'cover', 'note'].includes(contextValue)
+        ? contextValue
+        : 'blog';
+    const shouldRegisterBlogMedia = registerBlogMediaValue !== 'false';
 
     if (!(file instanceof File) || file.size === 0) {
       return Response.json({ error: 'Pilih gambar yang ingin diupload' }, { status: 400 });
@@ -46,7 +54,7 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Ukuran gambar terlalu besar. Maksimal 10MB.' }, { status: 400 });
     }
 
-    const storagePath = `${user.id}/${Date.now()}-${crypto.randomUUID()}-${sanitizeStorageFileName(file.name)}`;
+    const storagePath = `${user.id}/${context}/${Date.now()}-${crypto.randomUUID()}-${sanitizeStorageFileName(file.name)}`;
 
     const { error: uploadError } = await supabase.storage
       .from(BLOG_MEDIA_BUCKET)
@@ -63,28 +71,36 @@ export async function POST(request: Request) {
       .from(BLOG_MEDIA_BUCKET)
       .getPublicUrl(storagePath);
 
-    const { data: media, error: mediaError } = await supabase
-      .from('blog_media')
-      .insert({
-        user_id: user.id,
-        file_name: file.name,
-        file_url: storagePath,
-        file_type: file.type,
-        file_size_bytes: file.size,
-      })
-      .select()
-      .single();
+    let mediaId: string | undefined;
 
-    if (mediaError) {
-      await supabase.storage.from(BLOG_MEDIA_BUCKET).remove([storagePath]);
-      return Response.json({ error: mediaError.message }, { status: 400 });
+    if (shouldRegisterBlogMedia) {
+      const { data: media, error: mediaError } = await supabase
+        .from('blog_media')
+        .insert({
+          user_id: user.id,
+          file_name: file.name,
+          file_url: storagePath,
+          file_type: file.type,
+          file_size_bytes: file.size,
+        })
+        .select()
+        .single();
+
+      if (mediaError) {
+        await supabase.storage.from(BLOG_MEDIA_BUCKET).remove([storagePath]);
+        return Response.json({ error: mediaError.message }, { status: 400 });
+      }
+
+      mediaId = media.id;
     }
 
     return Response.json({
       data: {
-        id: media.id,
+        id: mediaId,
         storagePath,
         publicUrl: publicUrlData.publicUrl,
+        mimeType: file.type,
+        originalName: file.name,
       },
     });
   } catch (error) {

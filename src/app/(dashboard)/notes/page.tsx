@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Brain, Plus, Pin, Search, ExternalLink, MoreHorizontal, Filter,
   Trash2, Copy, Edit3, Eye, Share2, PinOff, BookOpen,
-  Sparkles, CheckCircle2, AlertTriangle, Code2, Lightbulb, Link2, FileText, Loader2, List, ListOrdered,
+  Sparkles, CheckCircle2, AlertTriangle, Code2, Lightbulb, Link2, FileText, Loader2, List, ListOrdered, ImagePlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNotes } from '@/hooks/use-notes';
@@ -27,6 +27,7 @@ import {
   sanitizeNoteHtml,
   stripNoteContent,
 } from '@/lib/notes';
+import { uploadCompressedPublicImage } from '@/lib/client-image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -127,6 +128,7 @@ function NoteEditorModal({
   const [isSaving, setIsSaving] = useState(false);
   const snippetRef = useRef<HTMLTextAreaElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [title, setTitle] = useState(editNote?.title || '');
   const [content, setContent] = useState(
     initialType === 'snippet'
@@ -138,6 +140,7 @@ function NoteEditorModal({
   const [sourceUrl, setSourceUrl] = useState(editNote?.source_url || '');
   const [isPinned, setIsPinned] = useState(editNote?.is_pinned || false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     if (noteType !== 'snippet' && editorRef.current && !editorRef.current.innerHTML.trim()) {
@@ -232,6 +235,48 @@ function NoteEditorModal({
     window.setTimeout(() => {
       syncRichEditorContent();
     }, 0);
+  };
+
+  const insertImageIntoEditor = (url: string) => {
+    if (noteType === 'snippet') return;
+
+    editorRef.current?.focus();
+    document.execCommand(
+      'insertHTML',
+      false,
+      `<p><img src="${url}" alt="" /></p><p><br /></p>`
+    );
+    window.setTimeout(() => {
+      syncRichEditorContent();
+    }, 0);
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    if (noteType === 'snippet') {
+      toast.error('Upload gambar tidak tersedia untuk mode snippet.');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const upload = await uploadCompressedPublicImage(file, {
+        context: 'note',
+        registerBlogMedia: false,
+        maxDimension: 1600,
+        quality: 0.8,
+      });
+
+      insertImageIntoEditor(upload.publicUrl);
+      toast.success('Gambar catatan berhasil diupload dan dikompres ke WebP');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal upload gambar catatan');
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleNoteTypeChange = (nextType: NoteType) => {
@@ -380,6 +425,13 @@ function NoteEditorModal({
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Konten</label>
                 <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
                   {noteType !== 'snippet' ? (
                     <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border/60 bg-muted/20 p-1">
                       <button
@@ -406,10 +458,22 @@ function NoteEditorModal({
                       >
                         <ListOrdered className="h-3.5 w-3.5" />
                       </button>
+                      <button
+                        onClick={() => imageInputRef.current?.click()}
+                        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        disabled={isUploadingImage}
+                      >
+                        <ImagePlus className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   ) : (
                     <span className="rounded-full border border-border/60 bg-muted/20 px-3 py-1 text-[11px] font-medium text-muted-foreground">
                       Mode snippet
+                    </span>
+                  )}
+                  {isUploadingImage && (
+                    <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                      Uploading image...
                     </span>
                   )}
                   <button onClick={handleAIGenerate} className="flex items-center gap-1.5 text-[11px] font-medium text-violet-500 transition-colors hover:text-violet-600">
@@ -449,7 +513,7 @@ function NoteEditorModal({
                           syncRichEditorContent();
                         }, 0);
                       }}
-                      className="h-full min-h-[260px] overflow-y-auto rounded-xl border border-border/60 bg-background px-4 py-3 text-[13px] leading-relaxed text-foreground outline-none transition-colors focus-visible:ring-1 focus-visible:ring-primary/30 lg:min-h-[420px] [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:min-h-[1.2rem] [&_p]:leading-relaxed [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
+                      className="h-full min-h-[260px] overflow-y-auto rounded-xl border border-border/60 bg-background px-4 py-3 text-[13px] leading-relaxed text-foreground outline-none transition-colors focus-visible:ring-1 focus-visible:ring-primary/30 lg:min-h-[420px] [&_img]:my-3 [&_img]:max-h-[360px] [&_img]:max-w-full [&_img]:rounded-xl [&_img]:border [&_img]:border-border/50 [&_img]:object-contain [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:min-h-[1.2rem] [&_p]:leading-relaxed [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
                     />
                   </div>
                 )}
@@ -568,10 +632,10 @@ function NoteDetailModal({
                 {note.note_type === 'snippet' ? (
                   <pre className="whitespace-pre-wrap leading-relaxed">{note.content_body}</pre>
                 ) : (
-                  <div
-                    className="prose prose-sm max-w-none whitespace-normal leading-relaxed text-inherit dark:prose-invert prose-p:my-0 prose-ul:my-2 prose-ol:my-2 prose-li:my-1"
-                    dangerouslySetInnerHTML={{ __html: renderedHtml || '<p>Catatan masih kosong.</p>' }}
-                  />
+                    <div
+                      className="prose prose-sm max-w-none whitespace-normal leading-relaxed text-inherit dark:prose-invert prose-p:my-0 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-img:my-4 prose-img:max-h-[420px] prose-img:rounded-xl prose-img:border prose-img:border-border/60 prose-img:object-contain"
+                      dangerouslySetInnerHTML={{ __html: renderedHtml || '<p>Catatan masih kosong.</p>' }}
+                    />
                 )}
               </div>
 

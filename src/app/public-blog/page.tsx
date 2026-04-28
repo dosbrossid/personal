@@ -7,7 +7,6 @@ import {
   GraduationCap,
   Megaphone,
   Monitor,
-  Rss,
   Sparkles,
   Workflow,
 } from 'lucide-react';
@@ -16,7 +15,6 @@ import { id } from 'date-fns/locale';
 import { createServerClient } from '@/lib/supabase/server';
 import type { BlogPost, BlogTag } from '@/core/types';
 import { mapBlogPostWithTags, type BlogPostWithTagRows } from '@/lib/blog';
-import { getDashboardLoginUrl } from '@/lib/app-routing';
 import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-routing';
 import { PublicSubscribeForm } from '@/components/modules/blog/PublicSubscribeForm';
 
@@ -78,7 +76,6 @@ const PUBLIC_POST_LIST_SELECT = `
 export default async function PublicBlogHome() {
   const supabase = await createServerClient();
   const blogBasePath = await getPublicBlogBasePath();
-  const dashboardLoginUrl = await getDashboardLoginUrl();
 
   const [featuredResult, latestPostsResult, tagsResult] = await Promise.all([
     supabase

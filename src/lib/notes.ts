@@ -47,6 +47,7 @@ export function stripNoteContent(value: string) {
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '')
     .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<img[^>]*>/gi, ' [Gambar] ')
     .replace(/<li[^>]*>/gi, '• ')
     .replace(/<\/(p|div|li|ul|ol|h[1-6]|blockquote)>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
@@ -131,11 +132,18 @@ export function sanitizeNoteHtml(value: string) {
     .replace(/<(\/?)b(\s[^>]*)?>/gi, '<$1strong>')
     .replace(/<(\/?)i(\s[^>]*)?>/gi, '<$1em>')
     .replace(/<(\/?)div(\s[^>]*)?>/gi, '<$1p>')
+    .replace(/<img[^>]*src=(["'])(.*?)\1[^>]*>/gi, (_match, _quote: string, src: string) => {
+      const safeSrc = src.replace(/"/g, '&quot;')
+      return `<img src="${safeSrc}" alt="" />`
+    })
     .replace(/<(\/?)([a-z0-9-]+)([^>]*)>/gi, (_match, slash: string, tag: string) => {
       const lowerTag = tag.toLowerCase()
-      if (['p', 'br', 'strong', 'em', 'ul', 'ol', 'li'].includes(lowerTag)) {
+      if (['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'img'].includes(lowerTag)) {
         if (lowerTag === 'br') {
           return slash ? '' : '<br />'
+        }
+        if (lowerTag === 'img') {
+          return slash ? '' : _match
         }
         return `<${slash}${lowerTag}>`
       }

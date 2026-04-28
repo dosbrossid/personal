@@ -19,7 +19,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | Key | Value |
 |-----|-------|
 | **Nama** | Personal Dashboard |
-| **Owner** | Z A Maula (Dosen + Creator + Affiliate + Consultant) |
+| **Owner** | Ziaul Maula, SE, M.Si (Dosen FEB UNSAM · Digital Marketer · Vibe Coder · Consultant) |
 | **Purpose** | Multi-role productivity dashboard + public blog |
 | **Domain** | `app.zmaula.web.id` (dashboard) · `zmaula.web.id` (public blog) |
 | **Status** | Frontend selesai (mock data), backend in progress |
