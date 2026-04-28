@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Rss } from 'lucide-react';
+import { Mail, MapPin, Phone, Rss } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getDashboardLoginUrl } from '@/lib/app-routing';
 import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-routing';
@@ -68,22 +68,16 @@ export default async function BlogLayout({
 
       {/* ── Navbar ── */}
       <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-2xl">
-        <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-6">
+        <div className="mx-auto flex min-h-16 max-w-[1400px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link href={homeHref} className="flex items-baseline gap-3 transition-opacity hover:opacity-80">
-            <span className="text-[17px] font-black tracking-tight text-foreground">Ziaul Maula</span>
+            <span className="text-[16px] font-black tracking-tight text-foreground sm:text-[17px]">Ziaul Maula</span>
             <span className="hidden text-[12px] font-medium text-muted-foreground md:inline">Blog</span>
           </Link>
           
-          <div className="flex items-center gap-2 text-sm font-medium md:gap-4">
-            <Link
-              href={homeHref}
-              className="rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              Home
-            </Link>
+          <div className="flex items-center gap-1 text-sm font-medium sm:gap-2 md:gap-4">
             <a
               href={articleListHref}
-              className="rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-lg px-2.5 py-2 text-[13px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:px-3"
             >
               Tulisan
             </a>
@@ -102,57 +96,115 @@ export default async function BlogLayout({
 
             <a
               href={dashboardLoginUrl}
-              className="inline-flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-[var(--accent-cyan)] px-4 text-[13px] font-semibold text-white shadow-sm shadow-primary/20 transition-all duration-300 hover:shadow-md hover:shadow-primary/30"
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-[var(--accent-cyan)] px-3 text-[12px] font-semibold text-white shadow-sm shadow-primary/20 transition-all duration-300 hover:shadow-md hover:shadow-primary/30 sm:px-4 sm:text-[13px]"
             >
-              Login
+              <span className="sm:hidden">Masuk</span>
+              <span className="hidden sm:inline">Login</span>
             </a>
             <ThemeToggle />
           </div>
         </div>
       </nav>
 
-      <main className="mx-auto max-w-[1400px] px-6 py-10 md:py-14">
+      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 md:py-14">
         {children}
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-border/60 bg-card/40">
-        <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-10 text-center text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:text-left">
-          <div className="space-y-1.5">
-            <p className="font-semibold text-foreground/80">
-              © {new Date().getFullYear()} Ziaul Maula, SE, M.Si.
-            </p>
-            <p>
-              Catatan tentang bisnis digital, pemasaran digital, e-business, dan web app.
-            </p>
+      <footer className="border-t border-border/60 bg-card/50">
+        <div className="mx-auto max-w-[1400px] px-4 py-10 sm:px-6 sm:py-12">
+          <div className="grid gap-10 md:grid-cols-3">
+            {/* Column 1 — Branding */}
+            <div className="space-y-3">
+              <p className="text-[17px] font-black tracking-tight text-foreground">
+                Ziaul Maula
+              </p>
+              <p className="text-[14px] leading-relaxed text-muted-foreground">
+                Dosen FEB UNSAM · Digital Business Consultant · System Integrator.
+                Menulis tentang bisnis digital, pemasaran digital, e-business, dan web app.
+              </p>
+            </div>
+
+            {/* Column 2 — Contact Details */}
+            <div className="space-y-4">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                Kontak
+              </p>
+              <div className="space-y-3 text-[14px]">
+                <a
+                  href="mailto:zmaula@unsam.ac.id"
+                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-primary"
+                >
+                  <Mail className="h-4 w-4 shrink-0" />
+                  zmaula@unsam.ac.id
+                </a>
+                <a
+                  href="https://wa.me/6285156680447"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-primary"
+                >
+                  <Phone className="h-4 w-4 shrink-0" />
+                  +62 851-5668-0447
+                </a>
+                <div className="flex items-start gap-3 text-muted-foreground">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    Fakultas Ekonomi dan Bisnis<br />
+                    Universitas Samudra, Langsa, Aceh
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 3 — Social Media */}
+            <div className="space-y-4">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                Sosial Media
+              </p>
+              <div className="space-y-3 text-[14px]">
+                <a
+                  href="https://instagram.com/zmaula"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-primary"
+                >
+                  <InstagramGlyph />
+                  @zmaula
+                </a>
+                <a
+                  href="https://www.threads.net/@zmaula"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-primary"
+                >
+                  <ThreadsGlyph />
+                  @zmaula
+                </a>
+                <a
+                  href="https://wa.me/6285156680447"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-primary"
+                >
+                  <WhatsAppGlyph />
+                  WhatsApp
+                </a>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13px] md:justify-end">
+
+          {/* Bottom bar */}
+          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border/60 pt-6 text-[13px] text-muted-foreground md:flex-row">
+            <p>© {new Date().getFullYear()} Ziaul Maula, SE, M.Si. Hak cipta dilindungi.</p>
             <a
-              href="https://instagram.com/zmaula"
+              href="/api/public/rss"
               target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all hover:bg-muted hover:text-foreground"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 transition-colors hover:text-primary"
             >
-              <InstagramGlyph />
-              Instagram
-            </a>
-            <a
-              href="https://www.threads.net/@zmaula"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all hover:bg-muted hover:text-foreground"
-            >
-              <ThreadsGlyph />
-              Threads
-            </a>
-            <a
-              href="https://wa.me/6285156680447"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all hover:bg-muted hover:text-foreground"
-            >
-              <WhatsAppGlyph />
-              WhatsApp
+              <Rss className="h-3.5 w-3.5" />
+              RSS Feed
             </a>
           </div>
         </div>

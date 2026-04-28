@@ -143,14 +143,14 @@ export default async function PublicBlogHome() {
             </div>
 
             {/* Headline */}
-            <h1 className="mt-8 text-[2.75rem] font-black leading-[1.08] tracking-[-0.04em] md:text-[4.5rem] lg:text-[5.5rem]">
+            <h1 className="mt-8 text-[2.2rem] font-black leading-[1.08] tracking-[-0.04em] sm:text-[2.75rem] md:text-[4.5rem] lg:text-[5.5rem]">
               <span className="gradient-text-hero">Catatan, ide,</span>
               <br />
               <span className="text-foreground">dan proses belajar saya.</span>
             </h1>
 
             {/* Subheading */}
-            <p className="mx-auto mt-7 max-w-2xl text-[17px] leading-[1.85] text-muted-foreground md:text-[18px]">
+            <p className="mx-auto mt-6 max-w-2xl text-[15px] leading-[1.8] text-muted-foreground sm:text-[17px] md:mt-7 md:text-[18px]">
               Saya{' '}
               <span className="font-semibold text-foreground">
                 Ziaul Maula, SE, M.Si
@@ -161,10 +161,10 @@ export default async function PublicBlogHome() {
             </p>
 
             {/* CTA Buttons */}
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
               <a
                 href="#latest-articles"
-                className="cta-glow group inline-flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-primary to-[var(--accent-cyan)] px-8 py-4 text-[14px] font-bold text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/35"
+                className="cta-glow group inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-primary to-[var(--accent-cyan)] px-8 py-4 text-[14px] font-bold text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/35"
               >
                 Jelajahi Tulisan
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -173,7 +173,7 @@ export default async function PublicBlogHome() {
                 href="https://wa.me/6285156680447"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 rounded-2xl border border-border bg-card px-8 py-4 text-[14px] font-bold text-foreground shadow-sm transition-all duration-300 hover:border-primary/30 hover:bg-muted hover:shadow-md"
+                className="inline-flex items-center justify-center gap-2.5 rounded-2xl border border-border bg-card px-8 py-4 text-[14px] font-bold text-foreground shadow-sm transition-all duration-300 hover:border-primary/30 hover:bg-muted hover:shadow-md"
               >
                 Hubungi Saya
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -186,7 +186,7 @@ export default async function PublicBlogHome() {
             CATEGORY TAGS
         ═══════════════════════════════════════════ */}
         <section>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <h2 className="text-[12px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
               Kategori
             </h2>
@@ -306,12 +306,12 @@ export default async function PublicBlogHome() {
             LATEST POSTS GRID
         ═══════════════════════════════════════════ */}
         <section id="latest-articles">
-          <div className="mb-10 flex items-end justify-between gap-4">
+          <div className="mb-8 flex flex-col items-start gap-3 sm:mb-10 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                 Tulisan Terbaru
               </p>
-              <h2 className="mt-2 text-3xl font-black tracking-tight text-foreground md:text-[2.5rem]">
+              <h2 className="mt-2 text-[2rem] font-black tracking-tight text-foreground md:text-[2.5rem]">
                 Postingan blog saya
               </h2>
             </div>
@@ -395,10 +395,10 @@ export default async function PublicBlogHome() {
             <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-primary">
               Open Commission
             </p>
-            <h2 className="mt-2 max-w-3xl text-3xl font-black tracking-[-0.04em] text-foreground md:text-[2.5rem]">
+            <h2 className="mt-2 max-w-3xl text-[2rem] font-black tracking-[-0.04em] text-foreground md:text-[2.5rem]">
               Saya juga membuka kerja kolaboratif
             </h2>
-            <p className="mt-4 max-w-2xl text-[16px] leading-[1.85] text-muted-foreground">
+            <p className="mt-4 max-w-2xl text-[15px] leading-[1.8] text-muted-foreground sm:text-[16px] sm:leading-[1.85]">
               Kalau kamu butuh partner untuk digitalisasi bisnis, membangun web
               app, atau menata sistem kerja digital — saya membuka beberapa
               bentuk kerja yang relevan.
@@ -437,7 +437,7 @@ export default async function PublicBlogHome() {
         ═══════════════════════════════════════════ */}
         <section
           id="subscribe"
-          className="relative overflow-hidden rounded-3xl border border-primary/15 bg-gradient-to-br from-primary/[0.04] via-[var(--accent-cyan)]/[0.03] to-[var(--accent-violet)]/[0.03] p-8 md:p-12"
+          className="relative overflow-hidden rounded-3xl border border-primary/15 bg-gradient-to-br from-primary/[0.04] via-[var(--accent-cyan)]/[0.03] to-[var(--accent-violet)]/[0.03] p-6 sm:p-8 md:p-12"
         >
           {/* Decorative orb inside */}
           <div
@@ -453,10 +453,10 @@ export default async function PublicBlogHome() {
               </p>
             </div>
 
-            <h2 className="mt-3 text-[1.75rem] font-black tracking-tight text-foreground md:text-[2rem]">
+            <h2 className="mt-3 text-[1.6rem] font-black tracking-tight text-foreground sm:text-[1.75rem] md:text-[2rem]">
               Ikuti tulisan terbaru
             </h2>
-            <p className="mt-2 max-w-xl text-[15px] leading-[1.85] text-muted-foreground">
+            <p className="mt-2 max-w-xl text-[14px] leading-[1.8] text-muted-foreground sm:text-[15px] sm:leading-[1.85]">
               Kalau kamu ingin sesekali menerima update tulisan baru, tinggalkan
               emailmu di sini. Tidak ada spam — hanya notifikasi posting terbaru.
             </p>

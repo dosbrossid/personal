@@ -108,12 +108,12 @@ export default async function TagPage({ params }: Props) {
             className="h-4 w-4 rounded-full"
             style={{ backgroundColor: tag.color || '#6366f1' }}
           />
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          <h1 className="text-[2rem] font-bold tracking-tight text-foreground sm:text-3xl">
             {tag.name}
           </h1>
         </div>
         {tag.description && (
-          <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
+          <p className="mt-3 max-w-2xl text-[16px] text-muted-foreground sm:text-lg">
             {tag.description}
           </p>
         )}

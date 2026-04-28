@@ -111,7 +111,7 @@ export default async function BlogPostPage({ params }: Props) {
     <ReadingProgressBar />
     <article className="mx-auto max-w-3xl">
       {/* Back button */}
-      <Link href={withPublicBlogBase(blogBasePath, '/')} className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+      <Link href={withPublicBlogBase(blogBasePath, '/')} className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground sm:mb-8">
         <ArrowLeft className="h-4 w-4" /> Kembali ke beranda
       </Link>
 
@@ -124,10 +124,10 @@ export default async function BlogPostPage({ params }: Props) {
             </span>
           ))}
         </div>
-        <h1 className="mb-6 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl lg:leading-[1.15]">
+        <h1 className="mb-5 text-[2rem] font-extrabold tracking-tight text-foreground sm:mb-6 sm:text-4xl lg:text-5xl lg:leading-[1.15]">
           {post.title}
         </h1>
-        <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground sm:gap-6">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted text-[11px] font-bold text-foreground">
               ZM
@@ -149,7 +149,7 @@ export default async function BlogPostPage({ params }: Props) {
 
       {/* Featured Image */}
       {post.featured_image_url && (
-        <figure className="mb-10 overflow-hidden rounded-2xl border border-border bg-muted lg:mb-14">
+        <figure className="mb-8 overflow-hidden rounded-2xl border border-border bg-muted lg:mb-14">
           <Image 
             src={post.featured_image_url} 
             alt={post.featured_image_alt || post.title} 
@@ -169,20 +169,20 @@ export default async function BlogPostPage({ params }: Props) {
 
       {/* Content */}
       <div 
-        className="prose dark:prose-invert prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-p:leading-relaxed prose-pre:bg-muted prose-pre:border prose-pre:border-border mb-16"
+        className="prose prose-base mb-14 max-w-none prose-headings:font-bold prose-a:text-primary prose-p:leading-relaxed prose-pre:border prose-pre:border-border prose-pre:bg-muted dark:prose-invert sm:prose-lg sm:mb-16"
         dangerouslySetInnerHTML={{ __html: post.content_html }}
       />
 
       {/* Share & Tags Bottom */}
-      <div className="mb-16 flex flex-col items-center justify-between gap-6 rounded-2xl border border-border bg-card p-6 shadow-lg shadow-slate-900/6 dark:bg-muted sm:flex-row">
-        <div className="flex gap-2">
+      <div className="mb-14 flex flex-col items-start justify-between gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-slate-900/6 dark:bg-muted sm:mb-16 sm:flex-row sm:items-center sm:gap-6 sm:p-6">
+        <div className="flex flex-wrap gap-2">
           {post.tags?.map(tag => (
             <span key={tag.id} className="rounded-full border border-border bg-muted px-4 py-1.5 text-sm font-medium text-foreground">
               #{tag.slug}
             </span>
           ))}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 self-stretch sm:self-auto">
           <span className="text-sm text-muted-foreground">Bagikan:</span>
           <button className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-[#1DA1F2] hover:text-white transition-colors">
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>

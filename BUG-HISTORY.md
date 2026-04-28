@@ -731,6 +731,15 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/(dashboard)/notes/page.tsx`
 
+## BUG-080 | 2026-04-28 | SEVERITY: High
+
+**Gejala:** Public blog masih terasa tidak responsive di mobile karena navbar terlalu penuh, CTA hero belum benar-benar nyaman disentuh, dan beberapa heading/section spacing masih memakai ritme desktop yang terlalu lebar untuk layar kecil.
+**Root Cause:** Layout public blog berkembang dari desktop-first presentation dengan CTA horizontal, padding besar, dan nav actions yang padat, tanpa pass khusus untuk breakpoint mobile.
+**Fix:** Rapikan navbar dan shell public blog agar lebih ringkas di mobile, pendekkan dan stack CTA penting, lalu sesuaikan hero, listing, article page, tag page, dan section subscribe agar tipografi serta spacing-nya lebih proporsional di viewport kecil.
+**Pelajaran:** Responsiveness untuk halaman blog bukan cuma soal grid; navbar, hero rhythm, dan target sentuh CTA punya pengaruh langsung pada rasa “siap production” di mobile.
+**Status:** RESOLVED
+**Terkait:** `src/app/public-blog/layout.tsx`, `src/app/public-blog/page.tsx`, `src/app/public-blog/[slug]/page.tsx`, `src/app/public-blog/tag/[slug]/page.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 
