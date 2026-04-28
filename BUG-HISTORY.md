@@ -704,6 +704,15 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/(dashboard)/layout.tsx`, `src/components/shared/AppSidebar.tsx`
 
+## BUG-077 | 2026-04-28 | SEVERITY: Medium
+
+**Gejala:** Header dashboard home di mobile terlihat janggal karena headline terlalu besar, blok tanggal ikut naik ke samping, dan tombol export berebut ruang dengan sapaan utama.
+**Root Cause:** Header home masih memakai ritme desktop `justify-between` dengan headline, tanggal, dan aksi dalam satu baris logika yang sama, padahal ruang mobile jauh lebih sempit.
+**Fix:** Pecah header mobile menjadi struktur bertingkat: sapaan lebih ringkas di atas, lalu kartu tanggal dan tombol export turun ke baris terpisah yang lebih stabil.
+**Pelajaran:** Setelah shell mobile beres, hero/header per halaman tetap perlu dipikirkan ulang; layout desktop yang “sekadar dibungkus flex-wrap” hampir selalu terasa canggung di layar kecil.
+**Status:** RESOLVED
+**Terkait:** `src/app/(dashboard)/page.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

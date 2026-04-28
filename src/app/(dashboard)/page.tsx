@@ -119,28 +119,47 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* ─── Header ─── */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[28px] font-bold text-foreground tracking-tight flex items-center gap-2">
-            {greeting.text}, {displayName}
-            <span className="text-[28px]">{greeting.emoji}</span>
-          </h1>
-          <p className="text-[14px] text-muted-foreground mt-1">
-            Pantau produktivitas dan kelola semua peran profesionalmu hari ini.
-          </p>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl">
+            <h1 className="flex flex-wrap items-center gap-2 text-[30px] font-bold tracking-tight text-foreground sm:text-[34px] lg:text-[28px]">
+              <span>{greeting.text},</span>
+              <span>{displayName}</span>
+              <span className="text-[24px] sm:text-[26px]">{greeting.emoji}</span>
+            </h1>
+            <p className="mt-2 max-w-2xl text-[15px] leading-7 text-muted-foreground sm:text-[16px] lg:text-[14px]">
+              Pantau produktivitas dan kelola semua peran profesionalmu hari ini.
+            </p>
+          </div>
+
+          <div className="hidden items-center gap-3 lg:flex">
+            <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3 py-2 text-[13px] text-muted-foreground shadow-sm">
+              <Calendar className="h-4 w-4" />
+              <span>{currentDate}</span>
+            </div>
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-foreground to-foreground/90 px-4 py-2 text-[13px] font-medium text-background shadow-lg shadow-foreground/10 transition-all duration-200 hover:opacity-90 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60"
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              <span>{isExporting ? 'Mengekspor...' : 'Export'}</span>
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border/60 bg-card text-[13px] text-muted-foreground shadow-sm">
-            <Calendar className="h-4 w-4" />
-            <span>{currentDate}</span>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] lg:hidden">
+          <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-card px-4 py-3 text-[13px] text-muted-foreground shadow-sm">
+            <Calendar className="h-4 w-4 shrink-0" />
+            <span className="leading-6">{currentDate}</span>
           </div>
           <button
             onClick={handleExport}
             disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-foreground to-foreground/90 text-background text-[13px] font-medium hover:opacity-90 transition-all duration-200 shadow-lg shadow-foreground/10 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60"
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-foreground to-foreground/90 px-4 text-[14px] font-medium text-background shadow-lg shadow-foreground/10 transition-all duration-200 hover:opacity-90 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60"
           >
             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            <span>{isExporting ? 'Mengekspor...' : 'Export'}</span>
+            <span>{isExporting ? 'Mengekspor...' : 'Export dashboard'}</span>
           </button>
         </div>
       </div>
