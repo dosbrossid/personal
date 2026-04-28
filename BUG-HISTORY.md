@@ -884,6 +884,15 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/layout.tsx`, `src/app/manifest.ts`, `src/app/icon.tsx`, `src/app/apple-icon.tsx`, `public/sw.js`, `src/components/providers/PWAProvider.tsx`
 
+## BUG-093 | 2026-04-29 | SEVERITY: Medium
+
+**Gejala:** Pada modal detail catatan desktop, kolom kiri yang berisi isi note panjang bisa terpotong di bawah dan tidak menyediakan scroll yang sehat, sehingga bagian akhir catatan tidak bisa dibaca.
+**Root Cause:** `DialogContent` dipakai dengan asumsi layout `flex column`, padahal primitive dialog default masih `grid`; akibatnya area body/footer tidak membagi tinggi dengan stabil, lalu kolom kiri juga tidak punya scroll container tersendiri saat konten lebih panjang dari viewport modal.
+**Fix:** Ubah modal detail note menjadi layout `flex flex-col`, pastikan area body memakai `min-h-0`, lalu beri scroll mandiri untuk kolom kiri pada desktop agar isi catatan panjang tetap terbaca penuh.
+**Pelajaran:** Pada modal tinggi dengan footer fixed, `min-h-0` dan tipe parent layout (`flex` vs `grid`) sangat menentukan apakah scroll area benar-benar hidup atau hanya terlihat benar di kasus konten pendek.
+**Status:** RESOLVED
+**Terkait:** `src/app/(dashboard)/notes/page.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

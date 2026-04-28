@@ -585,7 +585,7 @@ function NoteDetailModal({
 
   return (
     <Dialog open={!!note} onOpenChange={onClose}>
-      <DialogContent className="max-h-[88vh] overflow-hidden border-border/60 bg-card p-0 sm:max-w-4xl">
+      <DialogContent className="flex max-h-[88vh] flex-col overflow-hidden border-border/60 bg-card p-0 sm:max-w-4xl">
         <DialogHeader className="shrink-0 border-b border-border/40 px-6 py-5 pb-4">
           <div className="flex items-start gap-3">
             <div
@@ -619,9 +619,9 @@ function NoteDetailModal({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 scrollbar-thin">
-          <div className="space-y-5 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.85fr)] lg:gap-6 lg:space-y-0">
-            <div className="space-y-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 scrollbar-thin">
+          <div className="space-y-5 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.85fr)] lg:gap-6 lg:space-y-0">
+            <div className="space-y-4 lg:min-h-0 lg:overflow-y-auto lg:pr-1 lg:scrollbar-thin">
               <div
                 className={cn(
                   'rounded-xl border p-5',
