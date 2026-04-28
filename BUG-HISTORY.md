@@ -686,6 +686,15 @@
 **Status:** RESOLVED
 **Terkait:** `next.config.ts`, `src/app/public-blog/page.tsx`, `src/app/public-blog/[slug]/page.tsx`, `src/app/public-blog/tag/[slug]/page.tsx`
 
+## BUG-075 | 2026-04-28 | SEVERITY: Medium
+
+**Gejala:** Badge angka di sidebar (`Catatan`, `Tugas`, `Kalender`) masih memakai nilai mock, sehingga UI terlihat hidup tetapi angkanya bohong dan mudah membingungkan saat data nyata sudah berjalan.
+**Root Cause:** `AppSidebar` menyimpan `count` hardcoded langsung di konfigurasi menu, tanpa terhubung ke endpoint agregasi dashboard yang sebenarnya sudah tersedia.
+**Fix:** Hapus count mock dari konfigurasi menu dan sambungkan badge sidebar ke `useDashboardStats`, memakai `totalNotes`, `activeTasks`, dan `upcomingEvents` dari backend.
+**Pelajaran:** Badge kecil di navigasi tetap bagian dari kontrak data; kalau angkanya palsu, rasa “produk nyata” langsung turun meskipun fitur intinya sudah berjalan.
+**Status:** RESOLVED
+**Terkait:** `src/components/shared/AppSidebar.tsx`, `src/hooks/use-dashboard-stats.ts`, `src/app/api/dashboard/stats/route.ts`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

@@ -17,26 +17,39 @@ import {
   Bell,
   Sparkles,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { logoutAction } from '@/actions/auth.actions';
 import { useUser } from '@/hooks/use-user';
+import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 
+type SidebarMenuItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  count?: number;
+};
 
-const menuGroups = [
+type SidebarMenuGroup = {
+  title: string;
+  items: SidebarMenuItem[];
+};
+
+const menuGroups: SidebarMenuGroup[] = [
   {
     title: 'MAIN MENU',
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/notes', label: 'Catatan', icon: Brain, count: 12 },
-      { href: '/tasks', label: 'Tugas', icon: CheckSquare, count: 5 },
+      { href: '/notes', label: 'Catatan', icon: Brain },
+      { href: '/tasks', label: 'Tugas', icon: CheckSquare },
       { href: '/habits', label: 'Kebiasaan', icon: Flame },
     ],
   },
   {
     title: 'FEATURES',
     items: [
-      { href: '/calendar', label: 'Kalender', icon: CalendarDays, count: 3 },
+      { href: '/calendar', label: 'Kalender', icon: CalendarDays },
       { href: '/vault', label: 'Vault', icon: GraduationCap },
       { href: '/blog', label: 'Blog CMS', icon: PenSquare },
     ],
@@ -53,6 +66,7 @@ const bottomItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
+  const { stats } = useDashboardStats();
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
   const displayEmail = user?.email || 'Authenticated';
   const initials = displayName
@@ -61,6 +75,27 @@ export function AppSidebar() {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('') || 'U';
+
+  const resolvedMenuGroups = menuGroups.map((group) => ({
+    ...group,
+    items: group.items.map((item) => {
+      if (!stats) return item;
+
+      if (item.href === '/notes') {
+        return { ...item, count: stats.totalNotes };
+      }
+
+      if (item.href === '/tasks') {
+        return { ...item, count: stats.activeTasks };
+      }
+
+      if (item.href === '/calendar') {
+        return { ...item, count: stats.upcomingEvents };
+      }
+
+      return item;
+    }),
+  }));
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-[260px] flex-col overflow-hidden border-r border-border/50 bg-sidebar/95 backdrop-blur-xl dark:border-sidebar-border/80 dark:bg-[linear-gradient(180deg,rgba(21,27,36,0.96)_0%,rgba(17,23,31,0.98)_100%)] dark:shadow-[inset_-1px_0_0_rgba(255,255,255,0.03)]">
@@ -101,7 +136,7 @@ export function AppSidebar() {
 
       {/* ─── Nav Items ─── */}
       <div className="scrollbar-thin flex-1 space-y-6 overflow-y-auto px-3">
-        {menuGroups.map((group, idx) => (
+        {resolvedMenuGroups.map((group, idx) => (
           <div key={idx} className="space-y-1">
             <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/65 dark:text-slate-400/70">
               {group.title}
@@ -141,7 +176,7 @@ export function AppSidebar() {
                           {item.label}
                         </span>
                       </div>
-                      {item.count && (
+                      {typeof item.count === 'number' && item.count > 0 && (
                         <span className={cn(
                           "text-[11px] font-semibold rounded-lg px-2 py-0.5 min-w-[22px] text-center transition-all duration-200",
                           isActive 
