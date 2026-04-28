@@ -41,9 +41,9 @@
 }
 
 :root {
-  --app-font-sans: "Segoe UI", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --app-font-sans: "SF Pro Text", "SF Pro Display", "Segoe UI Variable", "Helvetica Neue", "Inter", -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
   --app-font-mono: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
-  --app-font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --app-font-display: "New York", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
 
   /* Oripio Style - Clean Finance Dashboard */
   --background: #edf2f7;

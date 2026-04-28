@@ -650,6 +650,24 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/api/public/subscribe/route.ts`, `src/actions/vault.actions.ts`, `src/app/api/blog/media/route.ts`, `src/components/modules/blog/BlogRichTextEditor.tsx`
 
+## BUG-071 | 2026-04-28 | SEVERITY: Medium
+
+**Gejala:** Landing page public blog terasa terlalu ramai dan copy-nya masih mentah, sehingga belum layak diposisikan sebagai halaman production untuk blog pribadi yang fokus pada tulisan.
+**Root Cause:** Halaman home public blog mencoba memuat terlalu banyak persona, service, dan CTA sekaligus, sehingga fokus editorialnya kalah oleh blok promosi dan struktur header yang tercerai.
+**Fix:** Ubah home public blog menjadi layout yang lebih editorial ala publication: deskripsi diri yang singkat, kategori rapi, header yang tenang, dan daftar tulisan sebagai fokus utama.
+**Pelajaran:** Landing page blog production harus membuat tulisan jadi tokoh utama; profil dan CTA cukup hadir seperlunya sebagai konteks, bukan mengambil panggung utama.
+**Status:** RESOLVED
+**Terkait:** `src/app/public-blog/page.tsx`, `src/app/public-blog/layout.tsx`
+
+## BUG-072 | 2026-04-28 | SEVERITY: Low
+
+**Gejala:** Tipografi public blog masih terasa kurang modern dan kurang nyaman dibaca karena landing page dibungkus font serif penuh, padahal visual yang diinginkan lebih dekat ke sans yang bersih dan kontemporer.
+**Root Cause:** Global sans stack masih bertumpu pada fallback lama, sementara shell public blog secara eksplisit memakai kelas `font-display` yang memaksa keseluruhan halaman jatuh ke serif display.
+**Fix:** Perbarui sans stack global ke urutan yang lebih dekat ke ekosistem Apple/Helvetica modern, lalu lepaskan wrapper public blog dari `font-display` agar landing page mengikuti font sans utama.
+**Pelajaran:** Rasa modern pada UI sering lebih ditentukan oleh fondasi typography daripada ornamen; satu wrapper font yang salah bisa menggeser seluruh karakter halaman.
+**Status:** RESOLVED
+**Terkait:** `src/app/globals.css`, `src/app/public-blog/layout.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

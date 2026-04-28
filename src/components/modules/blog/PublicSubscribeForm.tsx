@@ -5,6 +5,7 @@ import { Loader2, Mail, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 const INTEREST_OPTIONS = [
   'Bisnis',
@@ -14,7 +15,13 @@ const INTEREST_OPTIONS = [
   'Catatan Belajar',
 ] as const;
 
-export function PublicSubscribeForm({ sourcePath }: { sourcePath: string }) {
+export function PublicSubscribeForm({
+  sourcePath,
+  compact = false,
+}: {
+  sourcePath: string;
+  compact?: boolean;
+}) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [interest, setInterest] = useState<string>(INTEREST_OPTIONS[0]);
@@ -54,7 +61,13 @@ export function PublicSubscribeForm({ sourcePath }: { sourcePath: string }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-3 rounded-[28px] border border-border/70 bg-background/85 p-4 shadow-xl shadow-slate-900/6 backdrop-blur-xl md:grid-cols-[1fr_1fr_180px_auto]">
+    <form
+      onSubmit={handleSubmit}
+      className={cn(
+        'grid gap-3 rounded-[28px] border border-border/70 bg-background/85 p-4 shadow-xl shadow-slate-900/6 backdrop-blur-xl',
+        compact ? 'grid-cols-1' : 'md:grid-cols-[1fr_1fr_180px_auto]'
+      )}
+    >
       <div className="space-y-1">
         <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Nama</label>
         <Input
@@ -99,7 +112,7 @@ export function PublicSubscribeForm({ sourcePath }: { sourcePath: string }) {
           Simpan
         </Button>
       </div>
-      <div className="md:col-span-4">
+      <div className={compact ? undefined : 'md:col-span-4'}>
         <p className="flex items-center gap-2 text-[12px] text-muted-foreground">
           <Mail className="h-3.5 w-3.5" />
           Subscriber masuk ke database dulu, jadi siap kamu sambungkan ke autoresponder atau email sequence berikutnya.
