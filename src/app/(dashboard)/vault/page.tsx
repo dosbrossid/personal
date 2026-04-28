@@ -186,7 +186,7 @@ function UploadModal({ open, onClose, onUploaded }: { open: boolean; onClose: ()
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-xl border-border/60 bg-card">
+      <DialogContent className="w-[calc(100vw-1rem)] border-border/60 bg-card sm:w-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5 text-[18px]">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/20">
@@ -332,7 +332,7 @@ function UploadModal({ open, onClose, onUploaded }: { open: boolean; onClose: ()
           )}
 
           {/* Metadata */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className="text-[11px] font-medium text-muted-foreground">Tipe Dokumen</label>
               <select
@@ -370,14 +370,14 @@ function UploadModal({ open, onClose, onUploaded }: { open: boolean; onClose: ()
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={onClose} className="h-9 rounded-lg border-border/60 text-[12px]">
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:items-center sm:justify-end">
+            <Button variant="outline" onClick={onClose} className="h-9 w-full rounded-lg border-border/60 text-[12px] sm:w-auto">
               Batal
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={(uploadMode === 'file' ? uploadFiles.length === 0 : !linkTitle.trim() || !linkUrl.trim()) || isUploading}
-              className="h-9 gap-2 rounded-lg bg-gradient-to-r from-primary to-emerald-600 text-white text-[12px] font-semibold shadow-md shadow-primary/25 hover:opacity-90 transition-all disabled:opacity-40"
+              className="h-9 w-full gap-2 rounded-lg bg-gradient-to-r from-primary to-emerald-600 text-[12px] font-semibold text-white shadow-md shadow-primary/25 transition-all hover:opacity-90 disabled:opacity-40 sm:w-auto"
             >
               {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
               {isUploading
@@ -532,9 +532,9 @@ function FilePreviewModal({
 
   return (
     <Dialog open={!!item} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl border-border/60 bg-card max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="flex max-h-[85vh] w-[calc(100vw-1rem)] flex-col overflow-hidden border-border/60 bg-card sm:w-auto sm:max-w-2xl">
         <DialogHeader className="shrink-0">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div
                 className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 text-lg"
@@ -578,17 +578,19 @@ function FilePreviewModal({
         </div>
 
         {/* Actions footer */}
-        <div className="shrink-0 flex items-center justify-between border-t border-border/40 pt-4">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleShare} className="h-8 gap-1.5 rounded-lg border-border/60 text-[12px]">
-              <Link2 className="h-3.5 w-3.5 text-violet-500" />
-              Share Link
+        <div className="shrink-0 border-t border-border/40 pt-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleShare} className="h-8 flex-1 gap-1.5 rounded-lg border-border/60 text-[12px] sm:flex-none">
+                <Link2 className="h-3.5 w-3.5 text-violet-500" />
+                Share Link
+              </Button>
+            </div>
+            <Button onClick={handleDownload} size="sm" className="h-8 w-full gap-1.5 rounded-lg bg-gradient-to-r from-primary to-emerald-600 text-[12px] font-semibold text-white shadow-md shadow-primary/25 sm:w-auto">
+              <Download className="h-3.5 w-3.5" />
+              {isExternalReference ? 'Buka Referensi' : 'Download File'}
             </Button>
           </div>
-          <Button onClick={handleDownload} size="sm" className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-primary to-emerald-600 text-white text-[12px] font-semibold shadow-md shadow-primary/25">
-            <Download className="h-3.5 w-3.5" />
-            {isExternalReference ? 'Buka Referensi' : 'Download File'}
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -611,7 +613,7 @@ function DeleteConfirmModal({
   if (!item) return null;
   return (
     <Dialog open={!!item} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md border-border/60 bg-card">
+      <DialogContent className="w-[calc(100vw-1rem)] border-border/60 bg-card sm:w-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5 text-[16px]">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 text-red-500">
@@ -623,13 +625,13 @@ function DeleteConfirmModal({
             Apakah Anda yakin ingin menghapus <span className="font-semibold text-foreground">&ldquo;{item.title}&rdquo;</span>? Aksi ini tidak dapat dibatalkan.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex items-center justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={onClose} className="h-9 rounded-lg border-border/60 text-[12px]">
+        <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:items-center sm:justify-end">
+          <Button variant="outline" onClick={onClose} className="h-9 w-full rounded-lg border-border/60 text-[12px] sm:w-auto">
             Batal
           </Button>
           <Button
             onClick={onConfirm}
-            className="h-9 gap-2 rounded-lg bg-red-500 text-white text-[12px] font-semibold hover:bg-red-600 shadow-md shadow-red-500/25 transition-all"
+            className="h-9 w-full gap-2 rounded-lg bg-red-500 text-[12px] font-semibold text-white shadow-md shadow-red-500/25 transition-all hover:bg-red-600 sm:w-auto"
           >
             <Trash2 className="h-3.5 w-3.5" />
             Ya, Hapus
@@ -787,22 +789,22 @@ export default function VaultPage() {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-6 overflow-x-hidden">
         {/* ─── Header ─── */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-[28px] font-bold text-foreground tracking-tight flex items-center gap-2.5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="flex items-center gap-2.5 text-[24px] font-bold tracking-tight text-foreground sm:text-[28px]">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20">
                 <GraduationCap className="h-5 w-5" />
               </div>
               Academic Vault
             </h1>
-            <p className="text-[14px] text-muted-foreground mt-1">
+            <p className="mt-1 max-w-2xl text-[13px] text-muted-foreground sm:text-[14px]">
               Repositori RPS, silabus, materi ajar, dan dokumen akademik
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-card px-3.5 py-2.5 shadow-sm">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <div className="flex items-center justify-between gap-2.5 rounded-xl border border-border/60 bg-card px-3.5 py-2.5 shadow-sm sm:justify-start">
               <HardDrive className="h-4 w-4 text-muted-foreground" />
               <div className="w-20">
                 <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
@@ -816,7 +818,7 @@ export default function VaultPage() {
             </div>
             <button
               onClick={() => setUploadOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-foreground to-foreground/90 text-background text-[13px] font-medium hover:opacity-90 transition-all duration-200 shadow-lg shadow-foreground/10 active:scale-[0.97]"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-foreground to-foreground/90 px-5 py-2.5 text-[13px] font-medium text-background shadow-lg shadow-foreground/10 transition-all duration-200 hover:opacity-90 active:scale-[0.97] sm:w-auto"
             >
               <Plus className="h-4 w-4" />
               Upload
@@ -961,7 +963,7 @@ export default function VaultPage() {
         {/* ─── Breadcrumb ─── */}
         {activeOpenFolder && effectiveView === 'folders' && (
           <div
-            className="flex items-center gap-2 text-[14px]"
+            className="flex flex-wrap items-center gap-2 text-[14px]"
           >
             <button
               onClick={() => setOpenFolder(null)}
@@ -996,7 +998,7 @@ export default function VaultPage() {
                     <button
                       key={folder.key}
                       onClick={() => setOpenFolder({ key: folder.key, name: folder.name, semester: folder.semester })}
-                      className="group widget-card rounded-2xl border border-border/60 bg-card p-5 text-left shadow-sm"
+                      className="group widget-card rounded-2xl border border-border/60 bg-card p-4 text-left shadow-sm sm:p-5"
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="h-11 w-11 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors duration-200">
@@ -1293,7 +1295,7 @@ function DocumentTable({
 
                 <div className="text-right" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
-                    <DropdownMenuTrigger className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg bg-muted/40 text-muted-foreground opacity-0 transition-all duration-200 hover:bg-muted hover:text-foreground group-hover:opacity-100">
+                    <DropdownMenuTrigger className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg bg-muted/40 text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground md:opacity-100 lg:opacity-0 lg:group-hover:opacity-100">
                       <MoreVertical className="h-4 w-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/60 bg-card shadow-xl">

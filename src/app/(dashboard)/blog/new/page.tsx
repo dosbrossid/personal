@@ -109,10 +109,10 @@ export default function BlogEditorPage() {
   const stats = getBlogWordStats(content);
 
   return (
-    <div className="flex h-[calc(100vh-2px)] w-full flex-col overflow-hidden -my-6 -mx-8">
+    <div className="-mx-4 -my-6 flex min-h-[calc(100vh-2px)] w-auto flex-col overflow-x-hidden sm:-mx-8">
       {/* ─── Editor Top Bar ─── */}
-      <header className="flex h-14 shrink-0 justify-between items-center border-b border-border/60 bg-card/80 backdrop-blur-xl px-5">
-        <div className="flex items-center gap-3">
+      <header className="flex shrink-0 flex-col gap-3 border-b border-border/60 bg-card/80 px-4 py-3 backdrop-blur-xl sm:px-5 lg:h-14 lg:flex-row lg:items-center lg:justify-between lg:py-0">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Link href="/blog">
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
               <ArrowLeft className="h-4 w-4" />
@@ -125,26 +125,27 @@ export default function BlogEditorPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8 gap-2 rounded-lg border-border/60 bg-transparent text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground">
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <Button variant="outline" size="sm" className="h-8 gap-2 rounded-lg border-border/60 bg-transparent px-2 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground sm:px-3">
             <Eye className="h-3.5 w-3.5" />
-            Preview
+            <span className="hidden sm:inline">Preview</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             disabled={isSaving}
             onClick={() => savePost('draft')}
-            className="h-8 gap-2 rounded-lg border-border/60 bg-transparent text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="h-8 gap-2 rounded-lg border-border/60 bg-transparent px-2 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground sm:px-3"
           >
             <Save className="h-3.5 w-3.5" />
-            Save Draft
+            <span className="hidden sm:inline">Save Draft</span>
+            <span className="sm:hidden">Draft</span>
           </Button>
           <Button
             size="sm"
             disabled={isSaving}
             onClick={() => savePost('published')}
-            className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-primary to-emerald-600 text-white text-[12px] font-semibold shadow-md shadow-primary/25 hover:opacity-90 transition-all active:scale-[0.97] disabled:opacity-50"
+            className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-primary to-emerald-600 px-2 text-[12px] font-semibold text-white shadow-md shadow-primary/25 transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-50 sm:px-3"
           >
             {isSaving ? 'Saving...' : 'Publish'}
             <ChevronDown className="h-3 w-3 opacity-70" />
@@ -152,14 +153,14 @@ export default function BlogEditorPage() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-x-hidden xl:flex-row">
         {/* ─── Main Editor Area ─── */}
-        <main className="flex-1 overflow-y-auto px-8 py-10 scrollbar-thin">
+        <main className="flex-1 overflow-y-auto px-4 py-6 scrollbar-thin sm:px-6 sm:py-8 lg:px-8 lg:py-10">
           <div className="mx-auto max-w-3xl space-y-8">
             
             {/* Cover Image Upload */}
             <div 
-              className="group relative flex h-48 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/60 bg-muted/30 transition-all duration-300 hover:border-primary/40 hover:bg-primary/[0.03] hover:shadow-lg hover:shadow-primary/5"
+              className="group relative flex h-40 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/60 bg-muted/30 transition-all duration-300 hover:border-primary/40 hover:bg-primary/[0.03] hover:shadow-lg hover:shadow-primary/5 sm:h-48"
             >
               <div className="flex flex-col items-center gap-2.5 text-muted-foreground/60 group-hover:text-muted-foreground transition-colors duration-300">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/80 group-hover:bg-primary/10 transition-colors">
@@ -177,7 +178,7 @@ export default function BlogEditorPage() {
                 placeholder="Judul artikel Anda..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-transparent text-[36px] font-bold text-foreground placeholder:text-muted-foreground/30 focus:outline-none leading-tight tracking-tight"
+                className="w-full bg-transparent text-[28px] font-bold leading-tight tracking-tight text-foreground placeholder:text-muted-foreground/30 focus:outline-none sm:text-[36px]"
               />
             </div>
 
@@ -187,7 +188,7 @@ export default function BlogEditorPage() {
         </main>
 
         {/* ─── Right Sidebar ─── */}
-        <aside className="w-[300px] shrink-0 overflow-y-auto border-l border-border/60 bg-card/50 backdrop-blur-sm p-5 scrollbar-thin">
+        <aside className="scrollbar-thin w-full shrink-0 overflow-y-auto border-t border-border/60 bg-card/50 p-4 backdrop-blur-sm sm:p-5 xl:w-[300px] xl:border-l xl:border-t-0">
           <div className="space-y-6">
             
             {/* Publish Settings */}

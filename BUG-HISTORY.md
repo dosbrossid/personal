@@ -740,6 +740,15 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/public-blog/layout.tsx`, `src/app/public-blog/page.tsx`, `src/app/public-blog/[slug]/page.tsx`, `src/app/public-blog/tag/[slug]/page.tsx`
 
+## BUG-081 | 2026-04-28 | SEVERITY: High
+
+**Gejala:** Beberapa halaman dashboard seperti Blog CMS editor dan Vault masih memaksa viewport mobile melebar sehingga user harus scroll ke samping untuk melihat keseluruhan halaman.
+**Root Cause:** Ada kombinasi wrapper desktop-first seperti negative margin editor, split layout dengan sidebar fixed-width, toolbar yang tidak cukup fleksibel, dan shell/global overflow yang belum dijaga ketat.
+**Fix:** Tambahkan guard `overflow-x` di global + shell dashboard, rapikan editor blog `new/edit` menjadi mobile-first stack, buat toolbar rich text lebih aman terhadap layar sempit, dan tambahkan proteksi overflow pada halaman list yang terdampak.
+**Pelajaran:** Horizontal overflow di mobile jarang berasal dari satu komponen; biasanya ia bocor dari beberapa lapis kecil yang sendirian terasa aman tetapi saat digabung mendorong viewport keluar.
+**Status:** RESOLVED
+**Terkait:** `src/app/globals.css`, `src/app/(dashboard)/layout.tsx`, `src/components/modules/blog/BlogRichTextEditor.tsx`, `src/app/(dashboard)/blog/new/page.tsx`, `src/app/(dashboard)/blog/[id]/edit/page.tsx`, `src/app/(dashboard)/blog/page.tsx`, `src/app/(dashboard)/vault/page.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

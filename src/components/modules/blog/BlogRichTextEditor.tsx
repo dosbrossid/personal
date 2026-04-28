@@ -180,7 +180,7 @@ export function BlogRichTextEditor({ value, onChange, className }: BlogRichTextE
 
   return (
     <div className={cn('space-y-3', className)}>
-      <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border/60 bg-card/80 p-1 shadow-sm">
+      <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-border/60 bg-card/80 p-1 shadow-sm scrollbar-thin sm:flex-wrap">
         <ToolbarButton onClick={() => applyCommand('bold')} label="Bold">
           <Bold className="h-4 w-4" />
         </ToolbarButton>
@@ -202,7 +202,7 @@ export function BlogRichTextEditor({ value, onChange, className }: BlogRichTextE
         <ToolbarButton onClick={() => applyCommand('insertOrderedList')} label="Numbered list">
           <ListOrdered className="h-4 w-4" />
         </ToolbarButton>
-        <div className="mx-1 h-5 w-px bg-border/60" />
+        <div className="mx-1 hidden h-5 w-px bg-border/60 sm:block" />
         <ToolbarButton onClick={() => applyCommand('justifyLeft')} label="Align left">
           <AlignLeft className="h-4 w-4" />
         </ToolbarButton>
@@ -215,7 +215,7 @@ export function BlogRichTextEditor({ value, onChange, className }: BlogRichTextE
         <ToolbarButton onClick={() => applyCommand('justifyFull')} label="Align justify">
           <AlignJustify className="h-4 w-4" />
         </ToolbarButton>
-        <div className="mx-1 h-5 w-px bg-border/60" />
+        <div className="mx-1 hidden h-5 w-px bg-border/60 sm:block" />
         <ColorPicker
           label="Text color"
           icon={<Palette className="h-4 w-4" />}
@@ -226,7 +226,7 @@ export function BlogRichTextEditor({ value, onChange, className }: BlogRichTextE
           icon={<Highlighter className="h-4 w-4" />}
           onChange={(color) => applyStyledCommand('hiliteColor', color)}
         />
-        <div className="mx-1 h-5 w-px bg-border/60" />
+        <div className="mx-1 hidden h-5 w-px bg-border/60 sm:block" />
         <ToolbarButton onClick={handleInsertImageByUrl} label="Insert image from URL">
           <ImagePlus className="h-4 w-4" />
         </ToolbarButton>
@@ -237,7 +237,7 @@ export function BlogRichTextEditor({ value, onChange, className }: BlogRichTextE
 
       {selectedImageMeta && (
         <div className="rounded-2xl border border-primary/15 bg-primary/[0.04] p-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[12px] font-semibold text-foreground">Atur gambar terpilih</p>
               <p className="text-[11px] text-muted-foreground">Resize dan alignment gambar seperti editor klasik.</p>
@@ -326,7 +326,7 @@ export function BlogRichTextEditor({ value, onChange, className }: BlogRichTextE
           document.execCommand('insertText', false, pastedText);
           window.setTimeout(syncValue, 0);
         }}
-        className="min-h-[420px] rounded-2xl border border-border/60 bg-background/60 px-5 py-4 text-[16px] leading-[1.8] text-foreground outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:bg-muted/30 [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:italic [&_h1]:mt-6 [&_h1]:text-[2rem] [&_h1]:font-bold [&_h2]:mt-5 [&_h2]:text-[1.5rem] [&_h2]:font-semibold [&_img]:my-4 [&_img]:max-h-[420px] [&_img]:rounded-xl [&_img]:border [&_img]:border-border/60 [&_img]:object-contain [&_img]:shadow-sm [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:min-h-[1.6em] [&_p]:text-foreground [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
+        className="min-h-[320px] rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-[15px] leading-[1.8] text-foreground outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 sm:min-h-[420px] sm:px-5 sm:py-4 sm:text-[16px] [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:bg-muted/30 [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:italic [&_h1]:mt-6 [&_h1]:text-[1.75rem] [&_h1]:font-bold sm:[&_h1]:text-[2rem] [&_h2]:mt-5 [&_h2]:text-[1.35rem] [&_h2]:font-semibold sm:[&_h2]:text-[1.5rem] [&_img]:my-4 [&_img]:max-h-[420px] [&_img]:rounded-xl [&_img]:border [&_img]:border-border/60 [&_img]:object-contain [&_img]:shadow-sm [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:min-h-[1.6em] [&_p]:text-foreground [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
       />
 
       <input
@@ -409,7 +409,7 @@ function ToolbarButton({
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+      className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
       title={label}
     >
       {children}
@@ -429,7 +429,7 @@ function ColorPicker({
 }) {
   return (
     <label
-      className="relative inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+      className="relative inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
       title={label}
     >
       {icon}
