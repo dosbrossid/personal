@@ -114,6 +114,7 @@ export default async function PublicBlogHome() {
     ? mapBlogPostWithTags(featuredResult.data as unknown as BlogPostWithTagRows)
     : latestPosts[0];
   const morePosts = latestPosts.filter((post) => post.id !== featuredPost?.id);
+  const latestGridPosts = morePosts.length > 0 ? morePosts : featuredPost ? [featuredPost] : [];
 
   return (
     <div className="relative overflow-hidden">
@@ -314,13 +315,14 @@ export default async function PublicBlogHome() {
             </div>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {morePosts.map((post) => (
-              <Link
-                key={post.id}
-                href={withPublicBlogBase(blogBasePath, `/blog/${post.slug}`)}
-                className="blog-card group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card"
-              >
+          {latestGridPosts.length > 0 ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {latestGridPosts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={withPublicBlogBase(blogBasePath, `/blog/${post.slug}`)}
+                  className="blog-card group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card"
+                >
                 {/* Card Image */}
                 <div className="relative aspect-[16/10] overflow-hidden bg-muted">
                   {post.featured_image_url ? (
@@ -379,9 +381,22 @@ export default async function PublicBlogHome() {
                     </span>
                   </div>
                 </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-border/70 bg-card/50 px-6 py-14 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/[0.08] text-primary">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <h3 className="text-[20px] font-bold tracking-tight text-foreground">
+                Belum ada tulisan publik
+              </h3>
+              <p className="mx-auto mt-3 max-w-xl text-[15px] leading-[1.8] text-muted-foreground">
+                Halaman depan blog akan terisi otomatis setelah kamu publish artikel pertama. Untuk sekarang, section ini saya tampilkan jujur supaya tidak terasa seperti halaman yang rusak.
+              </p>
+            </div>
+          )}
         </section>
 
         {/* ═══════════════════════════════════════════

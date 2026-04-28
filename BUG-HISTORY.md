@@ -911,6 +911,15 @@
 **Status:** RESOLVED
 **Terkait:** `src/actions/blog.actions.ts`, `src/app/(dashboard)/blog/page.tsx`, `src/hooks/use-blog.ts`
 
+## BUG-096 | 2026-04-29 | SEVERITY: Medium
+
+**Gejala:** Frontpage blog terlihat kosong pada section "Tulisan Terbaru" saat baru ada satu artikel publik, sehingga halaman terasa rusak walau data sebenarnya ada.
+**Root Cause:** Post pertama dipakai sebagai featured post lalu dihapus dari koleksi `morePosts`, tetapi section "Tulisan Terbaru" tidak punya fallback untuk kasus hanya ada satu artikel atau belum ada artikel sama sekali.
+**Fix:** Tambahkan fallback list untuk tetap menampilkan featured post di grid saat itu satu-satunya artikel, dan tampilkan empty state yang jujur kalau memang belum ada artikel publik.
+**Pelajaran:** Layout editorial tidak boleh mengasumsikan jumlah konten sudah banyak; kondisi 0-1 artikel harus diperlakukan sebagai skenario utama, bukan edge case.
+**Status:** RESOLVED
+**Terkait:** `src/app/public-blog/page.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 
