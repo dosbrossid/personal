@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowLeft, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -10,6 +11,27 @@ import { mapBlogPostWithTags, type BlogPostTagRelationRow, type BlogPostWithTagR
 import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-routing';
 
 type Props = { params: Promise<{ slug: string }> };
+
+const TAG_POST_SELECT = `
+  id,
+  title,
+  slug,
+  excerpt,
+  featured_image_url,
+  featured_image_alt,
+  published_at,
+  reading_time_minutes,
+  status,
+  is_deleted,
+  blog_post_tags(
+    blog_tags(
+      id,
+      name,
+      slug,
+      color
+    )
+  )
+`;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -49,17 +71,14 @@ export default async function TagPage({ params }: Props) {
     .from('blog_post_tags')
     .select(`
       blog_posts(
-        *,
-        blog_post_tags(
-          blog_tags(*)
-        )
+        ${TAG_POST_SELECT}
       )
     `)
     .eq('tag_id', tag.id);
 
   const posts: BlogPost[] = (postTags ?? [])
     .flatMap((postTag) => {
-      const blogPosts = (postTag as BlogPostTagRelationRow).blog_posts;
+      const blogPosts = (postTag as unknown as BlogPostTagRelationRow).blog_posts;
       if (!blogPosts) {
         return [] as BlogPostWithTagRows[];
       }
@@ -118,12 +137,14 @@ export default async function TagPage({ params }: Props) {
               href={withPublicBlogBase(blogBasePath, `/${post.slug}`)}
               className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-slate-900/8 dark:bg-[#0a0a0f] dark:hover:shadow-primary/10"
             >
-              <div className="aspect-[16/9] w-full overflow-hidden bg-muted">
+              <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
                 {post.featured_image_url ? (
-                  <img
+                  <Image
                     src={post.featured_image_url}
-                    alt={post.title}
-                    className="h-full w-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105 group-hover:opacity-100"
+                    alt={post.featured_image_alt || post.title}
+                    fill
+                    sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 33vw"
+                    className="object-cover opacity-80 transition-transform duration-500 group-hover:scale-105 group-hover:opacity-100"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-[#11111a] dark:to-[#1a1a24]" />

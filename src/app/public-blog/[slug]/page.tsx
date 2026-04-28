@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowLeft, Clock, CalendarDays, Link as LinkIcon } from 'lucide-react';
 import { createServerClient } from '@/lib/supabase/server';
 import type { BlogPost } from '@/core/types';
@@ -12,6 +13,27 @@ import { mapBlogPostWithTags, type BlogPostWithTagRows } from '@/lib/blog';
 import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-routing';
 
 type Props = { params: Promise<{ slug: string }> };
+
+const RELATED_POST_SELECT = `
+  id,
+  title,
+  slug,
+  excerpt,
+  featured_image_url,
+  featured_image_alt,
+  published_at,
+  reading_time_minutes,
+  status,
+  is_deleted,
+  blog_post_tags(
+    blog_tags(
+      id,
+      name,
+      slug,
+      color
+    )
+  )
+`;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -71,19 +93,14 @@ export default async function BlogPostPage({ params }: Props) {
   // 2. Fetch related posts (simulated by fetching latest and matching tags)
   const { data: rawAllPosts } = await supabase
     .from('blog_posts')
-    .select(`
-      *,
-      blog_post_tags(
-        blog_tags(*)
-      )
-    `)
+    .select(RELATED_POST_SELECT)
     .eq('status', 'published')
     .neq('id', post.id)
     .order('published_at', { ascending: false })
     .limit(10);
     
   const relatedPosts: BlogPost[] = (rawAllPosts || [])
-    .map((relatedPost) => mapBlogPostWithTags(relatedPost as BlogPostWithTagRows))
+    .map((relatedPost) => mapBlogPostWithTags(relatedPost as unknown as BlogPostWithTagRows))
     .filter((relatedPost) =>
       relatedPost.tags?.some((relatedTag) => post.tags?.some((postTag) => postTag.id === relatedTag.id))
     )
@@ -112,10 +129,10 @@ export default async function BlogPostPage({ params }: Props) {
         </h1>
         <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 overflow-hidden rounded-full border border-border bg-muted">
-              <img src="https://i.pravatar.cc/150?u=rendy" alt="Author" className="h-full w-full object-cover" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted text-[11px] font-bold text-foreground">
+              ZM
             </div>
-            <span className="font-medium text-foreground">Z A Maula</span>
+            <span className="font-medium text-foreground">Ziaul Maula</span>
           </div>
           <div className="flex items-center gap-1.5" title="Published Date">
             <CalendarDays className="h-4 w-4" />
@@ -133,10 +150,14 @@ export default async function BlogPostPage({ params }: Props) {
       {/* Featured Image */}
       {post.featured_image_url && (
         <figure className="mb-10 overflow-hidden rounded-2xl border border-border bg-muted lg:mb-14">
-          <img 
+          <Image 
             src={post.featured_image_url} 
             alt={post.featured_image_alt || post.title} 
-            className="w-full"
+            width={1440}
+            height={900}
+            preload
+            sizes="(max-width: 1024px) 100vw, 960px"
+            className="h-auto w-full"
           />
           {post.featured_image_alt && (
             <figcaption className="p-4 text-center text-xs text-muted-foreground">
@@ -182,9 +203,15 @@ export default async function BlogPostPage({ params }: Props) {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             {relatedPosts.map(related => (
               <Link key={related.id} href={withPublicBlogBase(blogBasePath, `/${related.slug}`)} className="group block overflow-hidden rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-lg hover:shadow-slate-900/8 dark:bg-[#0a0a0f]">
-                <div className="aspect-[16/9] bg-muted">
+                <div className="relative aspect-[16/9] bg-muted">
                   {related.featured_image_url && (
-                    <img src={related.featured_image_url} alt="" className="h-full w-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                    <Image
+                      src={related.featured_image_url}
+                      alt={related.featured_image_alt || related.title}
+                      fill
+                      sizes="(max-width: 639px) 100vw, 50vw"
+                      className="object-cover opacity-80 transition-opacity group-hover:opacity-100"
+                    />
                   )}
                 </div>
                 <div className="p-5">

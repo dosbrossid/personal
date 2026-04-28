@@ -64,7 +64,7 @@ export default async function BlogLayout({
   return (
     <div className="min-h-screen bg-background text-foreground">
       <nav className="sticky top-0 z-50 border-b border-border/70 bg-background/92 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-6">
           <Link href={homeHref} className="flex items-baseline gap-3">
             <span className="text-[17px] font-black tracking-tight text-foreground">Ziaul Maula</span>
             <span className="hidden text-[12px] text-muted-foreground md:inline">Blog</span>
@@ -93,12 +93,12 @@ export default async function BlogLayout({
         </div>
       </nav>
 
-      <main className="mx-auto max-w-6xl px-6 py-10 md:py-12">
+      <main className="mx-auto max-w-[1400px] px-6 py-10 md:py-12">
         {children}
       </main>
 
       <footer className="mt-20 border-t border-border/70 py-10 text-sm text-muted-foreground">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 text-center md:flex-row md:items-center md:justify-between md:text-left">
+        <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-6 text-center md:flex-row md:items-center md:justify-between md:text-left">
           <div className="space-y-1">
             <p>© {new Date().getFullYear()} Ziaul Maula, SE, M.Si.</p>
             <p>Catatan tentang bisnis digital, pemasaran digital, e-business, dan web app.</p>

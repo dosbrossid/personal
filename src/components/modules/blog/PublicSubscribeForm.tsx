@@ -64,8 +64,8 @@ export function PublicSubscribeForm({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        'grid gap-3 rounded-[28px] border border-border/70 bg-background/85 p-4 shadow-xl shadow-slate-900/6 backdrop-blur-xl',
-        compact ? 'grid-cols-1' : 'md:grid-cols-[1fr_1fr_180px_auto]'
+        'grid gap-3 border border-border/70 bg-background p-4',
+        compact ? 'grid-cols-1 rounded-[22px]' : 'rounded-[28px] shadow-xl shadow-slate-900/6 backdrop-blur-xl md:grid-cols-[1fr_1fr_180px_auto]'
       )}
     >
       <div className="space-y-1">
@@ -74,7 +74,7 @@ export function PublicSubscribeForm({
           value={fullName}
           onChange={(event) => setFullName(event.target.value)}
           placeholder="Ziaul Maula"
-          className="h-11 rounded-2xl border-border/60 bg-background/80"
+          className="h-11 rounded-xl border-border/60 bg-background"
         />
       </div>
       <div className="space-y-1">
@@ -84,7 +84,7 @@ export function PublicSubscribeForm({
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="nama@email.com"
-          className="h-11 rounded-2xl border-border/60 bg-background/80"
+          className="h-11 rounded-xl border-border/60 bg-background"
           required
         />
       </div>
@@ -93,7 +93,7 @@ export function PublicSubscribeForm({
         <select
           value={interest}
           onChange={(event) => setInterest(event.target.value)}
-          className="h-11 w-full rounded-2xl border border-border/60 bg-background/80 px-3 text-[13px] text-foreground outline-none focus:ring-1 focus:ring-primary/30"
+          className="h-11 w-full rounded-xl border border-border/60 bg-background px-3 text-[13px] text-foreground outline-none focus:ring-1 focus:ring-primary/30"
         >
           {INTEREST_OPTIONS.map((option) => (
             <option key={option} value={option}>
@@ -106,7 +106,7 @@ export function PublicSubscribeForm({
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="h-11 w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-500/20 hover:opacity-90"
+          className="h-11 w-full rounded-xl bg-foreground text-background hover:opacity-90"
         >
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
           Simpan

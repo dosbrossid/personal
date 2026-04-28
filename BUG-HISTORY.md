@@ -668,6 +668,24 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/globals.css`, `src/app/public-blog/layout.tsx`
 
+## BUG-073 | 2026-04-28 | SEVERITY: Medium
+
+**Gejala:** Meski lebih rapi dari sebelumnya, public blog masih terasa seperti kumpulan kartu dashboard, belum mencapai rasa publication yang bersih, lebar, dan profesional seperti blog modern yang lebih editorial.
+**Root Cause:** Struktur visual masih terlalu bertumpu pada card dengan radius besar, shadow, dan sidebar yang padat, sementara section `Open Commission` belum diberi hierarki visual dan ikon yang cukup kuat.
+**Fix:** Ubah landing page ke layout yang lebih full-width dan editorial, kurangi treatment card berlebih, perluas ruang baca, dan ubah `Open Commission` menjadi daftar layanan profesional dengan ikon dan ritme yang lebih tenang.
+**Pelajaran:** Untuk halaman blog, rasa “professional” lebih banyak datang dari restraint: sedikit kartu, banyak ruang napas, hierarki tajam, dan section komersial yang tampil seperti bagian dari publication, bukan widget tambahan.
+**Status:** RESOLVED
+**Terkait:** `src/app/public-blog/page.tsx`, `src/app/public-blog/layout.tsx`, `src/components/modules/blog/PublicSubscribeForm.tsx`
+
+## BUG-074 | 2026-04-28 | SEVERITY: High
+
+**Gejala:** Frontpage public blog berisiko gagal mengejar target Core Web Vitals tinggi karena SSR list publik masih menarik field post terlalu gemuk, gambar belum memakai pipeline optimasi Next, dan ada request gambar eksternal yang tidak perlu.
+**Root Cause:** Query list publik memakai `select *` untuk beberapa konteks yang hanya butuh ringkasan, komponen gambar masih berupa `<img>` biasa, dan avatar author bergantung pada sumber eksternal yang menambah latency.
+**Fix:** Batasi query publik ke field ringkas yang benar-benar dipakai, aktifkan `next/image` dengan `remotePatterns` Supabase, preload gambar utama, dan hapus avatar eksternal agar frontpage lebih ringan dari sisi payload, LCP, dan request count.
+**Pelajaran:** Untuk halaman publik, performa besar sering bocor dari hal yang kelihatan kecil: satu `select *`, satu gambar tanpa optimizer, atau satu avatar eksternal bisa menggerus skor lebih cepat daripada styling berat.
+**Status:** RESOLVED
+**Terkait:** `next.config.ts`, `src/app/public-blog/page.tsx`, `src/app/public-blog/[slug]/page.tsx`, `src/app/public-blog/tag/[slug]/page.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 
