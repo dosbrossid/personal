@@ -218,6 +218,24 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/(dashboard)/page.tsx`, `src/components/modules/dashboard/*`
 
+## BUG-089 | 2026-04-28 | SEVERITY: Medium
+
+**Gejala:** Reminder event kalender hanya bisa dibuat sebelum event dimulai, tetapi tidak bisa tepat di waktu mulai karena nilai `0 menit` diperlakukan sebagai tidak ada reminder.
+**Root Cause:** UI, route handler, dan queue notifikasi sama-sama memakai coercion truthy (`|| null`, `> 0`) sehingga angka `0` hilang di tengah jalan.
+**Fix:** Ubah seluruh alur kalender agar `reminder_minutes = 0` dianggap valid sebagai “saat event dimulai”, termasuk penyimpanan, enqueue notifikasi, dan label UI.
+**Pelajaran:** Untuk field numerik yang punya arti bisnis pada nilai `0`, hindari pola truthy/falsy karena sangat mudah merusak intent user.
+**Status:** RESOLVED
+**Terkait:** `src/app/(dashboard)/calendar/page.tsx`, `src/app/api/calendar/route.ts`, `src/lib/notification-queue.ts`
+
+## BUG-090 | 2026-04-28 | SEVERITY: Medium
+
+**Gejala:** Kalender belum mengenal hari libur nasional Indonesia, sehingga user tidak punya konteks jadwal nasional saat menyusun agenda.
+**Root Cause:** Belum ada tabel sistem untuk menyimpan hari libur, belum ada sinkronisasi tahunan, dan read layer kalender hanya membaca `calendar_events` milik user.
+**Fix:** Tambahkan storage `public_holidays`, helper sync tahunan, dan mode merge read-only holiday events ke tampilan kalender.
+**Pelajaran:** Data referensi yang sifatnya lintas user sebaiknya dipersist di database lalu di-merge di read layer, bukan di-fetch mentah dari API publik setiap render.
+**Status:** RESOLVED
+**Terkait:** `src/lib/holidays.ts`, `src/app/api/calendar/route.ts`, `supabase/migrations/*`
+
 ## BUG-023 | 2026-04-27 | SEVERITY: High
 
 **Gejala:** Ringkasan dashboard berpotensi meleset karena kalkulasi hari ini dan kebiasaan 7 hari masih rentan timezone UTC, urutan log, dan query agregasi tanpa filter `user_id` eksplisit.
@@ -793,6 +811,24 @@
 **Pelajaran:** Untuk asisten personal single-user, profil inti bukan dekorasi; ia harus hidup di system prompt supaya percakapan terasa cerdas dan kontekstual sejak awal.
 **Status:** RESOLVED
 **Terkait:** `src/lib/ai/prompts.ts`
+
+## BUG-087 | 2026-04-28 | SEVERITY: High
+
+**Gejala:** Bot Telegram baru bisa menjawab command terbatas seperti `/tasks` atau `/today`, tetapi belum bisa melakukan recall natural lintas task, kalender, catatan, habit, dan vault saat user bertanya bebas.
+**Root Cause:** Jalur webhook Telegram masih mengandalkan command hardcoded dan fallback ke parser AI umum, tanpa layer query recall selektif yang mengambil data transaksional relevan dari database.
+**Fix:** Tambahkan `Telegram Smart Recall v1` yang mengklasifikasikan intent recall secara ringan, men-query modul yang relevan saja, lalu menyusun jawaban ringkas tanpa melempar seluruh database ke model.
+**Pelajaran:** Bot personal yang cepat tidak perlu “membaca semua data”; yang penting ia tahu tabel mana yang harus ditanya untuk intent tertentu, lalu merangkum hasil query yang tepat.
+**Status:** RESOLVED
+**Terkait:** `src/app/api/webhook/telegram/route.ts`
+
+## BUG-088 | 2026-04-28 | SEVERITY: High
+
+**Gejala:** Cron notifikasi masih disetel 5 menit sekali dan reminder task/kalender hanya membuat notifikasi channel `push`, sehingga Telegram tidak menerima alert otomatis tepat ketika due/reminder jatuh tempo.
+**Root Cause:** Pipeline enqueue notifikasi belum membaca preference channel user, dan script Supabase Cron masih memakai cadence 5 menit dari fase awal implementasi.
+**Fix:** Pusatkan queue builder notifikasi berdasarkan preference user, buat task deadline dan calendar reminder bisa mengantre ke `telegram` juga, lalu ubah script cron Supabase menjadi 1 menit.
+**Pelajaran:** Kalau satu event bisa keluar ke beberapa channel, pemilihan channel harus diputuskan saat enqueue, bukan ditambal belakangan di dispatcher.
+**Status:** RESOLVED
+**Terkait:** `src/actions/tasks.actions.ts`, `src/actions/calendar.actions.ts`, `src/lib/ai/command-hub.ts`, `src/lib/notification-queue.ts`, `src/app/api/cron/notifications/route.ts`, `supabase/scripts/006_schedule_notifications_via_supabase_cron.sql`
 
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:

@@ -15,6 +15,12 @@ const roleColors: Record<string, string> = {
   general: 'border-l-violet-500',
 };
 
+function getReminderLabel(reminderMinutes: number | null) {
+  if (reminderMinutes === null || reminderMinutes === undefined) return null;
+  if (reminderMinutes === 0) return 'Saat mulai';
+  return `${reminderMinutes}m`;
+}
+
 export function WidgetCalendar() {
   const { events, isLoading } = useCalendarEvents();
   const { user } = useUser();
@@ -177,10 +183,10 @@ export function WidgetCalendar() {
                   <span className={cn('text-[11px] px-2 py-0.5 rounded-full font-medium', ROLES[event.contextual_role].bgClass)}>
                     {ROLES[event.contextual_role].label}
                   </span>
-                  {event.reminder_minutes && (
+                  {getReminderLabel(event.reminder_minutes) && (
                     <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                       <Clock className="h-3 w-3" />
-                      {event.reminder_minutes}m
+                      {getReminderLabel(event.reminder_minutes)}
                     </span>
                   )}
                 </div>

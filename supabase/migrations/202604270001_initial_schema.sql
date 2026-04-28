@@ -16,6 +16,7 @@ DROP TABLE IF EXISTS public.blog_post_tags CASCADE;
 DROP TABLE IF EXISTS public.blog_tags CASCADE;
 DROP TABLE IF EXISTS public.blog_posts CASCADE;
 DROP TABLE IF EXISTS public.academic_vault_items CASCADE;
+DROP TABLE IF EXISTS public.public_holidays CASCADE;
 DROP TABLE IF EXISTS public.calendar_events CASCADE;
 DROP TABLE IF EXISTS public.habit_logs CASCADE;
 DROP TABLE IF EXISTS public.habits CASCADE;
@@ -122,6 +123,21 @@ CREATE TABLE public.calendar_events (
   is_deleted BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.public_holidays (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  country_code TEXT NOT NULL,
+  holiday_date DATE NOT NULL,
+  local_name TEXT NOT NULL,
+  name TEXT NOT NULL,
+  is_global BOOLEAN NOT NULL DEFAULT true,
+  holiday_types JSONB NOT NULL DEFAULT '[]'::jsonb,
+  source TEXT NOT NULL DEFAULT 'nager-date',
+  source_url TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_public_holidays_country_date_name UNIQUE (country_code, holiday_date, name)
 );
 
 CREATE TABLE public.academic_vault_items (
@@ -287,6 +303,8 @@ CREATE INDEX idx_tasks_user_status ON public.tasks (user_id, status) WHERE is_de
 CREATE INDEX idx_tasks_user_priority ON public.tasks (user_id, priority) WHERE is_deleted = false;
 CREATE INDEX idx_brain_notes_user_role ON public.brain_notes (user_id, contextual_role) WHERE is_deleted = false;
 CREATE INDEX idx_calendar_events_user_start ON public.calendar_events (user_id, start_at) WHERE is_deleted = false;
+CREATE INDEX idx_public_holidays_country_date ON public.public_holidays (country_code, holiday_date);
+CREATE INDEX idx_public_holidays_date ON public.public_holidays (holiday_date);
 CREATE INDEX idx_vault_user_type ON public.academic_vault_items (user_id, document_type) WHERE is_deleted = false;
 CREATE INDEX idx_notifications_scheduled ON public.notifications (scheduled_at) WHERE status = 'pending';
 CREATE INDEX idx_audit_logs_table_record ON public.audit_logs (table_name, record_id);
@@ -382,6 +400,7 @@ CREATE TRIGGER trg_tasks_updated_at BEFORE UPDATE ON public.tasks FOR EACH ROW E
 CREATE TRIGGER trg_brain_notes_updated_at BEFORE UPDATE ON public.brain_notes FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER trg_habits_updated_at BEFORE UPDATE ON public.habits FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER trg_calendar_events_updated_at BEFORE UPDATE ON public.calendar_events FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+CREATE TRIGGER trg_public_holidays_updated_at BEFORE UPDATE ON public.public_holidays FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER trg_vault_updated_at BEFORE UPDATE ON public.academic_vault_items FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER trg_blog_posts_updated_at BEFORE UPDATE ON public.blog_posts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER trg_blog_tags_updated_at BEFORE UPDATE ON public.blog_tags FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
@@ -431,6 +450,7 @@ ALTER TABLE public.brain_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.habits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.habit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.calendar_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.public_holidays ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.academic_vault_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blog_tags ENABLE ROW LEVEL SECURITY;
@@ -465,6 +485,9 @@ CREATE POLICY habits_update_own ON public.habits FOR UPDATE TO authenticated USI
 CREATE POLICY calendar_events_select_own ON public.calendar_events FOR SELECT TO authenticated USING ((SELECT auth.uid()) = user_id);
 CREATE POLICY calendar_events_insert_own ON public.calendar_events FOR INSERT TO authenticated WITH CHECK ((SELECT auth.uid()) = user_id);
 CREATE POLICY calendar_events_update_own ON public.calendar_events FOR UPDATE TO authenticated USING ((SELECT auth.uid()) = user_id) WITH CHECK ((SELECT auth.uid()) = user_id);
+
+CREATE POLICY public_holidays_read_authenticated ON public.public_holidays FOR SELECT TO authenticated USING (true);
+CREATE POLICY public_holidays_read_anon ON public.public_holidays FOR SELECT TO anon USING (true);
 
 CREATE POLICY vault_select_own ON public.academic_vault_items FOR SELECT TO authenticated USING ((SELECT auth.uid()) = user_id);
 CREATE POLICY vault_insert_own ON public.academic_vault_items FOR INSERT TO authenticated WITH CHECK ((SELECT auth.uid()) = user_id);

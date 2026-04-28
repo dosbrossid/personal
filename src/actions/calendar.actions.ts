@@ -7,29 +7,8 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth'
+import { queueCalendarReminderNotifications } from '@/lib/notification-queue'
 import type { ActionResult, CalendarEvent } from '@/core/types'
-
-async function createCalendarReminderNotification(
-  supabase: Awaited<ReturnType<typeof createServerClient>>,
-  userId: string,
-  event: Pick<CalendarEvent, 'id' | 'title' | 'start_at' | 'reminder_minutes'>
-) {
-  if (!event.reminder_minutes || event.reminder_minutes < 1) return
-
-  const scheduledAt = new Date(event.start_at)
-  scheduledAt.setMinutes(scheduledAt.getMinutes() - event.reminder_minutes)
-
-  await supabase.from('notifications').insert({
-    user_id: userId,
-    channel: 'push',
-    title: 'Reminder kalender',
-    body: `${event.title} dimulai dalam ${event.reminder_minutes} menit`,
-    reference_type: 'calendar',
-    reference_id: event.id,
-    scheduled_at: scheduledAt.toISOString(),
-    status: 'pending',
-  })
-}
 
 /**
  * Create a new calendar event
@@ -72,7 +51,7 @@ export async function createEvent(data: {
       .single()
 
     if (error) return { data: null, error: error.message }
-    await createCalendarReminderNotification(supabase, user.id, event as CalendarEvent)
+    await queueCalendarReminderNotifications(supabase, user.id, event as CalendarEvent)
     return { data: event as CalendarEvent, error: null }
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Terjadi kesalahan' }
@@ -108,7 +87,7 @@ export async function updateEvent(
 
     if (error) return { data: null, error: error.message }
     if (updates.start_at || typeof updates.reminder_minutes === 'number') {
-      await createCalendarReminderNotification(supabase, user.id, event as CalendarEvent)
+      await queueCalendarReminderNotifications(supabase, user.id, event as CalendarEvent)
     }
     return { data: event as CalendarEvent, error: null }
   } catch (e) {

@@ -5,6 +5,7 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { buildAssistantSystemPrompt, buildSystemPrompt } from '@/lib/ai/prompts'
+import { queueCalendarReminderNotifications, queueTaskDeadlineNotifications } from '@/lib/notification-queue'
 import type { AIResponseItem, UserPreferences } from '@/core/types'
 import type { RoleContext } from '@/core/constants'
 
@@ -247,15 +248,10 @@ async function insertDraftItem(
       if (error) return null
       recordId = data.id
       if (item.data.due_date) {
-        await supabase.from('notifications').insert({
-          user_id: userId,
-          channel: 'push',
-          title: 'Deadline task',
-          body: `Deadline: ${item.data.title}`,
-          reference_type: 'task',
-          reference_id: recordId,
-          scheduled_at: `${item.data.due_date}T08:00:00+07:00`,
-          status: 'pending',
+        await queueTaskDeadlineNotifications(supabase, userId, {
+          id: recordId!,
+          title: item.data.title,
+          due_date: item.data.due_date ?? null,
         })
       }
       break
@@ -300,18 +296,11 @@ async function insertDraftItem(
       if (error) return null
       recordId = data.id
       if (item.data.reminder_minutes && item.data.start_at) {
-        const scheduledAt = new Date(item.data.start_at)
-        scheduledAt.setMinutes(scheduledAt.getMinutes() - item.data.reminder_minutes)
-
-        await supabase.from('notifications').insert({
-          user_id: userId,
-          channel: 'push',
-          title: 'Reminder kalender',
-          body: `${item.data.title} dimulai dalam ${item.data.reminder_minutes} menit`,
-          reference_type: 'calendar',
-          reference_id: recordId,
-          scheduled_at: scheduledAt.toISOString(),
-          status: 'pending',
+        await queueCalendarReminderNotifications(supabase, userId, {
+          id: recordId!,
+          title: item.data.title,
+          start_at: item.data.start_at ?? new Date().toISOString(),
+          reminder_minutes: item.data.reminder_minutes,
         })
       }
       break

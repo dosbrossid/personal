@@ -148,6 +148,40 @@ export interface CalendarEvent extends BaseRecord {
   categories?: ItemCategory[];
 }
 
+export interface PublicHoliday {
+  id: string;
+  country_code: string;
+  holiday_date: string;
+  local_name: string;
+  name: string;
+  is_global: boolean;
+  holiday_types: string[];
+  source: string;
+  source_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CalendarDisplayEvent {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  start_at: string;
+  end_at: string | null;
+  is_all_day: boolean;
+  reminder_minutes: number | null;
+  contextual_role: RoleContext;
+  recurrence: 'none' | 'daily' | 'weekly' | 'monthly';
+  created_at: string;
+  updated_at: string;
+  is_deleted: boolean;
+  categories?: ItemCategory[];
+  event_source: 'user' | 'holiday';
+  is_readonly: boolean;
+  holiday_date?: string | null;
+}
+
 // ─── Notification Queue ───
 export interface Notification {
   id: string;

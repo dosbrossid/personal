@@ -11,7 +11,7 @@ import { createEvent, updateEvent, deleteEvent as deleteEventAction } from '@/ac
 import { toast } from 'sonner';
 import { ROLES } from '@/core/constants';
 import type { RoleContext } from '@/core/constants';
-import type { CalendarEvent } from '@/core/types';
+import type { CalendarDisplayEvent, CalendarEvent } from '@/core/types';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, isAfter, isToday, isTomorrow, isBefore } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -32,14 +32,15 @@ const roleFilters = [
 ];
 
 const REMINDER_OPTIONS = [
-  { value: 0, label: 'Tanpa reminder' },
-  { value: 15, label: '15 menit sebelumnya' },
-  { value: 30, label: '30 menit sebelumnya' },
-  { value: 60, label: '1 jam sebelumnya' },
-  { value: 1440, label: '1 hari sebelumnya' },
+  { value: 'none', label: 'Tanpa reminder' },
+  { value: '0', label: 'Saat event dimulai' },
+  { value: '15', label: '15 menit sebelumnya' },
+  { value: '30', label: '30 menit sebelumnya' },
+  { value: '60', label: '1 jam sebelumnya' },
+  { value: '1440', label: '1 hari sebelumnya' },
 ];
 
-function sortEventsByStart(events: CalendarEvent[]) {
+function sortEventsByStart<T extends { start_at: string }>(events: T[]) {
   return [...events].sort(
     (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
   );
@@ -57,9 +58,23 @@ function getUpcomingLabel(date: Date) {
   return format(date, 'EEE, dd MMM', { locale: idLocale });
 }
 
+function getReminderLabel(reminderMinutes: number | null) {
+  if (reminderMinutes === null || reminderMinutes === undefined) return null;
+  if (reminderMinutes === 0) return 'Saat mulai';
+  return `${reminderMinutes} menit`;
+}
+
+function isHolidayEvent(event: { event_source?: 'user' | 'holiday' }): event is CalendarDisplayEvent & { event_source: 'holiday' } {
+  return event.event_source === 'holiday';
+}
+
 export default function CalendarPage() {
-  const { events, isLoading, mutate } = useCalendarEvents();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showHolidays, setShowHolidays] = useState(true);
+  const { events, isLoading, mutate } = useCalendarEvents({
+    includeHolidays: showHolidays,
+    holidayYear: currentDate.getFullYear(),
+  });
   const [selectedRole, setSelectedRole] = useState<RoleContext | 'all'>('all');
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [createOpen, setCreateOpen] = useState(false);
@@ -84,8 +99,8 @@ export default function CalendarPage() {
   });
   const sortedFilteredEvents = sortEventsByStart(filteredEvents);
 
-  const todayEvents = events.filter(e => isSameDay(new Date(e.start_at), new Date()));
-  const upcomingEvents = events.filter(e => isAfter(new Date(e.start_at), new Date()));
+  const todayEvents = filteredEvents.filter(e => isSameDay(new Date(e.start_at), new Date()));
+  const upcomingEvents = filteredEvents.filter(e => isAfter(new Date(e.start_at), new Date()));
   const recurringCount = events.filter(e => e.recurrence !== 'none').length;
 
   const handleCreate = async (data: Partial<CalendarEvent>) => {
@@ -237,6 +252,18 @@ export default function CalendarPage() {
             <span>{role.label}</span>
           </button>
         ))}
+        <button
+          onClick={() => setShowHolidays((current) => !current)}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium transition-all',
+            showHolidays
+              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          )}
+        >
+          <span>🇮🇩</span>
+          <span>Hari Libur ID</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5">
@@ -313,12 +340,19 @@ export default function CalendarPage() {
                         <div
                           key={ev.id}
                           className="truncate rounded-md px-1.5 py-1 text-[10px] font-medium"
-                          style={{
-                            backgroundColor: `${ROLES[ev.contextual_role].color}15`,
-                            color: ROLES[ev.contextual_role].color,
-                          }}
+                          style={
+                            isHolidayEvent(ev)
+                              ? {
+                                  backgroundColor: 'rgba(245, 158, 11, 0.14)',
+                                  color: 'rgb(180, 83, 9)',
+                                }
+                              : {
+                                  backgroundColor: `${ROLES[ev.contextual_role].color}15`,
+                                  color: ROLES[ev.contextual_role].color,
+                                }
+                          }
                         >
-                          {format(new Date(ev.start_at), 'HH:mm')} {ev.title}
+                          {ev.is_all_day ? 'Libur' : format(new Date(ev.start_at), 'HH:mm')} {ev.title}
                         </div>
                       ))}
                       {dayEvents.length > 2 && (
@@ -361,20 +395,26 @@ export default function CalendarPage() {
                   <div key={event.id} className="group px-5 py-4 transition-colors hover:bg-muted/30">
                     <div className="flex items-start justify-between">
                       <p className="text-[15px] font-medium text-foreground">{event.title}</p>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="shrink-0 rounded-lg p-1.5 opacity-0 transition-all duration-200 hover:bg-muted group-hover:opacity-100">
-                          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44 rounded-xl border-border/60 bg-card shadow-xl">
-                          <DropdownMenuItem onClick={() => setEditEvent(event)} className="gap-2 rounded-lg text-[13px] focus:bg-muted">
-                            <Edit3 className="h-4 w-4 text-muted-foreground" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator className="bg-border/40" />
-                          <DropdownMenuItem onClick={() => setDeleteEvent(event)} className="gap-2 rounded-lg text-[13px] text-red-500 focus:bg-red-500/10 focus:text-red-500">
-                            <Trash2 className="h-4 w-4" /> Hapus
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {isHolidayEvent(event) ? (
+                        <span className="rounded-full bg-amber-500/12 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                          Read only
+                        </span>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="shrink-0 rounded-lg p-1.5 opacity-0 transition-all duration-200 hover:bg-muted group-hover:opacity-100">
+                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44 rounded-xl border-border/60 bg-card shadow-xl">
+                            <DropdownMenuItem onClick={() => setEditEvent(event)} className="gap-2 rounded-lg text-[13px] focus:bg-muted">
+                              <Edit3 className="h-4 w-4 text-muted-foreground" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-border/40" />
+                            <DropdownMenuItem onClick={() => setDeleteEvent(event)} className="gap-2 rounded-lg text-[13px] text-red-500 focus:bg-red-500/10 focus:text-red-500">
+                              <Trash2 className="h-4 w-4" /> Hapus
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                     {event.description && (
                       <p className="mt-1 text-[13px] text-muted-foreground">{event.description}</p>
@@ -386,14 +426,20 @@ export default function CalendarPage() {
                           ? 'Seharian'
                           : `${format(new Date(event.start_at), 'HH:mm')}${event.end_at ? ` - ${format(new Date(event.end_at), 'HH:mm')}` : ''}`}
                       </span>
-                      {typeof event.reminder_minutes === 'number' && event.reminder_minutes > 0 && (
+                      {getReminderLabel(event.reminder_minutes) && (
                         <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
-                          <Bell className="h-3 w-3" /> {event.reminder_minutes} menit
+                          <Bell className="h-3 w-3" /> {getReminderLabel(event.reminder_minutes)}
                         </span>
                       )}
-                      <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', ROLES[event.contextual_role].bgClass)}>
-                        {ROLES[event.contextual_role].icon} {ROLES[event.contextual_role].label}
-                      </span>
+                      {isHolidayEvent(event) ? (
+                        <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                          🇮🇩 Hari Libur Nasional
+                        </span>
+                      ) : (
+                        <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', ROLES[event.contextual_role].bgClass)}>
+                          {ROLES[event.contextual_role].icon} {ROLES[event.contextual_role].label}
+                        </span>
+                      )}
                       {event.recurrence !== 'none' && (
                         <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                           <RotateCw className="h-3 w-3" /> {event.recurrence}
@@ -452,11 +498,17 @@ export default function CalendarPage() {
                           <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', ROLES[event.contextual_role].bgClass)}>
-                            {ROLES[event.contextual_role].icon} {ROLES[event.contextual_role].label}
-                          </span>
-                          {typeof event.reminder_minutes === 'number' && event.reminder_minutes > 0 && (
-                            <span className="text-[11px] text-muted-foreground">Reminder {event.reminder_minutes} menit</span>
+                          {isHolidayEvent(event) ? (
+                            <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                              🇮🇩 Hari Libur
+                            </span>
+                          ) : (
+                            <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', ROLES[event.contextual_role].bgClass)}>
+                              {ROLES[event.contextual_role].icon} {ROLES[event.contextual_role].label}
+                            </span>
+                          )}
+                          {getReminderLabel(event.reminder_minutes) && (
+                            <span className="text-[11px] text-muted-foreground">Reminder {getReminderLabel(event.reminder_minutes)}</span>
                           )}
                         </div>
                       </div>
@@ -515,7 +567,7 @@ function EventEditorModal({ open, onClose, onSave, editEvent: ev, defaultDate }:
   const [role, setRole] = useState<RoleContext>(ev?.contextual_role || 'general');
   const [recurrence, setRecurrence] = useState(ev?.recurrence || 'none');
   const [isAllDay, setIsAllDay] = useState(ev?.is_all_day || false);
-  const [reminderMinutes, setReminderMinutes] = useState(ev?.reminder_minutes ?? 0);
+  const [reminderValue, setReminderValue] = useState(ev?.reminder_minutes === null || ev?.reminder_minutes === undefined ? 'none' : String(ev.reminder_minutes));
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -537,7 +589,7 @@ function EventEditorModal({ open, onClose, onSave, editEvent: ev, defaultDate }:
       contextual_role: role,
       recurrence: recurrence as CalendarEvent['recurrence'],
       is_all_day: isAllDay,
-      reminder_minutes: reminderMinutes || null,
+      reminder_minutes: reminderValue === 'none' ? null : Number(reminderValue),
     });
     setIsSaving(false);
 
@@ -596,8 +648,8 @@ function EventEditorModal({ open, onClose, onSave, editEvent: ev, defaultDate }:
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Reminder</label>
             <select
-              value={reminderMinutes}
-              onChange={e => setReminderMinutes(Number(e.target.value))}
+              value={reminderValue}
+              onChange={e => setReminderValue(e.target.value)}
               className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-[12px] text-foreground outline-none focus:ring-1 focus:ring-primary/30"
             >
               {REMINDER_OPTIONS.map((option) => (

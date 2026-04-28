@@ -10,6 +10,7 @@ import { callLLM } from '@/lib/ai/client'
 import { buildAIExecutionMessage, executeAIResponseItemsWithClient } from '@/lib/ai/command-hub'
 import { buildSystemPrompt } from '@/lib/ai/prompts'
 import { mapDraftDetail } from '@/lib/ai/parser'
+import { buildTelegramSmartRecallReply } from '@/lib/telegram-recall'
 import type { AIResponse, AIResponseItem } from '@/core/types'
 import type { RoleContext } from '@/core/constants'
 import { getHabitCadenceLabel } from '@/lib/habits'
@@ -257,6 +258,32 @@ export async function POST(request: NextRequest) {
   if (text.startsWith('/today')) {
     await sendTelegramMessage(chatId, await handleToday(linkedUser))
     return Response.json({ ok: true })
+  }
+
+  const smartRecallReply = await buildTelegramSmartRecallReply(
+    supabase as unknown as Parameters<typeof buildTelegramSmartRecallReply>[0],
+    linkedUser,
+    text
+  )
+
+  if (smartRecallReply) {
+    await supabase.from('ai_hub_logs').insert({
+      user_id: linkedUser.id,
+      source: 'telegram',
+      telegram_message_id: message.message_id,
+      raw_input: text,
+      ai_response: {
+        items: [],
+        ai_message: smartRecallReply,
+      },
+      status: 'confirmed',
+      error_message: null,
+      tokens_used: 0,
+      latency_ms: null,
+    })
+
+    await sendTelegramMessage(chatId, smartRecallReply)
+    return Response.json({ ok: true, recalled: true })
   }
 
   if (text.startsWith('/cancel')) {

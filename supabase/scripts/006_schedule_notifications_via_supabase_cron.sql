@@ -40,11 +40,18 @@ where exists (
   where jobname = 'dispatch-notifications-every-5-minutes'
 );
 
--- Schedule the dispatcher every 5 minutes.
+select cron.unschedule('dispatch-notifications-every-minute')
+where exists (
+  select 1
+  from cron.job
+  where jobname = 'dispatch-notifications-every-minute'
+);
+
+-- Schedule the dispatcher every minute.
 select
   cron.schedule(
-    'dispatch-notifications-every-5-minutes',
-    '*/5 * * * *',
+    'dispatch-notifications-every-minute',
+    '* * * * *',
     $$
     select
       net.http_post(
@@ -72,4 +79,4 @@ select
 -- Inspect the active job:
 select jobid, jobname, schedule, active
 from cron.job
-where jobname = 'dispatch-notifications-every-5-minutes';
+where jobname in ('dispatch-notifications-every-5-minutes', 'dispatch-notifications-every-minute');
