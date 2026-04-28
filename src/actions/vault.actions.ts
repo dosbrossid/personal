@@ -6,6 +6,7 @@
 'use server'
 
 import { createServerClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service'
 import { requireAuth } from '@/lib/auth'
 import type { ActionResult, AcademicVaultItem } from '@/core/types'
 
@@ -115,6 +116,7 @@ export async function uploadVaultDocuments(formData: FormData): Promise<ActionRe
   try {
     const user = await requireAuth()
     const supabase = await createServerClient()
+    const storageAdmin = createServiceRoleClient()
     const files = formData
       .getAll('files')
       .filter((entry): entry is File => entry instanceof File && entry.size > 0)
@@ -137,7 +139,7 @@ export async function uploadVaultDocuments(formData: FormData): Promise<ActionRe
       const extension = getFileExtension(file.name)
       const storagePath = `${user.id}/${Date.now()}-${crypto.randomUUID()}-${sanitizeStorageFileName(file.name)}`
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await storageAdmin.storage
         .from(VAULT_BUCKET)
         .upload(storagePath, file, {
           contentType: file.type || undefined,
@@ -166,7 +168,7 @@ export async function uploadVaultDocuments(formData: FormData): Promise<ActionRe
         .single()
 
       if (insertError) {
-        await supabase.storage.from(VAULT_BUCKET).remove([storagePath])
+        await storageAdmin.storage.from(VAULT_BUCKET).remove([storagePath])
         return { data: null, error: `File terupload, tapi metadata gagal disimpan: ${insertError.message}` }
       }
 
@@ -186,6 +188,7 @@ export async function createVaultDownloadUrl(id: string): Promise<ActionResult<s
   try {
     const user = await requireAuth()
     const supabase = await createServerClient()
+    const storageAdmin = createServiceRoleClient()
 
     const { data: item, error } = await supabase
       .from('academic_vault_items')
@@ -206,7 +209,7 @@ export async function createVaultDownloadUrl(id: string): Promise<ActionResult<s
       return { data: item.file_url, error: null }
     }
 
-    const { data, error: signedUrlError } = await supabase.storage
+    const { data, error: signedUrlError } = await storageAdmin.storage
       .from(VAULT_BUCKET)
       .createSignedUrl(item.file_url, 60)
 

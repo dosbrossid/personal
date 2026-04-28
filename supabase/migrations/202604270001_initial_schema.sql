@@ -9,6 +9,7 @@ BEGIN;
 DROP TABLE IF EXISTS public.item_categories CASCADE;
 DROP TABLE IF EXISTS public.ai_hub_logs CASCADE;
 DROP TABLE IF EXISTS public.audit_logs CASCADE;
+DROP TABLE IF EXISTS public.newsletter_subscribers CASCADE;
 DROP TABLE IF EXISTS public.notifications CASCADE;
 DROP TABLE IF EXISTS public.blog_media CASCADE;
 DROP TABLE IF EXISTS public.blog_post_tags CASCADE;
@@ -25,6 +26,7 @@ DROP TABLE IF EXISTS public.users CASCADE;
 
 DROP FUNCTION IF EXISTS public.update_updated_at() CASCADE;
 DROP FUNCTION IF EXISTS public.audit_trigger_fn() CASCADE;
+DROP FUNCTION IF EXISTS public.handle_auth_user_upsert() CASCADE;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -207,6 +209,18 @@ CREATE TABLE public.blog_media (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE public.newsletter_subscribers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL UNIQUE,
+  full_name TEXT,
+  source_path TEXT NOT NULL DEFAULT '/',
+  status TEXT NOT NULL DEFAULT 'subscribed' CHECK (status IN ('subscribed','unsubscribed')),
+  notes JSONB NOT NULL DEFAULT '{}'::jsonb,
+  subscribed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE public.notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -282,6 +296,8 @@ CREATE INDEX idx_item_categories_category ON public.item_categories (category_id
 CREATE INDEX idx_blog_posts_user_status ON public.blog_posts (user_id, status) WHERE is_deleted = false;
 CREATE INDEX idx_blog_tags_user_active ON public.blog_tags (user_id) WHERE is_deleted = false;
 CREATE INDEX idx_blog_media_user_active ON public.blog_media (user_id) WHERE is_deleted = false;
+CREATE INDEX idx_newsletter_subscribers_status ON public.newsletter_subscribers (status, subscribed_at DESC);
+CREATE INDEX idx_newsletter_subscribers_source ON public.newsletter_subscribers (source_path);
 
 CREATE OR REPLACE FUNCTION public.update_updated_at()
 RETURNS TRIGGER
@@ -329,6 +345,37 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.handle_auth_user_upsert()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  derived_full_name TEXT;
+BEGIN
+  derived_full_name := COALESCE(
+    NULLIF(NEW.raw_user_meta_data->>'full_name', ''),
+    NULLIF(NEW.raw_user_meta_data->>'name', ''),
+    NULLIF(split_part(COALESCE(NEW.email, ''), '@', 1), ''),
+    'User'
+  );
+
+  INSERT INTO public.users (id, email, full_name)
+  VALUES (NEW.id, COALESCE(NEW.email, ''), derived_full_name)
+  ON CONFLICT (id) DO UPDATE
+  SET
+    email = EXCLUDED.email,
+    full_name = CASE
+      WHEN public.users.full_name IS NULL OR btrim(public.users.full_name) = '' THEN EXCLUDED.full_name
+      ELSE public.users.full_name
+    END,
+    updated_at = now();
+
+  RETURN NEW;
+END;
+$$;
+
 CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER trg_categories_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER trg_tasks_updated_at BEFORE UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
@@ -339,6 +386,7 @@ CREATE TRIGGER trg_vault_updated_at BEFORE UPDATE ON public.academic_vault_items
 CREATE TRIGGER trg_blog_posts_updated_at BEFORE UPDATE ON public.blog_posts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER trg_blog_tags_updated_at BEFORE UPDATE ON public.blog_tags FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER trg_blog_media_updated_at BEFORE UPDATE ON public.blog_media FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+CREATE TRIGGER trg_newsletter_subscribers_updated_at BEFORE UPDATE ON public.newsletter_subscribers FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER trg_ai_hub_logs_updated_at BEFORE UPDATE ON public.ai_hub_logs FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 CREATE TRIGGER trg_tasks_audit AFTER INSERT OR UPDATE OR DELETE ON public.tasks FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_fn();
@@ -347,6 +395,34 @@ CREATE TRIGGER trg_habits_audit AFTER INSERT OR UPDATE OR DELETE ON public.habit
 CREATE TRIGGER trg_calendar_events_audit AFTER INSERT OR UPDATE OR DELETE ON public.calendar_events FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_fn();
 CREATE TRIGGER trg_vault_audit AFTER INSERT OR UPDATE OR DELETE ON public.academic_vault_items FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_fn();
 CREATE TRIGGER trg_blog_posts_audit AFTER INSERT OR UPDATE OR DELETE ON public.blog_posts FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_fn();
+
+CREATE TRIGGER on_auth_user_upsert
+AFTER INSERT OR UPDATE OF email, raw_user_meta_data ON auth.users
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_auth_user_upsert();
+
+INSERT INTO public.users (id, email, full_name)
+SELECT
+  auth_users.id,
+  COALESCE(auth_users.email, ''),
+  COALESCE(
+    NULLIF(auth_users.raw_user_meta_data->>'full_name', ''),
+    NULLIF(auth_users.raw_user_meta_data->>'name', ''),
+    NULLIF(split_part(COALESCE(auth_users.email, ''), '@', 1), ''),
+    'User'
+  )
+FROM auth.users AS auth_users
+LEFT JOIN public.users AS public_users
+  ON public_users.id = auth_users.id
+WHERE public_users.id IS NULL
+ON CONFLICT (id) DO UPDATE
+SET
+  email = EXCLUDED.email,
+  full_name = CASE
+    WHEN public.users.full_name IS NULL OR btrim(public.users.full_name) = '' THEN EXCLUDED.full_name
+    ELSE public.users.full_name
+  END,
+  updated_at = now();
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
@@ -360,6 +436,7 @@ ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blog_tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blog_post_tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blog_media ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_hub_logs ENABLE ROW LEVEL SECURITY;

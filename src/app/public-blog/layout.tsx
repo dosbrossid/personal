@@ -1,24 +1,25 @@
 import Link from 'next/link';
 import { Sparkles, Rss } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { getDashboardLoginUrl } from '@/lib/app-routing';
 import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-routing';
 
 export const metadata = {
   title: {
-    default: 'Blog — Z A Maula',
-    template: '%s | Z A Maula Blog',
+    default: 'Ziaul Maula, SE, M.Si — Dosen, Digital Marketer, Vibe Coder',
+    template: '%s | Ziaul Maula',
   },
-  description: 'Tulisan tentang teknologi, produktivitas, AI, dan bisnis digital.',
+  description: 'Landing page dan blog pribadi Ziaul Maula, SE, M.Si. Dosen FEB UNSAM, pengajar Pemasaran Digital dan E-Business, digital marketer, vibe coder, serta tempat menaruh isi kepala, proses belajar, dan insight bisnis digital.',
   alternates: {
     types: {
       'application/rss+xml': '/api/public/rss',
     },
   },
   openGraph: {
-    title: 'Blog — Z A Maula',
-    description: 'Tulisan tentang teknologi, produktivitas, AI, dan bisnis digital.',
+    title: 'Ziaul Maula, SE, M.Si — Dosen, Digital Marketer, Vibe Coder',
+    description: 'Blog pribadi berisi apa yang sedang dipelajari, dipikirkan, dan dibangun Ziaul Maula di persimpangan akademik, teknologi, bisnis digital, dan web app.',
     type: 'website',
-    siteName: 'Z A Maula Blog',
+    siteName: 'Ziaul Maula',
   },
 };
 
@@ -28,6 +29,7 @@ export default async function BlogLayout({
   children: React.ReactNode;
 }>) {
   const blogBasePath = await getPublicBlogBasePath();
+  const dashboardLoginUrl = await getDashboardLoginUrl();
   const homeHref = withPublicBlogBase(blogBasePath, '/');
   const articleListHref = `${homeHref}#latest-articles`;
 
@@ -43,7 +45,7 @@ export default async function BlogLayout({
             <span className="font-semibold tracking-tight text-foreground">zmaula.web.id</span>
           </Link>
           
-          <div className="flex items-center gap-6 text-sm font-medium">
+          <div className="flex items-center gap-3 text-sm font-medium md:gap-6">
             <Link href={homeHref} className="text-muted-foreground transition-colors hover:text-foreground">Blog</Link>
             <a href={articleListHref} className="text-muted-foreground transition-colors hover:text-foreground">Artikel</a>
             <a
@@ -55,6 +57,12 @@ export default async function BlogLayout({
             >
               <Rss className="h-4 w-4" />
             </a>
+            <a
+              href={dashboardLoginUrl}
+              className="inline-flex h-9 items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3.5 text-[13px] font-semibold text-emerald-700 transition hover:bg-emerald-500/15 dark:text-emerald-300"
+            >
+              Login
+            </a>
             <ThemeToggle />
           </div>
         </div>
@@ -65,7 +73,7 @@ export default async function BlogLayout({
       </main>
 
       <footer className="mt-20 border-t border-border py-12 text-center text-sm text-muted-foreground">
-        <p>© {new Date().getFullYear()} Z A Maula. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Ziaul Maula, SE, M.Si. All rights reserved.</p>
       </footer>
     </div>
   );

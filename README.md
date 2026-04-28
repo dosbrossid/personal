@@ -54,6 +54,8 @@ File SQL siap pakai ada di `supabase/scripts/006_schedule_notifications_via_supa
 
 Secara default script itu menjadwalkan dispatch setiap `5 menit`.
 
+Kalau sebelumnya kamu mendapat error `schema "cron" does not exist`, itu berarti `pg_cron` belum aktif. Script terbaru sekarang akan mencoba mengaktifkan `pg_cron` dan `pg_net` otomatis, lalu akan memberi error yang lebih jelas kalau `Vault` belum tersedia.
+
 ## Database
 
 Schema dan helper SQL utama ada di:

@@ -623,6 +623,33 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/public-blog/*`, `src/proxy.ts`
 
+## BUG-068 | 2026-04-28 | SEVERITY: Medium
+
+**Gejala:** Landing page publik belum benar-benar mewakili positioning personal owner; akses login ke dashboard juga belum ditegaskan di shell public blog, sehingga domain publik terasa cantik tapi belum cukup fungsional untuk workflow harian.
+**Root Cause:** Copy, metadata, CTA, dan struktur landing page masih generik untuk blog pribadi biasa dan belum memakai informasi profil, layanan, serta domain app yang sudah diputuskan.
+**Fix:** Perbarui metadata, hero, service blocks, contact links, CTA login ke `app.zmaula.web.id`, kategori utama, dan form subscription agar landing page terasa sebagai home base pribadi sekaligus pintu masuk ke dashboard.
+**Pelajaran:** Untuk dual-domain app/blog, landing page publik tidak cukup hanya informatif; ia juga harus menjadi jembatan yang jelas ke area kerja utama.
+**Status:** RESOLVED
+**Terkait:** `src/app/public-blog/page.tsx`, `src/app/public-blog/layout.tsx`, `src/lib/app-routing.ts`
+
+## BUG-069 | 2026-04-28 | SEVERITY: High
+
+**Gejala:** Editor blog masih setengah kaya: create/edit belum konsisten, quote/image belum aman end-to-end, alignment dan warna teks/highlight belum ikut tersimpan, serta subscription form publik belum punya tabel tujuan di database.
+**Root Cause:** Transisi dari textarea ke rich text belum menyentuh sanitizer HTML, halaman edit, dan persistence layer secara utuh; sebagian flow hanya hidup di UI tanpa kontrak storage yang final.
+**Fix:** Satukan editor create/edit ke rich text helper yang sama, perluas sanitizer agar menyimpan quote, alignment, warna, highlight, dan image, lalu tambahkan table subscriber + route capture untuk subscription publik.
+**Pelajaran:** Rich text yang “kelihatan jalan” di toolbar belum selesai sampai formatnya lolos sanitasi, tampil lagi dengan benar, dan data turun ke database tanpa putus di tengah.
+**Status:** RESOLVED
+**Terkait:** `src/components/modules/blog/BlogRichTextEditor.tsx`, `src/lib/blog-editor.ts`, `src/app/(dashboard)/blog/*`, `src/app/api/public/subscribe/route.ts`, `supabase/migrations/*`
+
+## BUG-070 | 2026-04-28 | SEVERITY: Medium
+
+**Gejala:** Form subscribe publik berpotensi gagal total di production karena tabel `newsletter_subscribers` belum selalu ada, sementara editor gambar juga belum punya kontrol resize/alignment seperti editor klasik.
+**Root Cause:** Persistence subscriber bergantung pada migration tabel yang belum tentu sudah diterapkan di remote project, dan rich text image handling baru berhenti di insert dasar tanpa state pengaturan gambar.
+**Fix:** Tambahkan fallback capture subscriber ke storage private saat tabel belum tersedia, alihkan operasi storage server-side ke service role yang tetap diawali auth, dan tambahkan kontrol resize + alignment gambar langsung di editor.
+**Pelajaran:** Untuk fitur publik, ketahanan terhadap drift infra sama pentingnya dengan UI; jangan biarkan satu tabel yang tertinggal membuat flow publik mati total.
+**Status:** RESOLVED
+**Terkait:** `src/app/api/public/subscribe/route.ts`, `src/actions/vault.actions.ts`, `src/app/api/blog/media/route.ts`, `src/components/modules/blog/BlogRichTextEditor.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

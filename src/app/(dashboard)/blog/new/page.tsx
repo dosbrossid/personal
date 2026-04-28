@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useBlogTags } from '@/hooks/use-blog';
 
 import { 
   ArrowLeft, 
@@ -15,47 +16,29 @@ import {
   Save,
   ChevronDown,
   Clock,
+  Plus,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { createBlogPost, updateBlogPost } from '@/actions/blog.actions';
 import { toast } from 'sonner';
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-function textToHtml(value: string) {
-  return value
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean)
-    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br />')}</p>`)
-    .join('');
-}
-
-function getPostStats(value: string) {
-  const words = value.trim().split(/\s+/).filter(Boolean).length;
-  return {
-    word_count: words,
-    reading_time_minutes: Math.max(1, Math.ceil(words / 200)),
-  };
-}
+import { BlogRichTextEditor } from '@/components/modules/blog/BlogRichTextEditor';
+import { getBlogWordStats, stripBlogContent } from '@/lib/blog-editor';
 
 export default function BlogEditorPage() {
   const router = useRouter();
+  const { tags } = useBlogTags();
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState('<p></p>');
   const [visibility, setVisibility] = useState<'public' | 'unlisted' | 'private'>('public');
   const [metaTitle, setMetaTitle] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [newTagInput, setNewTagInput] = useState('');
+  const [pendingTagNames, setPendingTagNames] = useState<string[]>([]);
 
   const savePost = async (status: 'draft' | 'published') => {
     if (isSaving) return;
@@ -73,17 +56,20 @@ export default function BlogEditorPage() {
       return;
     }
 
-    const stats = getPostStats(content);
+    const stats = getBlogWordStats(content);
     const createdPost = createResult.data;
+    const plainContent = stripBlogContent(content);
     const updateResult = await updateBlogPost(createdPost.id, {
       title: title || 'Untitled',
-      content_text: content,
-      content_html: textToHtml(content),
-      excerpt: excerpt || content.slice(0, 160),
+      content_text: plainContent,
+      content_html: content,
+      excerpt: excerpt || plainContent.slice(0, 160),
       meta_title: metaTitle || title || 'Untitled',
-      meta_description: excerpt || content.slice(0, 160),
+      meta_description: excerpt || plainContent.slice(0, 160),
       status,
       visibility,
+      tag_ids: selectedTagIds,
+      tag_names: pendingTagNames,
       ...stats,
     });
 
@@ -97,6 +83,30 @@ export default function BlogEditorPage() {
     toast.success(status === 'published' ? 'Artikel berhasil dipublish' : 'Draft berhasil disimpan');
     router.push(`/blog/${createdPost.id}/edit`);
   };
+
+  const handleToggleTag = (tagId: string) => {
+    setSelectedTagIds((current) =>
+      current.includes(tagId) ? current.filter((id) => id !== tagId) : [...current, tagId]
+    );
+  };
+
+  const handleAddPendingTag = () => {
+    const normalized = newTagInput.trim();
+    if (!normalized) return;
+
+    const existsInPending = pendingTagNames.some((tag) => tag.toLowerCase() === normalized.toLowerCase());
+    const existsInSaved = tags.some((tag) => tag.name.toLowerCase() === normalized.toLowerCase());
+
+    if (existsInPending || existsInSaved) {
+      toast.error('Kategori ini sudah ada');
+      return;
+    }
+
+    setPendingTagNames((current) => [...current, normalized]);
+    setNewTagInput('');
+  };
+
+  const stats = getBlogWordStats(content);
 
   return (
     <div className="flex h-[calc(100vh-2px)] w-full flex-col overflow-hidden -my-6 -mx-8">
@@ -172,29 +182,7 @@ export default function BlogEditorPage() {
             </div>
 
             {/* Toolbar */}
-            <div 
-              className="flex items-center gap-0.5 rounded-xl border border-border/60 bg-card/80 backdrop-blur-sm p-1 shadow-sm w-fit"
-            >
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground text-[13px] font-bold"><b>B</b></Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground text-[13px]"><i>I</i></Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground text-[13px]"><u>U</u></Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground text-[13px]"><s>S</s></Button>
-              <div className="mx-1 h-5 w-px bg-border/60" />
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground text-[11px] font-semibold">H1</Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground text-[11px] font-semibold">H2</Button>
-              <div className="mx-1 h-5 w-px bg-border/60" />
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"><ImageIcon className="h-4 w-4" /></Button>
-            </div>
-
-            {/* Content Textarea */}
-            <div>
-              <Textarea 
-                placeholder="Mulai menulis cerita Anda (Gunakan markdown atau slash / commands)..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="min-h-[400px] w-full resize-none border-none bg-transparent p-0 text-[16px] leading-[1.8] text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-0"
-              />
-            </div>
+            <BlogRichTextEditor value={content} onChange={setContent} />
           </div>
         </main>
 
@@ -252,14 +240,55 @@ export default function BlogEditorPage() {
                 </div>
                 Kategori & Tags
               </h3>
-              <Input placeholder="Tambah tag..." className="h-9 rounded-xl border-border/60 bg-background/50 text-[12px]" />
+              <div className="flex gap-2">
+                <Input
+                  value={newTagInput}
+                  onChange={(event) => setNewTagInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      handleAddPendingTag();
+                    }
+                  }}
+                  placeholder="Buat kategori baru..."
+                  className="h-9 rounded-xl border-border/60 bg-background/50 text-[12px]"
+                />
+                <Button type="button" variant="outline" onClick={handleAddPendingTag} className="h-9 rounded-xl px-3 text-[12px]">
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
               <div className="flex flex-wrap gap-1.5">
-                {['Next.js', 'Tutorial'].map(tag => (
-                  <span key={tag} className="inline-flex items-center gap-1.5 rounded-full bg-muted/80 px-2.5 py-1 text-[11px] font-medium text-muted-foreground border border-border/40">
-                    {tag} 
-                    <button className="hover:text-foreground transition-colors text-muted-foreground/50">&times;</button>
+                {tags.map((tag) => {
+                  const selected = selectedTagIds.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => handleToggleTag(tag.id)}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
+                        selected
+                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                          : 'border-border/40 bg-muted/80 text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {tag.name}
+                    </button>
+                  );
+                })}
+                {pendingTagNames.map((tag) => (
+                  <span key={tag} className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => setPendingTagNames((current) => current.filter((item) => item !== tag))}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
                   </span>
                 ))}
+              </div>
+              <div className="rounded-xl border border-border/60 bg-background/50 p-3 text-[11px] text-muted-foreground">
+                {selectedTagIds.length + pendingTagNames.length} kategori dipilih • {stats.word_count} kata • {stats.reading_time_minutes} menit baca
               </div>
             </div>
 

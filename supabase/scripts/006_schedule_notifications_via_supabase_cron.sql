@@ -3,7 +3,7 @@
 -- Replaces the old Vercel Hobby cron approach.
 --
 -- Before running:
--- 1. Enable pg_cron, pg_net, and Vault in your Supabase project.
+-- 1. Ensure Vault is enabled in your Supabase project.
 -- 2. Store these secrets in Supabase Vault:
 --    - personal_dashboard_project_url
 --      Example: https://app.zmaula.web.id
@@ -11,6 +11,22 @@
 --    - personal_dashboard_cron_secret
 --      Must match CRON_SECRET in Vercel project env vars.
 -- ============================================================
+
+-- Bootstrap required extensions when possible.
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.schemata
+    where schema_name = 'vault'
+  ) then
+    raise exception 'Schema "vault" does not exist. Enable Supabase Vault first, then create the secrets personal_dashboard_project_url and personal_dashboard_cron_secret.';
+  end if;
+end
+$$;
 
 -- Optional helpers, run once if the secrets do not exist yet:
 -- select vault.create_secret('https://app.zmaula.web.id', 'personal_dashboard_project_url');
