@@ -13,7 +13,7 @@ import {
   ensureIndonesiaPublicHolidaysForYear,
   getIndonesiaPublicHolidaysForRange,
 } from '@/lib/holidays'
-import type { CalendarDisplayEvent, CalendarEvent } from '@/core/types'
+import type { CalendarDisplayEvent, CalendarEvent, CalendarReminderRule } from '@/core/types'
 
 function mapUserCalendarEvent(event: CalendarEvent): CalendarDisplayEvent {
   return {
@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
         end_at: body.end_at || null,
         is_all_day: body.is_all_day || false,
         reminder_minutes: body.reminder_minutes ?? null,
+        reminder_config: (body.reminder_config as CalendarReminderRule[] | undefined) ?? [],
         contextual_role: body.contextual_role || 'general',
         recurrence: body.recurrence || 'none',
       })

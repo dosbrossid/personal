@@ -11,7 +11,7 @@ import { createEvent, updateEvent, deleteEvent as deleteEventAction } from '@/ac
 import { toast } from 'sonner';
 import { ROLES } from '@/core/constants';
 import type { RoleContext } from '@/core/constants';
-import type { CalendarDisplayEvent, CalendarEvent } from '@/core/types';
+import type { CalendarDisplayEvent, CalendarEvent, CalendarReminderRule } from '@/core/types';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, isAfter, isToday, isTomorrow, isBefore } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -32,12 +32,12 @@ const roleFilters = [
 ];
 
 const REMINDER_OPTIONS = [
-  { value: 'none', label: 'Tanpa reminder' },
-  { value: '0', label: 'Saat event dimulai' },
-  { value: '15', label: '15 menit sebelumnya' },
-  { value: '30', label: '30 menit sebelumnya' },
-  { value: '60', label: '1 jam sebelumnya' },
-  { value: '1440', label: '1 hari sebelumnya' },
+  { key: 'at-start', label: 'Saat event dimulai', rule: { type: 'before_minutes', minutes: 0 } as CalendarReminderRule },
+  { key: '15m', label: '15 menit sebelumnya', rule: { type: 'before_minutes', minutes: 15 } as CalendarReminderRule },
+  { key: '30m', label: '30 menit sebelumnya', rule: { type: 'before_minutes', minutes: 30 } as CalendarReminderRule },
+  { key: '1h', label: '1 jam sebelumnya', rule: { type: 'before_minutes', minutes: 60 } as CalendarReminderRule },
+  { key: '1d', label: '1 hari sebelumnya', rule: { type: 'before_minutes', minutes: 1440 } as CalendarReminderRule },
+  { key: '6am', label: 'Hari H jam 06:00', rule: { type: 'same_day_at', hour: 6, minute: 0 } as CalendarReminderRule },
 ];
 
 function sortEventsByStart<T extends { start_at: string }>(events: T[]) {
@@ -58,10 +58,38 @@ function getUpcomingLabel(date: Date) {
   return format(date, 'EEE, dd MMM', { locale: idLocale });
 }
 
-function getReminderLabel(reminderMinutes: number | null) {
-  if (reminderMinutes === null || reminderMinutes === undefined) return null;
-  if (reminderMinutes === 0) return 'Saat mulai';
-  return `${reminderMinutes} menit`;
+function reminderRuleKey(rule: CalendarReminderRule) {
+  if (rule.type === 'before_minutes') return `before:${rule.minutes}`;
+  return `same-day:${rule.hour}:${rule.minute}`;
+}
+
+function normalizeReminderRules(event: Pick<CalendarEvent, 'reminder_minutes' | 'reminder_config'>) {
+  if (Array.isArray(event.reminder_config) && event.reminder_config.length > 0) {
+    return event.reminder_config;
+  }
+
+  if (event.reminder_minutes === null || event.reminder_minutes === undefined || event.reminder_minutes < 0) {
+    return [];
+  }
+
+  return [{ type: 'before_minutes', minutes: event.reminder_minutes } as CalendarReminderRule];
+}
+
+function getReminderRuleLabel(rule: CalendarReminderRule) {
+  if (rule.type === 'same_day_at') {
+    return `Hari H ${String(rule.hour).padStart(2, '0')}:${String(rule.minute).padStart(2, '0')}`;
+  }
+
+  if (rule.minutes === 0) return 'Saat mulai';
+  if (rule.minutes === 60) return '1 jam sebelumnya';
+  if (rule.minutes === 1440) return '1 hari sebelumnya';
+  return `${rule.minutes} menit sebelumnya`;
+}
+
+function getReminderSummary(event: Pick<CalendarEvent, 'reminder_minutes' | 'reminder_config'>) {
+  const rules = normalizeReminderRules(event);
+  if (rules.length === 0) return null;
+  return rules.map(getReminderRuleLabel);
 }
 
 function isHolidayEvent(event: { event_source?: 'user' | 'holiday' }): event is CalendarDisplayEvent & { event_source: 'holiday' } {
@@ -426,9 +454,9 @@ export default function CalendarPage() {
                           ? 'Seharian'
                           : `${format(new Date(event.start_at), 'HH:mm')}${event.end_at ? ` - ${format(new Date(event.end_at), 'HH:mm')}` : ''}`}
                       </span>
-                      {getReminderLabel(event.reminder_minutes) && (
+                      {getReminderSummary(event) && (
                         <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
-                          <Bell className="h-3 w-3" /> {getReminderLabel(event.reminder_minutes)}
+                          <Bell className="h-3 w-3" /> {getReminderSummary(event)?.[0]}
                         </span>
                       )}
                       {isHolidayEvent(event) ? (
@@ -507,8 +535,8 @@ export default function CalendarPage() {
                               {ROLES[event.contextual_role].icon} {ROLES[event.contextual_role].label}
                             </span>
                           )}
-                          {getReminderLabel(event.reminder_minutes) && (
-                            <span className="text-[11px] text-muted-foreground">Reminder {getReminderLabel(event.reminder_minutes)}</span>
+                          {getReminderSummary(event) && (
+                            <span className="text-[11px] text-muted-foreground">Reminder {getReminderSummary(event)?.[0]}</span>
                           )}
                         </div>
                       </div>
@@ -567,7 +595,9 @@ function EventEditorModal({ open, onClose, onSave, editEvent: ev, defaultDate }:
   const [role, setRole] = useState<RoleContext>(ev?.contextual_role || 'general');
   const [recurrence, setRecurrence] = useState(ev?.recurrence || 'none');
   const [isAllDay, setIsAllDay] = useState(ev?.is_all_day || false);
-  const [reminderValue, setReminderValue] = useState(ev?.reminder_minutes === null || ev?.reminder_minutes === undefined ? 'none' : String(ev.reminder_minutes));
+  const [selectedReminderKeys, setSelectedReminderKeys] = useState<string[]>(() =>
+    normalizeReminderRules(ev ?? { reminder_minutes: null, reminder_config: [] }).map(reminderRuleKey)
+  );
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -580,6 +610,10 @@ function EventEditorModal({ open, onClose, onSave, editEvent: ev, defaultDate }:
       return;
     }
 
+    const reminderConfig = REMINDER_OPTIONS
+      .filter((option) => selectedReminderKeys.includes(option.key))
+      .map((option) => option.rule);
+
     setIsSaving(true);
     const result = await onSave({
       title,
@@ -589,7 +623,8 @@ function EventEditorModal({ open, onClose, onSave, editEvent: ev, defaultDate }:
       contextual_role: role,
       recurrence: recurrence as CalendarEvent['recurrence'],
       is_all_day: isAllDay,
-      reminder_minutes: reminderValue === 'none' ? null : Number(reminderValue),
+      reminder_minutes: reminderConfig[0]?.type === 'before_minutes' ? reminderConfig[0].minutes : null,
+      reminder_config: reminderConfig,
     });
     setIsSaving(false);
 
@@ -647,15 +682,30 @@ function EventEditorModal({ open, onClose, onSave, editEvent: ev, defaultDate }:
           </div>
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Reminder</label>
-            <select
-              value={reminderValue}
-              onChange={e => setReminderValue(e.target.value)}
-              className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-[12px] text-foreground outline-none focus:ring-1 focus:ring-primary/30"
-            >
-              {REMINDER_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
+            <div className="grid gap-2 rounded-xl border border-border/60 bg-background p-3">
+              {REMINDER_OPTIONS.map((option) => {
+                const checked = selectedReminderKeys.includes(option.key);
+                return (
+                  <label key={option.key} className="flex items-center gap-2 text-[12px] text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(event) => {
+                        setSelectedReminderKeys((current) =>
+                          event.target.checked
+                            ? [...current, option.key]
+                            : current.filter((key) => key !== option.key)
+                        );
+                      }}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Kamu bisa pilih lebih dari satu reminder untuk satu event.
+            </p>
           </div>
           <button onClick={() => setIsAllDay(!isAllDay)} className={cn('flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200', isAllDay ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted/50 text-muted-foreground hover:bg-muted')}>
             <CalendarDays className="h-3.5 w-3.5" /> {isAllDay ? 'Seharian (All Day)' : 'Tandai sebagai all day'}

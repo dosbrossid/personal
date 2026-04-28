@@ -8,7 +8,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth'
 import { queueCalendarReminderNotifications } from '@/lib/notification-queue'
-import type { ActionResult, CalendarEvent } from '@/core/types'
+import type { ActionResult, CalendarEvent, CalendarReminderRule } from '@/core/types'
 
 /**
  * Create a new calendar event
@@ -20,6 +20,7 @@ export async function createEvent(data: {
   end_at?: string | null
   is_all_day?: boolean
   reminder_minutes?: number | null
+  reminder_config?: CalendarReminderRule[] | null
   contextual_role?: string
   recurrence?: string
 }): Promise<ActionResult<CalendarEvent>> {
@@ -44,6 +45,7 @@ export async function createEvent(data: {
         end_at: data.end_at || null,
         is_all_day: data.is_all_day || false,
         reminder_minutes: data.reminder_minutes ?? null,
+        reminder_config: data.reminder_config ?? [],
         contextual_role: data.contextual_role || 'general',
         recurrence: data.recurrence || 'none',
       })
@@ -70,6 +72,7 @@ export async function updateEvent(
     end_at: string | null
     is_all_day: boolean
     reminder_minutes: number | null
+    reminder_config: CalendarReminderRule[] | null
     contextual_role: string
     recurrence: string
   }>
@@ -86,7 +89,7 @@ export async function updateEvent(
       .single()
 
     if (error) return { data: null, error: error.message }
-    if (updates.start_at || typeof updates.reminder_minutes === 'number') {
+    if (updates.start_at || typeof updates.reminder_minutes === 'number' || Array.isArray(updates.reminder_config)) {
       await queueCalendarReminderNotifications(supabase, user.id, event as CalendarEvent)
     }
     return { data: event as CalendarEvent, error: null }

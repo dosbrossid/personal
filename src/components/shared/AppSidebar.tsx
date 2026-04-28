@@ -9,6 +9,7 @@ import {
   CheckSquare,
   Flame,
   CalendarDays,
+  BookOpenCheck,
   GraduationCap,
   PenSquare,
   Settings,
@@ -53,6 +54,7 @@ const menuGroups: SidebarMenuGroup[] = [
   {
     title: 'FEATURES',
     items: [
+      { href: '/classes', label: 'Classes', icon: BookOpenCheck },
       { href: '/calendar', label: 'Kalender', icon: CalendarDays },
       { href: '/vault', label: 'Vault', icon: GraduationCap },
       { href: '/blog', label: 'Blog CMS', icon: PenSquare },

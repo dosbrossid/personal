@@ -425,6 +425,7 @@ export type Database = {
           is_all_day: boolean | null
           is_deleted: boolean | null
           recurrence: string | null
+          reminder_config: Json | null
           reminder_minutes: number | null
           start_at: string
           title: string
@@ -440,6 +441,7 @@ export type Database = {
           is_all_day?: boolean | null
           is_deleted?: boolean | null
           recurrence?: string | null
+          reminder_config?: Json | null
           reminder_minutes?: number | null
           start_at: string
           title: string
@@ -455,6 +457,7 @@ export type Database = {
           is_all_day?: boolean | null
           is_deleted?: boolean | null
           recurrence?: string | null
+          reminder_config?: Json | null
           reminder_minutes?: number | null
           start_at?: string
           title?: string

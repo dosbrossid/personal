@@ -106,6 +106,7 @@ export const NAV_ITEMS = [
   { href: '/notes', label: 'Catatan', icon: 'Brain' },
   { href: '/tasks', label: 'Tugas', icon: 'CheckSquare' },
   { href: '/habits', label: 'Kebiasaan', icon: 'Flame' },
+  { href: '/classes', label: 'Class Management', icon: 'BookOpenCheck' },
   { href: '/calendar', label: 'Kalender', icon: 'CalendarDays' },
   { href: '/vault', label: 'Vault Akademik', icon: 'GraduationCap' },
   { href: '/blog', label: 'Blog CMS', icon: 'PenSquare' },
@@ -118,6 +119,24 @@ export const BLOG_STATUSES = {
   published: { label: 'Published', color: '#10b981', icon: '●' },
   archived: { label: 'Archived', color: '#f59e0b', icon: '◐' },
 } as const;
+
+// Class Management
+export const CLASS_COURSE_STATUSES = {
+  active: { label: 'Aktif', color: '#10b981', icon: '●' },
+  completed: { label: 'Selesai', color: '#3b82f6', icon: '◉' },
+  archived: { label: 'Arsip', color: '#64748b', icon: '○' },
+} as const;
+
+export type ClassCourseStatus = keyof typeof CLASS_COURSE_STATUSES;
+
+export const CLASS_SESSION_STATUSES = {
+  planned: { label: 'Direncanakan', color: '#64748b', icon: '○' },
+  completed: { label: 'Selesai', color: '#10b981', icon: '●' },
+  canceled: { label: 'Dibatalkan', color: '#ef4444', icon: '✕' },
+  rescheduled: { label: 'Dijadwalkan Ulang', color: '#f59e0b', icon: '↺' },
+} as const;
+
+export type ClassSessionStatus = keyof typeof CLASS_SESSION_STATUSES;
 
 // Time Filter Options
 export const TIME_FILTERS = [

@@ -1,4 +1,6 @@
-import type { CalendarEvent, Task } from '@/core/types'
+import { fromZonedTime } from 'date-fns-tz'
+
+import type { CalendarEvent, CalendarReminderRule, Task } from '@/core/types'
 
 type QueryResult = Promise<{ data: { preferences: unknown; telegram_chat_id: string | null } | null; error: { message: string } | null }>
 
@@ -16,7 +18,9 @@ type NotificationClient = {
   from(table: 'users'): {
     select: (columns: string) => UserSelectChain
   }
-  from(table: 'notifications'): InsertChain
+  from(table: 'notifications'): InsertChain & {
+    delete: () => unknown
+  }
 }
 
 interface NotificationPreferenceSnapshot {
@@ -25,6 +29,7 @@ interface NotificationPreferenceSnapshot {
   telegramChatId: string | null
   taskDeadline: boolean
   calendarEvent: boolean
+  timezone: string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -59,6 +64,7 @@ export async function getNotificationPreferenceSnapshot(
     telegramChatId: data?.telegram_chat_id ?? null,
     taskDeadline: readBoolean(notifications.task_deadline, true),
     calendarEvent: readBoolean(notifications.calendar_event, true),
+    timezone: typeof preferences.timezone === 'string' ? preferences.timezone : 'Asia/Jakarta',
   }
 }
 
@@ -90,6 +96,28 @@ async function enqueueNotifications(
   }))
 
   const { error } = await client.from('notifications').insert(rows)
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
+async function clearPendingNotificationsForReference(
+  supabase: unknown,
+  userId: string,
+  referenceType: string,
+  referenceId: string
+) {
+  const client = supabase as NotificationClient
+  const deleteQuery = client
+    .from('notifications')
+    .delete() as any
+
+  const { error } = await (deleteQuery
+    .eq('user_id', userId)
+    .eq('reference_type', referenceType)
+    .eq('reference_id', referenceId)
+    .eq('status', 'pending') as Promise<{ error: { message: string } | null }>)
+
   if (error) {
     throw new Error(error.message)
   }
@@ -130,31 +158,84 @@ export async function queueTaskDeadlineNotifications(
   })
 }
 
+function getLocalDateKey(dateValue: string, timezone: string) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+
+  return formatter.format(new Date(dateValue))
+}
+
+function normalizeReminderRules(event: Pick<CalendarEvent, 'reminder_minutes' | 'reminder_config'>) {
+  if (Array.isArray(event.reminder_config) && event.reminder_config.length > 0) {
+    return event.reminder_config
+  }
+
+  if (event.reminder_minutes === null || event.reminder_minutes === undefined || event.reminder_minutes < 0) {
+    return []
+  }
+
+  return [{ type: 'before_minutes', minutes: event.reminder_minutes } satisfies CalendarReminderRule]
+}
+
+function buildReminderSchedules(
+  event: Pick<CalendarEvent, 'title' | 'start_at' | 'reminder_minutes' | 'reminder_config'>,
+  timezone: string
+) {
+  const rules = normalizeReminderRules(event)
+  const startAt = new Date(event.start_at)
+
+  return rules
+    .map((rule) => {
+      if (rule.type === 'before_minutes') {
+        const scheduledAt = new Date(startAt)
+        scheduledAt.setMinutes(scheduledAt.getMinutes() - rule.minutes)
+
+        return {
+          scheduled_at: scheduledAt.toISOString(),
+          body:
+            rule.minutes === 0
+              ? `${event.title} dimulai sekarang`
+              : `${event.title} dimulai dalam ${rule.minutes} menit`,
+        }
+      }
+
+      const localDateKey = getLocalDateKey(event.start_at, timezone)
+      const scheduledAt = fromZonedTime(
+        `${localDateKey}T${String(rule.hour).padStart(2, '0')}:${String(rule.minute).padStart(2, '0')}:00`,
+        timezone
+      )
+
+      return {
+        scheduled_at: scheduledAt.toISOString(),
+        body: `${event.title} mulai hari ini. Reminder jam ${String(rule.hour).padStart(2, '0')}:${String(rule.minute).padStart(2, '0')}`,
+      }
+    })
+    .filter((item, index, array) => array.findIndex((candidate) => candidate.scheduled_at === item.scheduled_at) === index)
+}
+
 export async function queueCalendarReminderNotifications(
   supabase: unknown,
   userId: string,
-  event: Pick<CalendarEvent, 'id' | 'title' | 'start_at' | 'reminder_minutes'>
+  event: Pick<CalendarEvent, 'id' | 'title' | 'start_at' | 'reminder_minutes' | 'reminder_config'>
 ) {
-  if (event.reminder_minutes === null || event.reminder_minutes === undefined || event.reminder_minutes < 0) {
-    return
-  }
-
   const snapshot = await getNotificationPreferenceSnapshot(supabase, userId)
   if (!snapshot.calendarEvent) return
+  const schedules = buildReminderSchedules(event, snapshot.timezone)
+  if (schedules.length === 0) return
 
-  const scheduledAt = new Date(event.start_at)
-  scheduledAt.setMinutes(scheduledAt.getMinutes() - event.reminder_minutes)
+  await clearPendingNotificationsForReference(supabase, userId, 'calendar', event.id)
 
-  const body =
-    event.reminder_minutes === 0
-      ? `${event.title} dimulai sekarang`
-      : `${event.title} dimulai dalam ${event.reminder_minutes} menit`
-
-  await enqueueNotifications(supabase, userId, resolveChannels(snapshot), {
-    title: 'Reminder kalender',
-    body,
-    reference_type: 'calendar',
-    reference_id: event.id,
-    scheduled_at: scheduledAt.toISOString(),
-  })
+  for (const schedule of schedules) {
+    await enqueueNotifications(supabase, userId, resolveChannels(snapshot), {
+      title: 'Reminder kalender',
+      body: schedule.body,
+      reference_type: 'calendar',
+      reference_id: event.id,
+      scheduled_at: schedule.scheduled_at,
+    })
+  }
 }

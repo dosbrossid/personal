@@ -920,6 +920,33 @@
 **Status:** RESOLVED
 **Terkait:** `src/app/public-blog/page.tsx`
 
+## BUG-097 | 2026-04-29 | SEVERITY: Medium
+
+**Gejala:** Migration foundation `Class Management` gagal dijalankan di Supabase SQL Editor dengan error syntax di blok `ADD COLUMN`.
+**Root Cause:** Statement `ALTER TABLE ... ADD COLUMN IF NOT EXISTS ... , ADD COLUMN IF NOT EXISTS ...` tidak diparse dengan aman oleh editor SQL Supabase yang dipakai user.
+**Fix:** Pecah penambahan kolom `calendar_events.origin` dan `calendar_events.source_metadata` menjadi dua statement `ALTER TABLE` terpisah.
+**Pelajaran:** Untuk migration yang ditujukan ke SQL Editor Supabase, lebih aman gunakan statement `ALTER TABLE` sederhana satu per satu daripada bentuk multi-add yang lebih rapat.
+**Status:** RESOLVED
+**Terkait:** `supabase/migrations/202604290010_class_management_foundation.sql`
+
+## BUG-098 | 2026-04-29 | SEVERITY: High
+
+**Gejala:** Modal `Tambah Kelas` di `Class Management` kepanjangan di viewport laptop/mobile sehingga tombol simpan terdorong keluar layar, dan field semester terasa kosong tanpa aturan default akademik yang jelas.
+**Root Cause:** Layout modal masih mengikuti pola form statis tanpa area scroll internal atau footer tetap, sementara semester belum diberi rule semester akademik otomatis berbasis tanggal pertemuan pertama.
+**Fix:** Ubah modal kelas menjadi `max-height` dengan body scrollable dan footer aksi tetap terlihat, lalu tambahkan default semester akademik otomatis yang mengikuti tanggal pertemuan pertama namun tetap editable.
+**Pelajaran:** Form administratif yang panjang tidak cukup hanya "muat di desktop"; area aksi harus selalu terlihat, dan field akademik seperti semester harus dibantu rule domain agar user tidak dipaksa mikir dari nol.
+**Status:** RESOLVED
+**Terkait:** `src/app/(dashboard)/classes/page.tsx`
+
+## BUG-099 | 2026-04-29 | SEVERITY: High
+
+**Gejala:** Reminder kalender masih model tunggal (`reminder_minutes`) sehingga tidak bisa mengirim beberapa pengingat untuk satu event, padahal event kelas butuh pola khusus H-1, hari H jam 06:00, dan 15 menit sebelum.
+**Root Cause:** Schema dan queue notifikasi kalender masih diasumsikan satu reminder per event, sehingga kelas tidak bisa mewarisi preset reminder multi-tahap yang konsisten.
+**Fix:** Tambahkan `reminder_config` multi-rule pada `calendar_events`, ubah queue notifikasi agar membaca banyak rule, dan tetapkan preset reminder khusus untuk event hasil `Class Management`.
+**Pelajaran:** Reminder operasional akademik hampir selalu butuh lebih dari satu momen; memodelkannya sebagai satu integer cepat mentok begitu kebutuhan nyata mulai kompleks.
+**Status:** RESOLVED
+**Terkait:** `src/lib/notification-queue.ts`, `src/lib/class-management.ts`, `src/app/(dashboard)/calendar/page.tsx`, `supabase/migrations/202604290011_calendar_multi_reminders.sql`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

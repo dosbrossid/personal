@@ -1,8 +1,9 @@
-# PRD v4: AI Personal Dashboard & Second Brain
+# PRD v5: AI Personal Dashboard & Second Brain
 
 > **Revisi v3:** Semua 8 gap dari validasi putaran 3 telah ditambal.
 > Keputusan arsitektural: Multi-category (N:N), Supabase pg_cron, AI Usage Tracking di MVP, Onboarding dengan default categories.
 > **Revisi v4 (2026-04-27):** Sinkronisasi dengan implementasi aktual. Menambahkan kontrak detail untuk Settings, Telegram Bot, Notification Center, service-role cron/webhook, environment variables, dan acceptance criteria end-to-end.
+> **Revisi v5 (2026-04-29):** Menambahkan planning module `Class Management` dan `Landing Page Builder`, termasuk relasi ke Calendar, AI-assisted authoring, Facebook Pixel strategy, dan target performa/public-page architecture.
 
 ---
 
@@ -62,6 +63,8 @@ WHERE created_at >= (CURRENT_DATE AT TIME ZONE 'Asia/Jakarta')
 | Note Linking (Zettelkasten) | Hubungkan catatan A ↔ B membentuk knowledge graph. |
 | Voice Input | Rekam suara → transkripsi → AI parser. |
 | Export Markdown (Notion/Obsidian) | Backup second brain ke format standar. |
+| Class Management | Modul akademik lanjutan untuk manajemen kelas, pertemuan, dan progres mengajar. |
+| Landing Page Builder | Builder landing page performa tinggi berbasis AI + section editor tanpa drag-and-drop. |
 
 ---
 
@@ -994,3 +997,394 @@ AI Command Hub dianggap selesai untuk MVP jika:
 - Tes database Supabase untuk memastikan semua row masuk table yang benar.
 - Tes Telegram hanya jika env dan webhook sudah dikonfigurasi.
 - Update `BUG-HISTORY.md` untuk setiap bug baru yang ditemukan selama QA.
+
+### Phase E — Class Management
+
+- Tambahkan entity `class_courses` dan `class_sessions`.
+- Buat sinkronisasi satu arah `Class Management -> Calendar`.
+- Tambahkan dashboard progress kelas, assignment counter, dan meeting tracker.
+- Tambahkan command AI untuk membuat draft kelas/pertemuan.
+
+### Phase F — Landing Page Builder
+
+- Tambahkan entity `landing_pages`, `landing_page_sections`, dan `landing_page_leads`.
+- Bangun editor section-based tanpa drag-and-drop.
+- Tambahkan AI generator untuk draft page dari brief.
+- Tambahkan publishing pipeline berorientasi static output dan on-demand revalidation.
+
+---
+
+## 19. Class Management — Planning Module
+
+### 19.1 Tujuan
+
+`Class Management` adalah modul manajemen kelas yang ringan untuk dosen. Fokusnya bukan LMS atau pengganti Google Classroom, tetapi:
+
+- mencatat total pertemuan kelas (`8` atau `16`)
+- melacak progress pertemuan yang sudah berjalan
+- mencatat topik tiap pertemuan
+- mencatat berapa kali memberi tugas
+- mencatat jumlah mahasiswa dan attendance ringkas
+- menampilkan ritme kelas langsung di Calendar
+
+### 19.2 Prinsip Produk
+
+- **Ringan, bukan LMS.** Tidak ada submission mahasiswa, grading kompleks, atau file exchange seperti classroom penuh.
+- **Meeting-centric.** Unit utama adalah `pertemuan`, bukan thread diskusi.
+- **Calendar-first.** Setiap pertemuan kelas punya representasi event kalender.
+- **Progress jelas.** Dalam 2 detik user bisa tahu kelas ini sudah sampai pertemuan ke berapa, sudah berapa kali kasih tugas, dan apa yang belum diajar.
+
+### 19.3 Entitas yang Disarankan
+
+#### `class_courses`
+
+Satu record mewakili satu kelas/section.
+
+| Kolom | Tipe | Fungsi |
+|------|------|--------|
+| `id` | `UUID` | Primary key |
+| `user_id` | `UUID` | Owner |
+| `name` | `TEXT` | Nama kelas, mis. `Manajemen Pemasaran A` |
+| `course_code` | `TEXT` | Kode mata kuliah |
+| `semester_label` | `TEXT` | Mis. `Genap 2026/2027` |
+| `meeting_target` | `INT` | `8` atau `16` |
+| `student_count` | `INT` | Jumlah mahasiswa |
+| `default_day_of_week` | `INT` | 0-6 untuk generator jadwal |
+| `default_start_time` | `TIME` | Jam default kelas |
+| `default_end_time` | `TIME` | Jam selesai |
+| `location` | `TEXT` | Ruangan/online |
+| `status` | `TEXT` | `active`, `completed`, `archived` |
+| `notes` | `TEXT` | Catatan umum kelas |
+| `assignment_count` | `INT` | Counter denormalized |
+| `completed_meeting_count` | `INT` | Counter denormalized |
+
+#### `class_sessions`
+
+Satu record mewakili satu pertemuan.
+
+| Kolom | Tipe | Fungsi |
+|------|------|--------|
+| `id` | `UUID` | Primary key |
+| `class_course_id` | `UUID` | FK ke kelas |
+| `meeting_number` | `INT` | Pertemuan ke-1, 2, dst |
+| `title` | `TEXT` | Judul/topik pertemuan |
+| `description` | `TEXT` | Catatan materi/pertemuan |
+| `session_date` | `DATE` | Tanggal utama |
+| `start_at` | `TIMESTAMPTZ` | Mulai |
+| `end_at` | `TIMESTAMPTZ` | Selesai |
+| `status` | `TEXT` | `planned`, `completed`, `canceled`, `rescheduled` |
+| `attendance_count` | `INT` | Hadir berapa orang |
+| `assignment_given` | `BOOLEAN` | Ada tugas atau tidak |
+| `assignment_title` | `TEXT` | Ringkasan tugas jika ada |
+| `assignment_due_at` | `TIMESTAMPTZ` | Deadline tugas jika ada |
+| `reflection_note` | `TEXT` | Catatan setelah mengajar |
+| `calendar_event_id` | `UUID` | Link ke `calendar_events.id` |
+
+> **Keputusan arsitektural:** `class_sessions` adalah source of truth. `calendar_events` hanya surface tampilan waktu. Jadi relasi terbaik adalah `class_sessions.calendar_event_id`, bukan sebaliknya.
+
+### 19.4 Koneksi ke Calendar
+
+Saat user membuat kelas baru:
+
+1. user pilih total pertemuan: `8` atau `16`
+2. user isi ritme dasar: hari, jam mulai, jam selesai, tanggal pertemuan pertama
+3. sistem generate `class_sessions` sebanyak target pertemuan
+4. untuk setiap `class_session`, sistem generate `calendar_event`
+5. perubahan jadwal di modul kelas meng-update event kalender terkait
+
+Aturan:
+
+- event hasil Class Management diberi marker `origin = class_management`
+- edit dari halaman Calendar sebaiknya membuka editor session terkait, bukan memutus sinkronisasi diam-diam
+- event kelas boleh tampil beda visual di Calendar dibanding event umum
+
+### 19.5 Use Cases Utama
+
+| Use Case | Penjelasan |
+|---------|------------|
+| Buat kelas baru | Input nama kelas, target pertemuan 8/16, jumlah mahasiswa, ritme mingguan |
+| Generate semua pertemuan | Sistem otomatis isi 8 atau 16 sesi ke Calendar |
+| Mark meeting selesai | User menandai pertemuan sudah berlangsung dan mengisi topik/attendance/reflection |
+| Catat tugas | User bisa tandai pada pertemuan ke-X sudah memberi tugas |
+| Track progress | Progress bar: `7/16 pertemuan`, `3x tugas`, `35 mahasiswa` |
+| Review semester | User bisa lihat kelas mana tertinggal atau hampir selesai |
+
+### 19.6 Dashboard yang Disarankan
+
+Untuk satu kelas, tampilkan:
+
+- progress `pertemuan selesai / target`
+- next meeting
+- last completed meeting
+- assignment count
+- attendance snapshot terakhir
+- quick note dosen
+
+### 19.7 AI Opportunities
+
+AI boleh membantu di level ini:
+
+- generate draft kelas dari prompt
+- generate judul/topik 16 pertemuan awal
+- ringkas reflection notes menjadi progres singkat
+- membantu jawab: *"kelas Digital Marketing saya sudah sampai pertemuan berapa?"*
+
+Contoh prompt:
+
+> `Buat kelas Manajemen Pemasaran A semester genap, 16 pertemuan, tiap Selasa 08:00-09:40 mulai minggu depan`
+
+### 19.8 Acceptance Criteria
+
+- User bisa membuat kelas baru dengan target `8` atau `16` pertemuan.
+- Sistem otomatis membuat `class_sessions` dan `calendar_events`.
+- User bisa menandai session `completed` dan progress kelas naik otomatis.
+- User bisa melihat berapa kali memberi tugas untuk setiap kelas.
+- Calendar menampilkan pertemuan kelas dengan marker khusus.
+- Telegram/AI recall nantinya bisa menjawab pertanyaan progres kelas dari data ini.
+
+---
+
+## 20. Landing Page Builder — Planning Module
+
+### 20.1 Tujuan
+
+`Landing Page Builder` adalah builder untuk membuat halaman publik performa tinggi di domain utama, tanpa drag-and-drop bebas. Targetnya:
+
+- AI bisa generate draft awal dari brief
+- hasil tetap bisa diedit manual
+- page tetap ringan, statically optimized, dan mudah lolos audit performa
+- mendukung SEO tools seperti Blog CMS
+- mendukung Facebook Pixel global maupun per-page
+
+### 20.2 Positioning Produk
+
+Builder ini **bukan** page builder visual bebas seperti Elementor/Webflow. Ini lebih dekat ke:
+
+- **section-based editor**
+- **AI-assisted generator**
+- **static landing page publisher**
+
+Keuntungannya:
+
+- lebih kencang
+- lebih konsisten
+- lebih mudah dijaga kualitas Lighthouse
+- lebih cocok untuk personal brand, product page, service page, lead capture page
+
+### 20.3 Routing Strategy
+
+Target domain:
+
+- `zmaula.web.id/blog/*` → artikel blog
+- `zmaula.web.id/tag/*` → kategori blog
+- `zmaula.web.id/{slug}` → landing page / static page builder output
+
+Artinya slug page harus dibatasi agar tidak bentrok dengan reserved routes:
+
+`blog`, `tag`, `api`, `login`, `manifest.webmanifest`, `sitemap.xml`, `rss`
+
+### 20.4 Entitas yang Disarankan
+
+#### `landing_pages`
+
+Satu record mewakili satu page.
+
+| Kolom | Tipe | Fungsi |
+|------|------|--------|
+| `id` | `UUID` | Primary key |
+| `user_id` | `UUID` | Owner |
+| `title` | `TEXT` | Nama internal / heading utama |
+| `slug` | `TEXT` | Public path |
+| `status` | `TEXT` | `draft`, `published`, `archived` |
+| `page_type` | `TEXT` | `landing`, `service`, `lead-magnet`, `about`, `sales` |
+| `content_json` | `JSONB` | Struktur section-based |
+| `rendered_html` | `TEXT` | Snapshot publish |
+| `meta_title` | `TEXT` | SEO |
+| `meta_description` | `TEXT` | SEO |
+| `og_image_url` | `TEXT` | OpenGraph |
+| `canonical_url` | `TEXT` | Canonical |
+| `pixel_mode` | `TEXT` | `global`, `custom`, `disabled` |
+| `custom_pixel_id` | `TEXT` | Optional override |
+| `published_at` | `TIMESTAMPTZ` | Publish timestamp |
+
+#### `landing_page_sections`
+
+Opsional jika ingin normalized editing, tapi untuk MVP builder lebih cepat kalau section disimpan di `content_json`.
+
+Saya sarankan:
+
+- **draft editing** cukup di `content_json`
+- **publish output** di `rendered_html`
+
+#### `landing_page_leads`
+
+Kalau page punya form capture:
+
+| Kolom | Tipe | Fungsi |
+|------|------|--------|
+| `id` | `UUID` | Primary key |
+| `landing_page_id` | `UUID` | Sumber lead |
+| `name` | `TEXT` | Nama lead |
+| `email` | `TEXT` | Email |
+| `phone` | `TEXT` | Opsional |
+| `payload` | `JSONB` | Field tambahan |
+| `created_at` | `TIMESTAMPTZ` | Waktu submit |
+
+### 20.5 Editing Model yang Disarankan
+
+Karena kamu tidak mau drag-and-drop, saya sarankan editor seperti ini:
+
+1. **Section list**
+   - Hero
+   - Social proof
+   - Offer
+   - Benefit grid
+   - FAQ
+   - CTA
+   - Contact / lead form
+
+2. **Section settings panel**
+   - edit copy
+   - edit image
+   - edit CTA
+   - edit color mode
+   - show/hide section
+
+3. **AI generate**
+   - user kasih brief
+   - AI hasilkan struktur page + copy per section
+   - user edit manual sebelum publish
+
+4. **Preview mode**
+   - desktop/mobile preview
+   - publish draft preview URL
+
+### 20.6 Performance Architecture — Wajib untuk “Super Kencang”
+
+Supaya target `98+` realistis, builder harus dibatasi secara sengaja:
+
+- **Tidak ada drag-and-drop runtime berat**
+- **Tidak ada custom JS arbitrary per page**
+- **Section renderer server-first**
+- **Output HTML statis saat publish**
+- **CSS seminimal mungkin, reuse design tokens global**
+- **Image auto-compress + WebP/AVIF**
+- **Font discipline ketat**
+- **Third-party script hanya whitelist**
+
+Strategi publish:
+
+- draft disimpan di DB
+- saat publish, sistem generate `rendered_html`
+- page publik dirender dari snapshot publish yang stabil
+- gunakan `revalidateTag()` / on-demand revalidation per slug
+- set cache headers yang agresif untuk asset statis
+
+> **Catatan penting:** skor `98+` di Lighthouse/PageSpeed harus dianggap target desain, bukan janji absolut untuk semua variasi konten. Skor ini realistis hanya jika user tetap memakai section yang performance-safe dan third-party script dijaga ketat.
+
+### 20.7 SEO Tools
+
+Landing Page Builder harus punya tool set minimal setara Blog CMS:
+
+- meta title
+- meta description
+- canonical URL
+- og image
+- robots mode (`index/follow`, `noindex`)
+- slug editor
+- preview snippet
+- AI generate SEO draft
+
+Tambahan yang saya sarankan:
+
+- FAQ schema toggle
+- Organization / Person schema
+- breadcrumb schema opsional
+
+### 20.8 Facebook Pixel Support
+
+Harus support 2 level:
+
+#### Global Pixel
+
+Disimpan di settings site-wide, misalnya:
+
+- `site_settings.facebook_pixel_id`
+
+Dipakai otomatis ke semua landing page published jika page tidak override.
+
+#### Single Page Pixel
+
+Di `landing_pages`:
+
+- `pixel_mode = global | custom | disabled`
+- `custom_pixel_id`
+
+Aturan:
+
+- `global` → pakai pixel global
+- `custom` → pakai pixel halaman ini
+- `disabled` → jangan inject pixel sama sekali
+
+Saya sarankan Pixel injection hanya dilakukan di halaman published, bukan di preview draft.
+
+### 20.9 Use Cases Utama
+
+| Use Case | Penjelasan |
+|---------|------------|
+| Generate dari AI | User isi brief bisnis/offer, AI hasilkan landing page draft |
+| Edit manual | User ubah headline, CTA, section, SEO, pixel |
+| Publish cepat | Page tayang di `zmaula.web.id/slug` |
+| Lead capture | Form submit masuk DB |
+| Service page | Cocok untuk `System Integrator`, `Konsultan Bisnis Digital`, dsb |
+| Campaign page | Bisa punya pixel custom per page |
+
+### 20.10 Acceptance Criteria
+
+- User bisa membuat page tanpa drag-and-drop.
+- AI bisa generate draft awal page dari brief.
+- User bisa edit section per section.
+- Published page tayang di `zmaula.web.id/{slug}`.
+- SEO fields tersedia seperti Blog CMS.
+- Facebook Pixel bisa `global`, `custom`, atau `disabled`.
+- Publish output dioptimasi untuk static rendering, image compression, dan cache.
+- Target desain performa: Lighthouse/PageSpeed `>= 98` untuk page yang dibangun hanya dengan blok resmi dan aset teroptimasi.
+
+---
+
+## 21. Saran Tambahan
+
+### 21.1 Class Management
+
+Saran saya, jangan mulai dari attendance detail per mahasiswa dulu. Untuk fase pertama cukup:
+
+- jumlah mahasiswa total
+- attendance count per meeting
+- assignment given flag
+- reflection notes
+
+Itu sudah memberi value besar tanpa mengubah app jadi mini-LMS.
+
+### 21.2 Landing Page Builder
+
+Saran saya, jangan mulai dari editor visual bebas. Mulai dari:
+
+- `6-8` section template yang sangat bagus
+- AI generator yang mengisi section itu
+- preview yang mantap
+- publish pipeline yang kencang
+
+Ini jauh lebih realistis untuk menjaga:
+
+- quality visual
+- speed
+- maintainability
+- skor Lighthouse
+
+### 21.3 Urutan Build yang Saya Sarankan
+
+1. `Class Management` dulu  
+   Karena paling dekat dengan kebutuhan harianmu sebagai dosen dan langsung memberi utility.
+
+2. `Landing Page Builder` setelah itu  
+   Karena builder butuh perencanaan arsitektur lebih hati-hati agar tidak merusak performa publik domain utama.

@@ -9,6 +9,8 @@ import type {
   AcademicDocType,
   NoteType,
   HabitCadenceMode,
+  ClassCourseStatus,
+  ClassSessionStatus,
 } from '@/core/constants';
 
 // Base fields present on all data tables
@@ -136,6 +138,10 @@ export interface HabitLog {
 }
 
 // ─── Calendar Events ───
+export type CalendarReminderRule =
+  | { type: 'before_minutes'; minutes: number }
+  | { type: 'same_day_at'; hour: number; minute: number };
+
 export interface CalendarEvent extends BaseRecord {
   title: string;
   description: string | null;
@@ -143,6 +149,7 @@ export interface CalendarEvent extends BaseRecord {
   end_at: string | null;
   is_all_day: boolean;
   reminder_minutes: number | null;
+  reminder_config?: CalendarReminderRule[] | null;
   contextual_role: RoleContext;
   recurrence: 'none' | 'daily' | 'weekly' | 'monthly';
   categories?: ItemCategory[];
@@ -171,6 +178,7 @@ export interface CalendarDisplayEvent {
   end_at: string | null;
   is_all_day: boolean;
   reminder_minutes: number | null;
+  reminder_config?: CalendarReminderRule[] | null;
   contextual_role: RoleContext;
   recurrence: 'none' | 'daily' | 'weekly' | 'monthly';
   created_at: string;
@@ -180,6 +188,42 @@ export interface CalendarDisplayEvent {
   event_source: 'user' | 'holiday';
   is_readonly: boolean;
   holiday_date?: string | null;
+}
+
+// ─── Class Management ───
+export interface ClassCourse extends BaseRecord {
+  name: string;
+  course_code: string | null;
+  semester_label: string | null;
+  meeting_target: 8 | 16;
+  student_count: number;
+  default_day_of_week: number | null;
+  default_start_time: string | null;
+  default_end_time: string | null;
+  location: string | null;
+  contextual_role: RoleContext;
+  status: ClassCourseStatus;
+  notes: string | null;
+  assignment_count: number;
+  completed_meeting_count: number;
+  next_session?: ClassSession | null;
+}
+
+export interface ClassSession extends BaseRecord {
+  class_course_id: string;
+  meeting_number: number;
+  title: string;
+  description: string | null;
+  session_date: string;
+  start_at: string;
+  end_at: string | null;
+  status: ClassSessionStatus;
+  attendance_count: number;
+  assignment_given: boolean;
+  assignment_title: string | null;
+  assignment_due_at: string | null;
+  reflection_note: string | null;
+  calendar_event_id: string | null;
 }
 
 // ─── Notification Queue ───
