@@ -7,6 +7,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import type { BlogPost } from '@/core/types';
 import type { Metadata } from 'next';
 import { mapBlogPostWithTags, type BlogPostTagRelationRow, type BlogPostWithTagRows } from '@/lib/blog';
+import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-routing';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -30,6 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function TagPage({ params }: Props) {
   const { slug } = await params;
+  const blogBasePath = await getPublicBlogBasePath();
   const supabase = await createServerClient();
 
   // Fetch the tag
@@ -77,7 +79,7 @@ export default async function TagPage({ params }: Props) {
       {/* Header */}
       <div>
         <Link
-          href="/public-blog"
+          href={withPublicBlogBase(blogBasePath, '/')}
           className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" /> Kembali ke beranda
@@ -113,7 +115,7 @@ export default async function TagPage({ params }: Props) {
           {posts.map((post) => (
             <Link
               key={post.id}
-              href={`/public-blog/${post.slug}`}
+              href={withPublicBlogBase(blogBasePath, `/${post.slug}`)}
               className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-slate-900/8 dark:bg-[#0a0a0f] dark:hover:shadow-primary/10"
             >
               <div className="aspect-[16/9] w-full overflow-hidden bg-muted">

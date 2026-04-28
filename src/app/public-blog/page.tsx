@@ -5,9 +5,12 @@ import { id } from 'date-fns/locale';
 import { createServerClient } from '@/lib/supabase/server';
 import type { BlogPost } from '@/core/types';
 import { mapBlogPostWithTags, type BlogPostWithTagRows } from '@/lib/blog';
+import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-routing';
 
 export default async function PublicBlogHome() {
   const supabase = await createServerClient();
+  const blogBasePath = await getPublicBlogBasePath();
+  const latestArticlesHref = `${withPublicBlogBase(blogBasePath, '/')}#latest-articles`;
   
   const { data: rawPosts } = await supabase
     .from('blog_posts')
@@ -35,7 +38,7 @@ export default async function PublicBlogHome() {
       {/* Hero Section - Featured Post */}
       {featuredPost && (
         <section>
-          <Link href={`/public-blog/${featuredPost.slug}`} className="group block">
+          <Link href={withPublicBlogBase(blogBasePath, `/${featuredPost.slug}`)} className="group block">
             <div className="relative aspect-[21/9] w-full overflow-hidden rounded-3xl border border-border/80 bg-card shadow-lg shadow-slate-900/8 dark:shadow-black/20">
               {featuredPost.featured_image_url ? (
                 <img 
@@ -72,17 +75,17 @@ export default async function PublicBlogHome() {
       )}
 
       {/* Recent Posts Section */}
-      <section>
+      <section id="latest-articles">
         <div className="mb-8 flex items-end justify-between">
           <h2 className="text-2xl font-bold tracking-tight text-foreground">Artikel Terbaru</h2>
-          <Link href="/public-blog/posts" className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80">
-            Lihat semua <ArrowRight className="h-4 w-4" />
-          </Link>
+          <a href={latestArticlesHref} className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80">
+            Jelajahi daftar <ArrowRight className="h-4 w-4" />
+          </a>
         </div>
         
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {stringPosts.map(post => (
-            <Link key={post.id} href={`/public-blog/${post.slug}`} className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-slate-900/8 dark:bg-[#0a0a0f] dark:hover:shadow-primary-500/10">
+            <Link key={post.id} href={withPublicBlogBase(blogBasePath, `/${post.slug}`)} className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-slate-900/8 dark:bg-[#0a0a0f] dark:hover:shadow-primary-500/10">
               <div className="aspect-[16/9] w-full overflow-hidden bg-muted">
                 {post.featured_image_url ? (
                   <img src={post.featured_image_url} alt={post.title} className="h-full w-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105 group-hover:opacity-100" />
@@ -121,16 +124,16 @@ export default async function PublicBlogHome() {
           <p className="mb-8 text-muted-foreground">
             Dapatkan tulisan terbaru seputar teknologi, AI, bisnis, dan produktivitas langsung ke kotak masuk Anda. Tidak ada spam.
           </p>
-          <form className="mx-auto flex max-w-md gap-2" onSubmit={(e) => e.preventDefault()}>
+          <div className="mx-auto flex max-w-md gap-2">
             <input 
               type="email" 
               placeholder="rendy@example.com" 
               className="h-12 flex-1 rounded-xl border border-border bg-background/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary-500 focus:outline-none"
             />
-            <button className="h-12 rounded-xl bg-primary px-6 font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
+            <button type="button" className="h-12 rounded-xl bg-primary px-6 font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
               Subscribe
             </button>
-          </form>
+          </div>
         </div>
         <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-500/20 blur-[100px]" />
       </section>

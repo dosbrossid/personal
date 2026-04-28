@@ -9,6 +9,7 @@ import type { Metadata } from 'next';
 import { ViewCountTracker } from './ViewCountTracker';
 import { ReadingProgressBar } from './ReadingProgressBar';
 import { mapBlogPostWithTags, type BlogPostWithTagRows } from '@/lib/blog';
+import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-routing';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -44,6 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function BlogPostPage({ params }: Props) {
   const resolvedParams = await params;
+  const blogBasePath = await getPublicBlogBasePath();
   
   const supabase = await createServerClient();
   
@@ -92,7 +94,7 @@ export default async function BlogPostPage({ params }: Props) {
     <ReadingProgressBar />
     <article className="mx-auto max-w-3xl">
       {/* Back button */}
-      <Link href="/public-blog" className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+      <Link href={withPublicBlogBase(blogBasePath, '/')} className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Kembali ke beranda
       </Link>
 
@@ -179,7 +181,7 @@ export default async function BlogPostPage({ params }: Props) {
           <h2 className="mb-8 text-2xl font-bold text-foreground">Artikel Terkait</h2>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             {relatedPosts.map(related => (
-              <Link key={related.id} href={`/public-blog/${related.slug}`} className="group block overflow-hidden rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-lg hover:shadow-slate-900/8 dark:bg-[#0a0a0f]">
+              <Link key={related.id} href={withPublicBlogBase(blogBasePath, `/${related.slug}`)} className="group block overflow-hidden rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-lg hover:shadow-slate-900/8 dark:bg-[#0a0a0f]">
                 <div className="aspect-[16/9] bg-muted">
                   {related.featured_image_url && (
                     <img src={related.featured_image_url} alt="" className="h-full w-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />

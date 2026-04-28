@@ -596,6 +596,33 @@
 **Status:** RESOLVED
 **Terkait:** `vercel.json`, `src/app/api/cron/notifications/route.ts`, `supabase/scripts/*`, `README.md`
 
+## BUG-065 | 2026-04-28 | SEVERITY: Low
+
+**Gejala:** Script setup `Supabase Cron` gagal langsung dengan error `schema "cron" does not exist` saat dijalankan di project yang extension-nya belum diaktifkan.
+**Root Cause:** Script mengasumsikan `pg_cron` dan `pg_net` sudah tersedia, padahal project Supabase baru bisa saja belum mengaktifkan extension tersebut.
+**Fix:** Tambahkan bootstrap `create extension if not exists` untuk `pg_cron` dan `pg_net`, lalu beri guard yang eksplisit bila schema `vault` belum tersedia.
+**Pelajaran:** Script operasional sebaiknya tidak hanya mendefinisikan job, tetapi juga memvalidasi prasyarat extension agar error awal lebih membantu.
+**Status:** RESOLVED
+**Terkait:** `supabase/scripts/006_schedule_notifications_via_supabase_cron.sql`, `README.md`
+
+## BUG-066 | 2026-04-28 | SEVERITY: High
+
+**Gejala:** User yang sudah berhasil terdaftar di `auth.users` ternyata belum selalu punya row pasangan di `public.users`, sehingga fitur yang bergantung pada profil aplikasi seperti settings, notifikasi, dan koneksi Telegram bisa gagal atau terasa tidak konsisten.
+**Root Cause:** Skema publik belum memiliki trigger otomatis untuk membuat profil aplikasi saat user auth baru tercipta, sehingga sistem hanya aman jika backfill manual selalu dijalankan.
+**Fix:** Tambahkan trigger database untuk sinkronisasi `auth.users -> public.users`, backfill user yang sudah terlanjur ada, lalu verifikasi notifikasi test memakai row profil yang sudah konsisten.
+**Pelajaran:** Untuk integrasi Supabase Auth, tabel profil aplikasi tidak boleh bergantung pada backfill manual semata; sinkronisasi otomatis adalah fondasi, bukan fitur tambahan.
+**Status:** RESOLVED
+**Terkait:** `supabase/migrations/*`, `supabase/scripts/*`, `public.users`, `auth.users`
+
+## BUG-067 | 2026-04-28 | SEVERITY: High
+
+**Gejala:** `zmaula.web.id` menampilkan layar error server saat dibuka dari browser, sehingga public blog tidak bisa diakses normal dari domain utamanya.
+**Root Cause:** Halaman `public-blog` masih mengandung event handler `onSubmit` di server component, dan link-link public blog belum host-aware sehingga domain apex berisiko me-rewrite path menjadi ganda seperti `/public-blog/public-blog`.
+**Fix:** Pindahkan interaksi form agar tetap server-component-safe, lalu buat semua link public blog memakai base path yang sadar host (`zmaula.web.id` vs dashboard/app domain).
+**Pelajaran:** Pada App Router, public SSR page harus bebas dari client-only event handlers; selain itu, domain rewrite butuh link internal yang konsisten dengan host akhir, bukan path statis tunggal.
+**Status:** RESOLVED
+**Terkait:** `src/app/public-blog/*`, `src/proxy.ts`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 

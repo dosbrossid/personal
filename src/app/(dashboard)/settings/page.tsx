@@ -34,6 +34,8 @@ const DEFAULT_NOTIFICATION_PREFS: NonNullable<UserPreferences['notifications']> 
 };
 
 const DEFAULT_ACTIVE_ROLES: RoleContext[] = ['dosen', 'creator', 'affiliate', 'consultant', 'general'];
+const TELEGRAM_BOT_HANDLE = '@zmaula_dashboard_bot';
+const TELEGRAM_BOT_URL = 'https://t.me/zmaula_dashboard_bot';
 
 const NOTIFICATION_OPTIONS: Array<{
   key: keyof NonNullable<UserPreferences['notifications']>;
@@ -227,6 +229,26 @@ function SettingsContent({ user, vaultItems, aiUsage, mutateUser }: SettingsCont
     });
   };
 
+  const openTelegramBot = () => {
+    if (typeof window === 'undefined') return;
+    window.open(TELEGRAM_BOT_URL, '_blank', 'noopener,noreferrer');
+  };
+
+  const copyChatId = async () => {
+    const value = (telegramChatId || user.telegram_chat_id || '').trim();
+    if (!value) {
+      toast.error('Chat ID belum tersedia');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success('Chat ID berhasil disalin');
+    } catch {
+      toast.error('Gagal menyalin Chat ID');
+    }
+  };
+
   return (
     <div className="max-w-3xl space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -348,23 +370,84 @@ function SettingsContent({ user, vaultItems, aiUsage, mutateUser }: SettingsCont
             {isTelegramConnected ? 'Terhubung' : 'Belum terhubung'}
           </span>
         </div>
-        <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Chat ID</label>
-            <Input value={telegramChatId} onChange={(event) => setTelegramChatId(event.target.value)} placeholder="Ketik /start di bot, lalu salin chat id" className="h-10 rounded-lg border-border/60 bg-background text-[14px]" />
+        <div className="grid gap-4 lg:grid-cols-[1.05fr_1fr]">
+          <div className="rounded-2xl border border-border/60 bg-muted/15 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[13px] font-semibold text-foreground">Status koneksi</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Bot aktif: <span className="font-medium text-foreground">{TELEGRAM_BOT_HANDLE}</span>
+                </p>
+              </div>
+              <span className={cn('rounded-full px-2.5 py-1 text-[10px] font-semibold', isTelegramConnected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500')}>
+                {isTelegramConnected ? 'Sinkron ke akun ini' : 'Butuh chat id'}
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-border/60 bg-background/80 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Chat ID aktif</p>
+                <p className="mt-2 break-all text-[14px] font-semibold text-foreground">
+                  {user.telegram_chat_id ?? 'Belum terhubung'}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-background/80 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Notifikasi Telegram</p>
+                <p className="mt-2 text-[14px] font-semibold text-foreground">
+                  {notificationPrefs.telegram_enabled ? 'Aktif' : 'Nonaktif'}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-dashed border-border/60 bg-background/60 p-3">
+              <p className="text-[12px] font-semibold text-foreground">Langkah cepat</p>
+              <ol className="mt-2 space-y-1 text-[12px] text-muted-foreground">
+                <li>1. Buka bot Telegram lalu kirim <span className="font-medium text-foreground">/start</span>.</li>
+                <li>2. Salin chat id yang dibalas bot.</li>
+                <li>3. Tempel di kolom kanan lalu klik <span className="font-medium text-foreground">Hubungkan</span>.</li>
+              </ol>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={openTelegramBot} className="rounded-lg text-[12px]">
+                <MessageCircle className="mr-2 h-3.5 w-3.5" /> Buka Bot
+              </Button>
+              <Button type="button" variant="outline" onClick={copyChatId} disabled={!telegramChatId.trim() && !user.telegram_chat_id} className="rounded-lg text-[12px]">
+                Salin Chat ID
+              </Button>
+            </div>
           </div>
-          <Button onClick={handleConnectTelegram} disabled={isTelegramBusy || !telegramChatId.trim()} className="h-10 rounded-lg text-[12px]">
-            {isTelegramConnected ? 'Update' : 'Hubungkan'}
-          </Button>
-          <Button variant="outline" onClick={handleDisconnectTelegram} disabled={isTelegramBusy || !isTelegramConnected} className="h-10 rounded-lg border-red-500/20 text-[12px] text-red-500 hover:bg-red-500/5 disabled:opacity-40">
-            Putuskan
-          </Button>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handleTestTelegram} disabled={isTesting || !isTelegramConnected} className="rounded-lg text-[12px]">
-            <Send className="mr-2 h-3.5 w-3.5" /> Test Telegram
-          </Button>
-          <p className="text-[11px] text-muted-foreground">Env wajib: TELEGRAM_BOT_TOKEN. Webhook memakai TELEGRAM_WEBHOOK_SECRET.</p>
+
+          <div className="space-y-4 rounded-2xl border border-border/60 bg-background/60 p-4">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Chat ID</label>
+              <Input value={telegramChatId} onChange={(event) => setTelegramChatId(event.target.value)} placeholder="Contoh: 240659909" className="h-11 rounded-lg border-border/60 bg-background text-[14px]" />
+              <p className="text-[11px] text-muted-foreground">
+                Isi dengan chat id hasil balasan <span className="font-medium text-foreground">/start</span> dari bot.
+              </p>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button onClick={handleConnectTelegram} disabled={isTelegramBusy || !telegramChatId.trim()} className="h-10 rounded-lg text-[12px]">
+                {isTelegramConnected ? 'Update Chat ID' : 'Hubungkan'}
+              </Button>
+              <Button variant="outline" onClick={handleDisconnectTelegram} disabled={isTelegramBusy || !isTelegramConnected} className="h-10 rounded-lg border-red-500/20 text-[12px] text-red-500 hover:bg-red-500/5 disabled:opacity-40">
+                Putuskan
+              </Button>
+            </div>
+
+            <div className="rounded-xl border border-border/60 bg-muted/15 p-3">
+              <p className="text-[12px] font-semibold text-foreground">Verifikasi koneksi</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Setelah terhubung, kirim test untuk memastikan dispatcher aplikasi benar-benar bisa mengirim ke chat ini.
+              </p>
+              <div className="mt-3">
+                <Button variant="outline" onClick={handleTestTelegram} disabled={isTesting || !isTelegramConnected} className="rounded-lg text-[12px]">
+                  <Send className="mr-2 h-3.5 w-3.5" /> Test Telegram
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

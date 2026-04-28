@@ -9,6 +9,7 @@ import { buildLoginRedirectTarget } from '@/lib/auth-redirect';
 
 // Routes that don't require authentication
 const PUBLIC_ROUTES = ['/login', '/public-blog', '/api/public'];
+const PUBLIC_BLOG_HOSTS = new Set(['zmaula.web.id', 'www.zmaula.web.id']);
 
 function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some(route => pathname.startsWith(route));
@@ -16,13 +17,18 @@ function isPublicRoute(pathname: string): boolean {
 
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
-  const hostname = request.headers.get('host') || '';
+  const hostname = (request.headers.get('host') || '').split(':')[0].toLowerCase();
   const { pathname } = url;
 
   // ─── Domain-based routing (Production) ───
   // zmaula.web.id → rewrite to /public-blog
-  if (hostname === 'zmaula.web.id' && !pathname.startsWith('/api')) {
-    url.pathname = `/public-blog${pathname}`;
+  if (PUBLIC_BLOG_HOSTS.has(hostname) && !pathname.startsWith('/api')) {
+    if (pathname === '/public-blog' || pathname.startsWith('/public-blog/')) {
+      url.pathname = pathname.replace(/^\/public-blog/, '') || '/';
+      return NextResponse.redirect(url);
+    }
+
+    url.pathname = pathname === '/' ? '/public-blog' : `/public-blog${pathname}`;
     return NextResponse.rewrite(url);
   }
 
