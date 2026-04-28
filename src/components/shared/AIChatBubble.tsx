@@ -501,7 +501,7 @@ export function AIChatBubble() {
                     'fixed inset-x-3 bottom-20 z-50 flex flex-col overflow-hidden',
                     'max-h-[calc(100vh-7rem)] rounded-2xl border border-border bg-card/95 backdrop-blur-xl',
                     'shadow-2xl shadow-black/10 dark:shadow-black/30 transition-all duration-300 ease-out',
-                    'origin-bottom-right sm:inset-x-auto sm:bottom-24 sm:right-6 sm:w-[400px] sm:max-h-[600px]',
+                    'origin-bottom-right sm:inset-x-auto sm:right-6 sm:top-6 sm:bottom-24 sm:w-[400px] sm:h-[min(600px,calc(100vh-7.5rem))] sm:max-h-[calc(100vh-7.5rem)]',
                     isPanelVisible
                         ? 'scale-100 opacity-100 translate-y-0 pointer-events-auto'
                         : 'scale-95 opacity-0 translate-y-4 pointer-events-none'
@@ -517,10 +517,10 @@ export function AIChatBubble() {
                         </span>
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-semibold leading-tight text-foreground">
+                        <h3 className="text-base font-semibold leading-tight text-foreground sm:text-sm">
                             Asisten Pribadi
                         </h3>
-                        <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                        <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground sm:text-[11px]">
                             {isSubmitting
                                 ? 'Sedang menganalisis, berdiskusi, atau menyusun draft...'
                                 : 'Bisa diajak diskusi, analisa gambar, atau bantu task, agenda, catatan, dan link vault'}
@@ -563,10 +563,10 @@ export function AIChatBubble() {
                             <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-emerald-300/15">
                                 <Sparkles className="h-7 w-7 text-primary" />
                             </div>
-                            <h3 className="mb-1 text-sm font-semibold text-foreground">
+                            <h3 className="mb-1 text-base font-semibold text-foreground sm:text-sm">
                                 Halo, mau ngobrol atau bikin apa dulu?
                             </h3>
-                            <p className="max-w-[280px] text-xs leading-relaxed text-muted-foreground">
+                            <p className="max-w-[280px] text-sm leading-relaxed text-muted-foreground sm:text-xs">
                                 Kamu bisa diskusi biasa, kirim gambar untuk dianalisis, atau minta saya bantu pecah jadi task, agenda, catatan, dan draft link vault.
                             </p>
                             <div className="mt-4 flex flex-wrap justify-center gap-1.5">
@@ -579,7 +579,7 @@ export function AIChatBubble() {
                                         key={suggestion}
                                         type="button"
                                         onClick={() => setInput(suggestion)}
-                                        className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-[11px] text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+                                        className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-[13px] text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:bg-primary/10 hover:text-primary sm:text-[11px]"
                                     >
                                         {suggestion}
                                     </button>
@@ -604,7 +604,7 @@ export function AIChatBubble() {
 
                             <div
                                 className={cn(
-                                    'max-w-[85%] px-3.5 py-2.5 text-[13px] leading-relaxed sm:max-w-[78%]',
+                                    'max-w-[85%] px-3.5 py-2.5 text-[15px] leading-relaxed sm:max-w-[78%] sm:text-[13px]',
                                     msg.role === 'user'
                                         ? 'rounded-2xl rounded-br-md bg-primary text-primary-foreground shadow-sm shadow-primary/20'
                                         : 'rounded-2xl rounded-bl-md border border-border/50 bg-muted/80 text-foreground'
@@ -619,7 +619,7 @@ export function AIChatBubble() {
                                 {!msg.isStreaming && (
                                     <p
                                         className={cn(
-                                            'mt-1 text-[10px]',
+                                            'mt-1 text-[11px] sm:text-[10px]',
                                             msg.role === 'user'
                                                 ? 'text-primary-foreground/60'
                                                 : 'text-muted-foreground/70'
@@ -662,11 +662,11 @@ export function AIChatBubble() {
                                     />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <p className="truncate text-xs font-medium text-foreground">{attachment.name}</p>
-                                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                    <p className="truncate text-sm font-medium text-foreground sm:text-xs">{attachment.name}</p>
+                                    <p className="mt-0.5 text-[12px] text-muted-foreground sm:text-[11px]">
                                         {formatFileSize(attachment.sizeBytes)} · Hanya dianalisa sekali, tidak disimpan
                                     </p>
-                                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                                    <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground sm:text-[11px]">
                                         Kalau mau masuk vault, kirim link-nya. Upload gambar di sini hanya untuk diskusi atau analisa cepat.
                                     </p>
                                 </div>
@@ -691,7 +691,7 @@ export function AIChatBubble() {
                                 onKeyDown={handleKeyDown}
                                 placeholder="Ketik pertanyaan, ide, perintah, atau link..."
                                 rows={1}
-                                className="min-h-[36px] max-h-28 flex-1 resize-none bg-transparent px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                                className="min-h-[42px] max-h-28 flex-1 resize-none bg-transparent px-2.5 py-2 text-[15px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none sm:min-h-[36px] sm:text-[13px]"
                             />
                             <button
                                 type="submit"
@@ -716,12 +716,12 @@ export function AIChatBubble() {
                                 <button
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+                                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background/70 px-2.5 py-1 text-[13px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary sm:text-[11px]"
                                 >
                                     <ImagePlus className="h-3.5 w-3.5" />
                                     Analisa gambar
                                 </button>
-                                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70">
+                                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 sm:text-[10px]">
                                     <Link2 className="h-3 w-3" />
                                     Vault di chat hanya menerima link
                                 </span>
@@ -730,7 +730,7 @@ export function AIChatBubble() {
                                 <button
                                     type="button"
                                     onClick={handleCancelRequest}
-                                    className="text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                                    className="text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground sm:text-[10px]"
                                 >
                                     Batalkan
                                 </button>
@@ -738,7 +738,7 @@ export function AIChatBubble() {
                         </div>
                     </div>
 
-                    <p className="mt-1.5 text-[10px] text-muted-foreground/50">
+                    <p className="mt-1.5 text-[11px] text-muted-foreground/50 sm:text-[10px]">
                         Enter untuk kirim · Shift+Enter untuk baris baru
                     </p>
                 </form>

@@ -767,6 +767,15 @@
 **Status:** RESOLVED
 **Terkait:** `src/proxy.ts`, `src/lib/fetcher.ts`, `src/app/layout.tsx`, `src/components/shared/AIChatBubble.tsx`
 
+## BUG-084 | 2026-04-28 | SEVERITY: Medium
+
+**Gejala:** Di desktop, bagian atas bubble chat bisa kepotong saat viewport lebih pendek atau browser chrome memakan tinggi layar.
+**Root Cause:** Container bubble desktop hanya di-anchor ke bawah dengan `max-height`, tanpa batas `top` yang jelas, sehingga tinggi panel bisa mendorong header keluar viewport.
+**Fix:** Tambahkan batas `top` desktop dan ubah sizing panel menjadi tinggi adaptif berbasis viewport agar tetap muat penuh di layar pendek.
+**Pelajaran:** Overlay fixed yang terlihat aman di layar tinggi tetap perlu guard `top/bottom` ganda supaya tidak bergantung pada viewport ideal.
+**Status:** RESOLVED
+**Terkait:** `src/components/shared/AIChatBubble.tsx`
+
 <!-- 
 TEMPLATE — Copy paste untuk setiap bug baru:
 
