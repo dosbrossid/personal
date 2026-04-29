@@ -4,13 +4,15 @@
 // ============================================================
 
 import { type NextRequest } from 'next/server'
+import { addDays } from 'date-fns'
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { createServiceRoleClient } from '@/lib/supabase/service'
 import { sendTelegramMessage } from '@/lib/telegram'
 import { callLLM } from '@/lib/ai/client'
 import { buildAIExecutionMessage, executeAIResponseItemsWithClient } from '@/lib/ai/command-hub'
 import { buildAssistantSystemPrompt } from '@/lib/ai/prompts'
-import { mapDraftDetail } from '@/lib/ai/parser'
 import { buildTelegramSmartRecallReply } from '@/lib/telegram-recall'
+import { queueCalendarReminderNotifications } from '@/lib/notification-queue'
 import type { AIResponse, AIResponseItem } from '@/core/types'
 import type { RoleContext } from '@/core/constants'
 import { getHabitCadenceLabel } from '@/lib/habits'
@@ -56,14 +58,31 @@ function getTodayDateInJakarta() {
   }).format(new Date())
 }
 
-function formatDraft(items: AIResponseItem[], message: string) {
+function formatDraft(items: AIResponseItem[], message: string, timezone = 'Asia/Jakarta') {
   if (items.length === 0) return message
 
   const itemLines = items
-    .map((item, index) => `${index + 1}. ${item.action}: ${item.data.title}\n   ${mapDraftDetail(item)}`)
+    .map((item, index) => `${index + 1}. ${item.action}: ${item.data.title}\n   ${mapTelegramDraftDetail(item, timezone)}`)
     .join('\n')
 
   return `${message}\n\nDraft:\n${itemLines}\n\nBalas /confirm untuk menyimpan lewat Telegram atau buka aplikasi untuk review penuh.`
+}
+
+function mapTelegramDraftDetail(item: AIResponseItem, timezone: string) {
+  switch (item.action) {
+    case 'TASK':
+      return item.data.due_date ? `Due: ${item.data.due_date.split('T')[0]}` : 'No due date'
+    case 'CALENDAR':
+      return item.data.start_at
+        ? formatInTimeZone(new Date(item.data.start_at), timezone, 'd MMM HH.mm')
+        : 'Event baru'
+    case 'NOTE':
+      return item.data.description?.slice(0, 60) || 'Catatan baru'
+    case 'ACADEMIC': {
+      const mk = item.data.mata_kuliah ? ` · ${item.data.mata_kuliah}` : ''
+      return `${item.data.file_format ?? 'Dokumen'}${mk}`
+    }
+  }
 }
 
 function parseStoredAIResponse(value: unknown): AIResponse | null {
@@ -170,6 +189,20 @@ function cleanSnippet(value: string | null | undefined, maxLength = 110) {
     .slice(0, maxLength)
 }
 
+function formatTelegramLocalDateTime(value: string | Date, timezone: string) {
+  const date = typeof value === 'string' ? new Date(value) : value
+  return new Intl.DateTimeFormat('id-ID', {
+    timeZone: timezone,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
+}
+
 function buildTelegramDashboardSnapshot(params: {
   tasks: Array<{
     title: string
@@ -273,6 +306,227 @@ function buildTelegramDashboardSnapshot(params: {
     'RECENT VAULT ITEMS:',
     vaultLines,
   ].join('\n')
+}
+
+function normalizeText(value: string) {
+  return value.toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+function getLocalDateKey(offsetDays: number, timezone: string) {
+  return formatInTimeZone(addDays(new Date(), offsetDays), timezone, 'yyyy-MM-dd')
+}
+
+function resolveTelegramDateKey(input: string, timezone: string) {
+  const normalized = normalizeText(input)
+
+  if (normalized.includes('lusa')) return getLocalDateKey(2, timezone)
+  if (normalized.includes('besok')) return getLocalDateKey(1, timezone)
+  if (normalized.includes('hari ini') || normalized.includes('today')) return getLocalDateKey(0, timezone)
+
+  const monthMap: Record<string, string> = {
+    januari: '01',
+    jan: '01',
+    februari: '02',
+    feb: '02',
+    maret: '03',
+    mar: '03',
+    april: '04',
+    apr: '04',
+    mei: '05',
+    juni: '06',
+    jun: '06',
+    juli: '07',
+    jul: '07',
+    agustus: '08',
+    agu: '08',
+    ags: '08',
+    september: '09',
+    sep: '09',
+    oktober: '10',
+    okt: '10',
+    november: '11',
+    nov: '11',
+    desember: '12',
+    des: '12',
+  }
+  const dateMatch = normalized.match(/\b(\d{1,2})\s+(jan(?:uari)?|feb(?:ruari)?|mar(?:et)?|apr(?:il)?|mei|jun(?:i)?|jul(?:i)?|agu(?:stus)?|ags|sep(?:tember)?|okt(?:ober)?|nov(?:ember)?|des(?:ember)?)(?:\s+(\d{4}))?\b/)
+
+  if (!dateMatch) return null
+
+  const nowYear = formatInTimeZone(new Date(), timezone, 'yyyy')
+  const day = dateMatch[1].padStart(2, '0')
+  const month = monthMap[dateMatch[2]]
+  const year = dateMatch[3] ?? nowYear
+
+  return `${year}-${month}-${day}`
+}
+
+function parseTelegramTime(input: string) {
+  const normalized = normalizeText(input)
+  const timeMatch = normalized.match(/\bjam\s*(\d{1,2})(?::|\.| lewat )?(\d{2})?\s*(pagi|siang|sore|malam)?\b/)
+    ?? normalized.match(/\bpukul\s*(\d{1,2})(?::|\.| lewat )?(\d{2})?\s*(pagi|siang|sore|malam)?\b/)
+    ?? normalized.match(/\b(\d{1,2})(?::|\.)(\d{2})\s*(pagi|siang|sore|malam)?\b/)
+
+  if (!timeMatch) return null
+
+  let hour = Number(timeMatch[1])
+  const minute = timeMatch[2] ? Number(timeMatch[2]) : 0
+  const period = timeMatch[3]
+
+  if (!Number.isInteger(hour) || !Number.isInteger(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    return null
+  }
+
+  if (period === 'pagi') {
+    if (hour === 12) hour = 0
+  } else if (period === 'siang') {
+    if (hour < 10) hour += 12
+  } else if (period === 'sore' || period === 'malam') {
+    if (hour < 12) hour += 12
+  }
+
+  return { hour, minute }
+}
+
+function extractCalendarTitleKeywords(input: string) {
+  const stopwords = new Set([
+    'ubah',
+    'diubah',
+    'ganti',
+    'edit',
+    'update',
+    'reschedule',
+    'jadwal',
+    'calendar',
+    'kalender',
+    'agenda',
+    'event',
+    'acara',
+    'waktu',
+    'jam',
+    'pukul',
+    'ke',
+    'jadi',
+    'besok',
+    'lusa',
+    'hari',
+    'ini',
+    'pagi',
+    'siang',
+    'sore',
+    'malam',
+    'nya',
+    'yang',
+    'mau',
+    'tolong',
+    'dong',
+  ])
+
+  return normalizeText(input)
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length >= 3 && !stopwords.has(word) && !/^\d+$/.test(word))
+}
+
+function shouldTryCalendarUpdate(input: string) {
+  const normalized = normalizeText(input)
+  const hasUpdateIntent = ['ubah', 'diubah', 'ganti', 'edit', 'update', 'reschedule'].some((word) =>
+    normalized.includes(word)
+  )
+  const hasCalendarCue = ['jadwal', 'calendar', 'kalender', 'agenda', 'event', 'acara', 'bimbingan'].some((word) =>
+    normalized.includes(word)
+  )
+
+  return hasUpdateIntent && hasCalendarCue && Boolean(parseTelegramTime(input))
+}
+
+async function handleTelegramCalendarUpdate(user: LinkedUser, input: string) {
+  if (!shouldTryCalendarUpdate(input)) return null
+
+  const timezone = user.preferences?.timezone || 'Asia/Jakarta'
+  const time = parseTelegramTime(input)
+  if (!time) return null
+
+  const targetDateKey = resolveTelegramDateKey(input, timezone)
+  const startDateKey = targetDateKey ?? getLocalDateKey(-1, timezone)
+  const endDateKey = targetDateKey ?? getLocalDateKey(30, timezone)
+  const rangeStart = fromZonedTime(`${startDateKey}T00:00:00`, timezone).toISOString()
+  const rangeEnd = fromZonedTime(`${endDateKey}T23:59:59`, timezone).toISOString()
+  const titleKeywords = extractCalendarTitleKeywords(input)
+  const supabase = createServiceRoleClient()
+
+  const { data: events, error } = await supabase
+    .from('calendar_events')
+    .select('id, title, start_at, end_at, reminder_minutes, reminder_config, contextual_role')
+    .eq('user_id', user.id)
+    .eq('is_deleted', false)
+    .gte('start_at', rangeStart)
+    .lte('start_at', rangeEnd)
+    .order('start_at', { ascending: true })
+    .limit(20)
+
+  if (error) {
+    return `Saya belum bisa membaca kalender untuk update itu: ${error.message}`
+  }
+
+  const candidates = (events ?? []).filter((event) => {
+    if (!titleKeywords.length) return true
+    const title = normalizeText(String(event.title))
+    return titleKeywords.every((keyword) => title.includes(keyword))
+  })
+
+  if (!candidates.length) {
+    return targetDateKey
+      ? `Saya belum menemukan agenda yang cocok pada ${targetDateKey}. Coba sebutkan judul acaranya persis.`
+      : 'Saya belum menemukan agenda yang cocok untuk diubah. Coba sebutkan judul dan tanggalnya.'
+  }
+
+  if (candidates.length > 1) {
+    const options = candidates
+      .slice(0, 5)
+      .map((event, index) => `${index + 1}. ${event.title} (${formatTelegramLocalDateTime(event.start_at, timezone)})`)
+      .join('\n')
+
+    return `Saya menemukan beberapa agenda yang mungkin cocok:\n${options}\n\nTolong sebutkan yang mana yang mau diubah.`
+  }
+
+  const event = candidates[0]
+  const currentStart = new Date(event.start_at)
+  const currentEnd = event.end_at ? new Date(event.end_at) : null
+  const durationMs = currentEnd && currentEnd.getTime() > currentStart.getTime()
+    ? currentEnd.getTime() - currentStart.getTime()
+    : null
+  const eventDateKey = targetDateKey ?? formatInTimeZone(currentStart, timezone, 'yyyy-MM-dd')
+  const newStart = fromZonedTime(
+    `${eventDateKey}T${String(time.hour).padStart(2, '0')}:${String(time.minute).padStart(2, '0')}:00`,
+    timezone
+  )
+  const newEnd = durationMs ? new Date(newStart.getTime() + durationMs) : null
+
+  const { data: updatedEvent, error: updateError } = await supabase
+    .from('calendar_events')
+    .update({
+      start_at: newStart.toISOString(),
+      end_at: newEnd?.toISOString() ?? null,
+      is_all_day: false,
+    })
+    .eq('id', event.id)
+    .eq('user_id', user.id)
+    .select('*')
+    .single()
+
+  if (updateError || !updatedEvent) {
+    return `Saya gagal mengubah jadwal itu: ${updateError?.message ?? 'event tidak ditemukan'}`
+  }
+
+  await queueCalendarReminderNotifications(
+    supabase as unknown as Parameters<typeof queueCalendarReminderNotifications>[0],
+    user.id,
+    updatedEvent
+  )
+
+  return `Sudah saya ubah "${updatedEvent.title}" ke ${formatTelegramLocalDateTime(updatedEvent.start_at, timezone)} WIB.`
 }
 
 async function findLinkedUser(chatId: string) {
@@ -428,6 +682,27 @@ export async function POST(request: NextRequest) {
     return Response.json({ ok: true })
   }
 
+  const calendarUpdateReply = await handleTelegramCalendarUpdate(linkedUser, text)
+  if (calendarUpdateReply) {
+    await supabase.from('ai_hub_logs').insert({
+      user_id: linkedUser.id,
+      source: 'telegram',
+      telegram_message_id: message.message_id,
+      raw_input: text,
+      ai_response: {
+        items: [],
+        ai_message: calendarUpdateReply,
+      },
+      status: 'confirmed',
+      error_message: null,
+      tokens_used: 0,
+      latency_ms: null,
+    })
+
+    await sendTelegramMessage(chatId, calendarUpdateReply)
+    return Response.json({ ok: true, calendar_updated: true })
+  }
+
   if (text.startsWith('/cancel')) {
     await supabase
       .from('ai_hub_logs')
@@ -531,6 +806,6 @@ export async function POST(request: NextRequest) {
     return Response.json({ ok: true, parsed: false })
   }
 
-  await sendTelegramMessage(chatId, formatDraft(aiResponse.items, aiResponse.ai_message))
+  await sendTelegramMessage(chatId, formatDraft(aiResponse.items, aiResponse.ai_message, linkedUser.preferences?.timezone))
   return Response.json({ ok: true, parsed: true })
 }
