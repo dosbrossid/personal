@@ -34,13 +34,26 @@ interface AssistantMessageOptions {
   attachment?: AssistantAttachment | null
 }
 
+interface PromptContextData {
+  userCategories: { name: string; role: RoleContext }[]
+  timezone: string
+  activeRoles: RoleContext[]
+  dashboardContext: string | null
+  memoryContext: string | null
+}
+
+interface AIHubMemoryLog {
+  created_at: string
+  raw_input: string
+  ai_response: unknown
+}
+
 export async function buildAICommandMessages(
   userId: string,
   input: string
 ): Promise<CommandHubMessage[]> {
-  const { userCategories, timezone } = await getPromptContext(userId)
-
-  const activeRoles: RoleContext[] = ['dosen', 'creator', 'affiliate', 'consultant', 'general']
+  const { userCategories, timezone, activeRoles, dashboardContext, memoryContext } =
+    await getPromptContext(userId)
 
   const systemPrompt = buildSystemPrompt({
     currentDatetimeISO: new Date().toISOString(),
@@ -48,6 +61,8 @@ export async function buildAICommandMessages(
     utcOffset: '+07:00',
     userCategories,
     userActiveRoles: activeRoles,
+    dashboardContext,
+    memoryContext,
   })
 
   return [
@@ -60,9 +75,8 @@ export async function buildAIAssistantMessages(
   userId: string,
   options: AssistantMessageOptions
 ): Promise<CommandHubMessage[]> {
-  const { userCategories, timezone } = await getPromptContext(userId)
-
-  const activeRoles: RoleContext[] = ['dosen', 'creator', 'affiliate', 'consultant', 'general']
+  const { userCategories, timezone, activeRoles, dashboardContext, memoryContext } =
+    await getPromptContext(userId)
 
   const systemPrompt = buildAssistantSystemPrompt({
     currentDatetimeISO: new Date().toISOString(),
@@ -70,6 +84,8 @@ export async function buildAIAssistantMessages(
     utcOffset: '+07:00',
     userCategories,
     userActiveRoles: activeRoles,
+    dashboardContext,
+    memoryContext,
   })
 
   const history = (options.conversation ?? [])
@@ -186,16 +202,73 @@ export function buildAIExecutionMessage(result: {
   return `Saya sudah membuat ${createdSummary}.`
 }
 
-async function getPromptContext(userId: string) {
+async function getPromptContext(userId: string): Promise<PromptContextData> {
   const supabase = await createServerClient()
 
-  const [categoriesResult, userDataResult] = await Promise.allSettled([
+  const oneDayAgoISO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+  const [
+    categoriesResult,
+    userDataResult,
+    tasksResult,
+    eventsResult,
+    habitsResult,
+    notesResult,
+    vaultResult,
+    historyResult,
+  ] = await Promise.allSettled([
     supabase
       .from('categories')
       .select('name, contextual_role')
       .eq('user_id', userId)
       .eq('is_deleted', false),
     supabase.from('users').select('preferences').eq('id', userId).single(),
+    supabase
+      .from('tasks')
+      .select('title, status, priority, due_date, contextual_role, description')
+      .eq('user_id', userId)
+      .eq('is_deleted', false)
+      .neq('status', 'done')
+      .order('due_date', { ascending: true, nullsFirst: false })
+      .limit(20),
+    supabase
+      .from('calendar_events')
+      .select('title, start_at, end_at, contextual_role, description')
+      .eq('user_id', userId)
+      .eq('is_deleted', false)
+      .gte('start_at', oneDayAgoISO)
+      .order('start_at', { ascending: true })
+      .limit(20),
+    supabase
+      .from('habits')
+      .select('name, cadence_mode, cadence_config')
+      .eq('user_id', userId)
+      .eq('is_deleted', false)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    supabase
+      .from('brain_notes')
+      .select('title, content_body, note_type, contextual_role, updated_at')
+      .eq('user_id', userId)
+      .eq('is_deleted', false)
+      .order('updated_at', { ascending: false })
+      .limit(8),
+    supabase
+      .from('academic_vault_items')
+      .select('title, description, document_type, mata_kuliah, semester, updated_at')
+      .eq('user_id', userId)
+      .eq('is_deleted', false)
+      .order('updated_at', { ascending: false })
+      .limit(8),
+    supabase
+      .from('ai_hub_logs')
+      .select('created_at, raw_input, ai_response')
+      .eq('user_id', userId)
+      .eq('source', 'in_app')
+      .in('status', ['confirmed', 'draft'])
+      .order('created_at', { ascending: false })
+      .limit(8),
   ])
 
   const userCategories =
@@ -207,6 +280,7 @@ async function getPromptContext(userId: string) {
       : []
 
   let timezone = 'Asia/Jakarta'
+  let activeRoles: RoleContext[] = ['dosen', 'creator', 'affiliate', 'consultant', 'general']
 
   if (userDataResult.status === 'fulfilled' && !userDataResult.value.error) {
     const preferences = userDataResult.value.data?.preferences
@@ -215,10 +289,168 @@ async function getPromptContext(userId: string) {
       if (typeof userPreferences.timezone === 'string' && userPreferences.timezone.trim()) {
         timezone = userPreferences.timezone
       }
+      if (Array.isArray(userPreferences.active_roles) && userPreferences.active_roles.length > 0) {
+        activeRoles = userPreferences.active_roles as RoleContext[]
+      }
     }
   }
 
-  return { userCategories, timezone }
+  const dashboardContext = buildDashboardSnapshot({
+    tasks: tasksResult.status === 'fulfilled' && !tasksResult.value.error ? tasksResult.value.data ?? [] : [],
+    events: eventsResult.status === 'fulfilled' && !eventsResult.value.error ? eventsResult.value.data ?? [] : [],
+    habits: habitsResult.status === 'fulfilled' && !habitsResult.value.error ? habitsResult.value.data ?? [] : [],
+    notes: notesResult.status === 'fulfilled' && !notesResult.value.error ? notesResult.value.data ?? [] : [],
+    vault: vaultResult.status === 'fulfilled' && !vaultResult.value.error ? vaultResult.value.data ?? [] : [],
+    timezone,
+  })
+
+  const memoryContext = buildMemoryContext(
+    historyResult.status === 'fulfilled' && !historyResult.value.error
+      ? ((historyResult.value.data ?? []) as AIHubMemoryLog[])
+      : [],
+    timezone
+  )
+
+  return { userCategories, timezone, activeRoles, dashboardContext, memoryContext }
+}
+
+function cleanSnippet(value: string | null | undefined, maxLength = 110) {
+  return (value ?? '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength)
+}
+
+function extractAIMessage(value: unknown) {
+  if (!value || typeof value !== 'object') return ''
+  const candidate = value as { ai_message?: unknown }
+  return typeof candidate.ai_message === 'string' ? candidate.ai_message : ''
+}
+
+function buildMemoryContext(logs: AIHubMemoryLog[], timezone: string) {
+  const lines = logs
+    .slice()
+    .reverse()
+    .map((log) => {
+      const when = new Intl.DateTimeFormat('id-ID', {
+        timeZone: timezone,
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(new Date(log.created_at))
+      const userText = cleanSnippet(log.raw_input, 160)
+      const aiText = cleanSnippet(extractAIMessage(log.ai_response), 180)
+      return `${when}: User "${userText}"${aiText ? `; Assistant "${aiText}"` : ''}`
+    })
+    .filter(Boolean)
+
+  if (!lines.length) return null
+  return lines.join('\n').slice(0, 3000)
+}
+
+function buildDashboardSnapshot(params: {
+  tasks: Array<{
+    title: string
+    status: string
+    priority: string
+    due_date: string | null
+    contextual_role: string
+    description: string | null
+  }>
+  events: Array<{
+    title: string
+    start_at: string
+    end_at: string | null
+    contextual_role: string
+    description: string | null
+  }>
+  habits: Array<{
+    name: string
+    cadence_mode: string
+    cadence_config: unknown
+  }>
+  notes: Array<{
+    title: string
+    content_body: string
+    note_type: string
+    contextual_role: string
+    updated_at: string
+  }>
+  vault: Array<{
+    title: string
+    description: string | null
+    document_type: string
+    mata_kuliah: string | null
+    semester: string | null
+    updated_at: string
+  }>
+  timezone: string
+}) {
+  const taskLines = params.tasks.length
+    ? params.tasks
+        .map((task, index) => {
+          const due = task.due_date ? `due ${task.due_date}` : 'no due date'
+          const desc = cleanSnippet(task.description)
+          return `${index + 1}. ${task.title} | status ${task.status} | ${task.priority} | ${due} | role ${task.contextual_role}${desc ? ` | note ${desc}` : ''}`
+        })
+        .join('\n')
+    : 'No active tasks.'
+
+  const eventLines = params.events.length
+    ? params.events
+        .map((event, index) => {
+          const startAt = new Intl.DateTimeFormat('id-ID', {
+            timeZone: params.timezone,
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          }).format(new Date(event.start_at))
+          const desc = cleanSnippet(event.description)
+          return `${index + 1}. ${event.title} | ${startAt} | role ${event.contextual_role}${desc ? ` | note ${desc}` : ''}`
+        })
+        .join('\n')
+    : 'No upcoming calendar events.'
+
+  const habitLines = params.habits.length
+    ? params.habits
+        .map((habit, index) => `${index + 1}. ${habit.name} | cadence ${habit.cadence_mode}`)
+        .join('\n')
+    : 'No active habits.'
+
+  const noteLines = params.notes.length
+    ? params.notes
+        .map((note, index) => {
+          const excerpt = cleanSnippet(note.content_body)
+          return `${index + 1}. ${note.title} | ${note.note_type} | role ${note.contextual_role}${excerpt ? ` | ${excerpt}` : ''}`
+        })
+        .join('\n')
+    : 'No recent notes.'
+
+  const vaultLines = params.vault.length
+    ? params.vault
+        .map((item, index) => {
+          const parts = [item.document_type, item.mata_kuliah, item.semester].filter(Boolean).join(' | ')
+          const desc = cleanSnippet(item.description)
+          return `${index + 1}. ${item.title} | ${parts || 'vault item'}${desc ? ` | ${desc}` : ''}`
+        })
+        .join('\n')
+    : 'No recent vault items.'
+
+  return [
+    'ACTIVE TASKS / DEADLINES:',
+    taskLines,
+    '',
+    'UPCOMING / RECENT CALENDAR EVENTS:',
+    eventLines,
+    '',
+    'ACTIVE HABITS:',
+    habitLines,
+    '',
+    'RECENT NOTES:',
+    noteLines,
+    '',
+    'RECENT VAULT ITEMS:',
+    vaultLines,
+  ].join('\n')
 }
 
 async function insertDraftItem(

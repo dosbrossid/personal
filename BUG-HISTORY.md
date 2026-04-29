@@ -996,6 +996,15 @@ TEMPLATE — Copy paste untuk setiap bug baru:
 **Status:** RESOLVED
 **Terkait:** `src/lib/ai/client.ts`, `.env.example`
 
+## BUG-101 | 2026-04-30 | SEVERITY: High
+
+**Gejala:** Chat bubble in-app menjawab tidak punya akses ke agenda/dashboard ketika user bertanya "besok ada agenda apa?", padahal data kalender ada di database.
+**Root Cause:** Builder prompt in-app hanya mengirim kategori dan timezone, tetapi tidak mengirim snapshot database tasks/calendar/habits/notes/vault seperti jalur Telegram.
+**Fix:** Tambahkan dashboard snapshot dan memory log ringkas ke `buildAICommandMessages` dan `buildAIAssistantMessages` agar chat bubble dapat menjawab dari data Supabase yang sudah terautentikasi.
+**Pelajaran:** Prompt rule saja tidak cukup; kalau instruksi menyebut "DASHBOARD DATA SNAPSHOT", semua channel AI harus benar-benar diberi snapshot yang sama.
+**Status:** RESOLVED
+**Terkait:** `src/lib/ai/command-hub.ts`
+
 _Belum ada bug tercatat. Development backend dimulai._
 
 ---
