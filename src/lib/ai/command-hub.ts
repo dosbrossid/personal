@@ -130,6 +130,19 @@ export async function buildAIAssistantMessages(
   return messages
 }
 
+export function buildMainModelInputWithVisionAnalysis(text: string, visionAnalysis: string | null) {
+  if (!visionAnalysis) return text
+
+  return [
+    text || 'Bantu saya dari gambar ini.',
+    '',
+    'KONTEKS GAMBAR DARI VISION MODEL:',
+    visionAnalysis,
+    '',
+    'Gunakan konteks gambar di atas sebagai hasil OCR/observasi visual. Jangan mengarang detail yang tidak ada. Jika user meminta aksi, buat draft/action berdasarkan konteks ini dan data dashboard.',
+  ].join('\n')
+}
+
 export async function executeAIResponseItems(
   userId: string,
   items: AIResponseItem[]

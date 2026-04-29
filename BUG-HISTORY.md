@@ -1005,6 +1005,15 @@ TEMPLATE — Copy paste untuk setiap bug baru:
 **Status:** RESOLVED
 **Terkait:** `src/lib/ai/command-hub.ts`
 
+## BUG-102 | 2026-04-30 | SEVERITY: Medium
+
+**Gejala:** Logika gambar di chat bubble in-app tidak sama dengan Telegram; in-app masih dapat mengirim gambar langsung ke model utama, sementara Telegram sudah memakai vision extractor lalu meneruskan hasil observasi ke model utama.
+**Root Cause:** Helper vision-to-main-model hanya dibuat lokal di route Telegram, sehingga channel in-app tidak ikut memakai pipeline anti-halusinasi yang sama.
+**Fix:** Pindahkan helper input vision ke command hub bersama, gunakan helper yang sama di Telegram dan in-app, lalu ubah chat bubble agar image attachment dianalisis oleh vision model sebelum main model menerima konteks teks.
+**Pelajaran:** Pipeline AI lintas channel harus dibangun sebagai shared primitive; kalau helper penting tinggal di satu route, behavior cepat pecah antara Telegram dan UI dashboard.
+**Status:** RESOLVED
+**Terkait:** `src/lib/ai/command-hub.ts`, `src/app/api/ai/command/route.ts`, `src/app/api/webhook/telegram/route.ts`
+
 _Belum ada bug tercatat. Development backend dimulai._
 
 ---

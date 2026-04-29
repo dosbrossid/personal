@@ -6,11 +6,12 @@
 
 import { type NextRequest } from 'next/server'
 import { requireAuth } from '@/lib/auth'
-import { callLLM, callLLMStream, logAIInteraction } from '@/lib/ai/client'
+import { analyzeImageWithVision, callLLM, callLLMStream, logAIInteraction } from '@/lib/ai/client'
 import {
   buildAICommandMessages,
   buildAIAssistantMessages,
   buildAIExecutionMessage,
+  buildMainModelInputWithVisionAnalysis,
   executeAIResponseItems,
 } from '@/lib/ai/command-hub'
 import { parseAIResponse, mapDraftDetail } from '@/lib/ai/parser'
@@ -132,19 +133,26 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    if (!input.trim()) {
+    if (!input.trim() && !attachment) {
       return Response.json({ error: 'Input tidak boleh kosong' }, { status: 400 })
     }
 
+    const visionResult = attachment
+      ? await analyzeImageWithVision({
+          userPrompt: input.trim() || 'Analisis gambar ini dan bantu saya memahami atau mengolahnya.',
+          imageDataUrl: attachment.dataUrl!,
+          mimeType: attachment.mimeType!,
+        })
+      : null
+    const mainModelInput = buildMainModelInputWithVisionAnalysis(
+      input.trim(),
+      visionResult?.analysis ?? null
+    )
+
     const messages = await buildAIAssistantMessages(user.id, {
-      input: input.trim(),
+      input: mainModelInput,
       conversation,
-      attachment: attachment
-        ? {
-            mimeType: attachment.mimeType!,
-            dataUrl: attachment.dataUrl!,
-          }
-        : null,
+      attachment: null,
     })
 
     const startTime = Date.now()
@@ -175,8 +183,8 @@ export async function POST(request: NextRequest) {
                   aiResponse: null,
                   status: 'failed',
                   errorMessage: 'AI response could not be parsed as JSON',
-                  tokensUsed,
-                  latencyMs,
+                  tokensUsed: addTokenCounts(tokensUsed, visionResult?.tokensUsed ?? null),
+                  latencyMs: latencyMs + (visionResult?.latencyMs ?? 0),
                   source: 'in_app',
                 })
 
@@ -206,8 +214,8 @@ export async function POST(request: NextRequest) {
                 rawInput: buildLoggedInput(input, attachment?.name),
                 aiResponse,
                 status: 'draft',
-                tokensUsed,
-                latencyMs,
+                tokensUsed: addTokenCounts(tokensUsed, visionResult?.tokensUsed ?? null),
+                latencyMs: latencyMs + (visionResult?.latencyMs ?? 0),
                 source: 'in_app',
               })
 
@@ -298,4 +306,9 @@ function isImageAttachment(value: unknown): value is ImageAttachmentPayload {
 function buildLoggedInput(input: string, attachmentName?: string) {
   if (!attachmentName) return input
   return `${input}\n[Image attached: ${attachmentName}]`
+}
+
+function addTokenCounts(first: number | null, second: number | null) {
+  const total = (first ?? 0) + (second ?? 0)
+  return total > 0 ? total : null
 }

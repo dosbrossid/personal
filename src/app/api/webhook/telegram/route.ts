@@ -9,7 +9,11 @@ import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { createServiceRoleClient } from '@/lib/supabase/service'
 import { getTelegramFileAsDataUrl, sendTelegramMessage } from '@/lib/telegram'
 import { analyzeImageWithVision, callLLM } from '@/lib/ai/client'
-import { buildAIExecutionMessage, executeAIResponseItemsWithClient } from '@/lib/ai/command-hub'
+import {
+  buildAIExecutionMessage,
+  buildMainModelInputWithVisionAnalysis,
+  executeAIResponseItemsWithClient,
+} from '@/lib/ai/command-hub'
 import { buildAssistantSystemPrompt } from '@/lib/ai/prompts'
 import { buildTelegramSmartRecallReply } from '@/lib/telegram-recall'
 import { queueCalendarReminderNotifications } from '@/lib/notification-queue'
@@ -922,19 +926,6 @@ function buildLoggedTelegramInput(text: string, attachment: TelegramImageAttachm
   if (!attachment) return text
   const label = attachment.name ? `${attachment.mimeType}: ${attachment.name}` : attachment.mimeType
   return `${text || '[Image message]'}\n[Telegram image attached: ${label}]`
-}
-
-function buildMainModelInputWithVisionAnalysis(text: string, visionAnalysis: string | null) {
-  if (!visionAnalysis) return text
-
-  return [
-    text || 'Bantu saya dari gambar ini.',
-    '',
-    'KONTEKS GAMBAR DARI VISION MODEL:',
-    visionAnalysis,
-    '',
-    'Gunakan konteks gambar di atas sebagai hasil OCR/observasi visual. Jangan mengarang detail yang tidak ada. Jika user meminta aksi, buat draft/action berdasarkan konteks ini dan data dashboard.',
-  ].join('\n')
 }
 
 function getLargestTelegramPhoto(message: NonNullable<TelegramUpdate['message']>) {
