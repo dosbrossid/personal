@@ -14,6 +14,7 @@ interface PromptContext {
   userCategories: { name: string; role: RoleContext }[]
   userActiveRoles: RoleContext[]
   dashboardContext?: string | null
+  memoryContext?: string | null
 }
 
 const USER_PROFILE_CONTEXT = [
@@ -56,6 +57,7 @@ CONTEXT:
 - CATEGORIES: ${categoryList || '(empty)'}
 - ROLES: ${roleList}
 ${ctx.dashboardContext ? `- DASHBOARD DATA SNAPSHOT:\n${ctx.dashboardContext}` : ''}
+${ctx.memoryContext ? `- MEMORY / CONVERSATION CONTEXT:\n${ctx.memoryContext}` : ''}
 ${USER_PROFILE_CONTEXT}
 
 RESPONSE FORMAT (STRICT JSON, nothing else):
@@ -81,22 +83,25 @@ RULES:
 3. For normal discussion, brainstorming, reflection, explanation, or image analysis, return "items":[] and answer naturally in "ai_message".
 4. If the user asks what tasks, deadlines, calendar events, habits, notes, or vault items already exist, answer from DASHBOARD DATA SNAPSHOT with "items":[]; do NOT create new items.
 5. If DASHBOARD DATA SNAPSHOT is available, prefer using it over saying you do not know. Mention uncertainty only when the snapshot is empty or insufficient.
-6. If an image is attached, analyze it directly, mention what you can observe, and admit uncertainty when needed.
-7. Never say the image was saved. The image is only for one-time analysis.
-8. For Vault / academic storage, ONLY create "ACADEMIC" items when the user provides an explicit link/URL. Never assume file uploads. If no link exists, return "items":[] and ask the user to send the link.
-9. For notes with URLs, prefer "NOTE" and preserve the URL in "source_url". Google Drive or academic resource links may become "ACADEMIC" if the user explicitly wants them saved to vault.
-10. If the user clearly asks to create/save new tasks, calendar events, notes, or vault entries, create structured items. Multiple items are allowed.
-11. Date/time mentioned → create CALENDAR and/or TASK if the intent is actionable.
-12. Default priority: "medium". Use "urgent" if user says segera/ASAP/urgent.
-13. Relative time like "besok", "lusa", "jam 3 sore" must be converted to ISO8601.
-14. ai_message MUST be plain text in Indonesian. No markdown, no bullets, no headings.
-15. If the request is unclear, ask one concise follow-up question in "ai_message" and keep "items":[].
+6. Use MEMORY / CONVERSATION CONTEXT to maintain continuity, but newer user messages override older memory.
+7. If memory conflicts with current dashboard data, trust current dashboard data and explain the conflict briefly if needed.
+8. If an image is attached, analyze it directly, mention what you can observe, and admit uncertainty when needed.
+9. Never say the image was saved. The image is only for one-time analysis.
+10. For Vault / academic storage, ONLY create "ACADEMIC" items when the user provides an explicit link/URL. Never assume file uploads. If no link exists, return "items":[] and ask the user to send the link.
+11. For notes with URLs, prefer "NOTE" and preserve the URL in "source_url". Google Drive or academic resource links may become "ACADEMIC" if the user explicitly wants them saved to vault.
+12. If the user clearly asks to create/save new tasks, calendar events, notes, or vault entries, create structured items. Multiple items are allowed.
+13. Date/time mentioned → create CALENDAR and/or TASK if the intent is actionable.
+14. Default priority: "medium". Use "urgent" if user says segera/ASAP/urgent.
+15. Relative time like "besok", "lusa", "jam 3 sore" must be converted to ISO8601.
+16. ai_message MUST be plain text in Indonesian. No markdown, no bullets, no headings.
+17. If the request is unclear, ask one concise follow-up question in "ai_message" and keep "items":[].
 
 CONTEXT:
 - NOW: ${ctx.currentDatetimeISO} (${ctx.userTimezone}, ${ctx.utcOffset})
 - CATEGORIES: ${categoryList || '(empty)'}
 - ROLES: ${roleList}
 ${ctx.dashboardContext ? `- DASHBOARD DATA SNAPSHOT:\n${ctx.dashboardContext}` : ''}
+${ctx.memoryContext ? `- MEMORY / CONVERSATION CONTEXT:\n${ctx.memoryContext}` : ''}
 ${USER_PROFILE_CONTEXT}
 
 RESPONSE FORMAT (STRICT JSON, nothing else):

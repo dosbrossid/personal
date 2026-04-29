@@ -29,6 +29,11 @@ export interface UserPreferences {
   locale: string;
   onboarding_completed: boolean;
   active_roles?: RoleContext[];
+  ai_memory?: {
+    summary?: string | null;
+    pinned?: string[];
+    updated_at?: string | null;
+  };
   notifications?: {
     task_deadline: boolean;
     habit_daily: boolean;

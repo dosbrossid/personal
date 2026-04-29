@@ -13,7 +13,7 @@ import { buildAIExecutionMessage, executeAIResponseItemsWithClient } from '@/lib
 import { buildAssistantSystemPrompt } from '@/lib/ai/prompts'
 import { buildTelegramSmartRecallReply } from '@/lib/telegram-recall'
 import { queueCalendarReminderNotifications } from '@/lib/notification-queue'
-import type { AIResponse, AIResponseItem } from '@/core/types'
+import type { AIResponse, AIResponseItem, UserPreferences } from '@/core/types'
 import type { RoleContext } from '@/core/constants'
 import { getHabitCadenceLabel } from '@/lib/habits'
 
@@ -33,10 +33,13 @@ interface LinkedUser {
   id: string
   full_name: string
   telegram_chat_id: string | null
-  preferences: {
-    timezone?: string
-    active_roles?: RoleContext[]
-  } | null
+  preferences: Partial<UserPreferences> | null
+}
+
+interface TelegramMemoryLog {
+  created_at: string
+  raw_input: string
+  ai_response: unknown
 }
 
 function validateTelegramSecret(request: NextRequest) {
@@ -105,6 +108,7 @@ async function buildTelegramAIContext(user: LinkedUser, input: string) {
     habitsResult,
     notesResult,
     vaultResult,
+    historyResult,
   ] = await Promise.all([
     supabase
       .from('categories')
@@ -149,6 +153,14 @@ async function buildTelegramAIContext(user: LinkedUser, input: string) {
       .eq('is_deleted', false)
       .order('updated_at', { ascending: false })
       .limit(8),
+    supabase
+      .from('ai_hub_logs')
+      .select('created_at, raw_input, ai_response')
+      .eq('user_id', user.id)
+      .eq('source', 'telegram')
+      .in('status', ['confirmed', 'draft'])
+      .order('created_at', { ascending: false })
+      .limit(8),
   ])
 
   const timezone = user.preferences?.timezone || 'Asia/Jakarta'
@@ -173,6 +185,11 @@ async function buildTelegramAIContext(user: LinkedUser, input: string) {
       vault: vaultResult.data ?? [],
       timezone,
     }),
+    memoryContext: buildTelegramMemoryContext(
+      user.preferences?.ai_memory,
+      (historyResult.data ?? []) as TelegramMemoryLog[],
+      timezone
+    ),
   })
 
   return [
@@ -201,6 +218,221 @@ function formatTelegramLocalDateTime(value: string | Date, timezone: string) {
     minute: '2-digit',
     hour12: false,
   }).format(date)
+}
+
+function extractAIMessage(value: unknown) {
+  if (!value || typeof value !== 'object') return null
+
+  const candidate = value as { ai_message?: unknown }
+  return typeof candidate.ai_message === 'string' ? candidate.ai_message : null
+}
+
+function getMemoryPreferences(user: LinkedUser) {
+  return user.preferences ?? {}
+}
+
+function buildTelegramMemoryContext(
+  memory: Partial<UserPreferences>['ai_memory'] | null | undefined,
+  history: TelegramMemoryLog[],
+  timezone: string
+) {
+  const sections: string[] = []
+  const pinned = memory?.pinned?.filter((item) => item.trim()).slice(-12) ?? []
+
+  if (memory?.summary?.trim()) {
+    sections.push(`Long-term summary:\n${memory.summary.trim()}`)
+  }
+
+  if (pinned.length) {
+    sections.push(`Pinned memory:\n${pinned.map((item, index) => `${index + 1}. ${item}`).join('\n')}`)
+  }
+
+  const recentLines = history
+    .slice()
+    .reverse()
+    .map((log) => {
+      const when = formatInTimeZone(new Date(log.created_at), timezone, 'd MMM HH.mm')
+      const userText = cleanSnippet(log.raw_input, 180)
+      const aiText = cleanSnippet(extractAIMessage(log.ai_response), 220)
+      return `[${when}] User: ${userText}${aiText ? `\nAssistant: ${aiText}` : ''}`
+    })
+    .join('\n')
+
+  if (recentLines) {
+    sections.push(`Recent Telegram chat:\n${recentLines}`)
+  }
+
+  return sections.join('\n\n') || null
+}
+
+function isMemoryClearCommand(input: string) {
+  const normalized = normalizeText(input)
+  return (
+    normalized === '/forgetmemory' ||
+    normalized === '/clearmemory' ||
+    normalized === '/resetmemory' ||
+    normalized.includes('kosongkan memory') ||
+    normalized.includes('kosongkan memori') ||
+    normalized.includes('hapus memory') ||
+    normalized.includes('hapus memori') ||
+    normalized.includes('reset memory') ||
+    normalized.includes('reset memori')
+  )
+}
+
+function isMemoryStatusCommand(input: string) {
+  const normalized = normalizeText(input)
+  return (
+    normalized === '/memory' ||
+    normalized.includes('memory status') ||
+    normalized.includes('status memory') ||
+    normalized.includes('memori status') ||
+    normalized.includes('status memori') ||
+    normalized.includes('apa yang kamu ingat')
+  )
+}
+
+function isMemoryCompactCommand(input: string) {
+  const normalized = normalizeText(input)
+  return (
+    normalized === '/compactmemory' ||
+    normalized.includes('compact memory') ||
+    normalized.includes('compact memori') ||
+    normalized.includes('ringkas memory') ||
+    normalized.includes('ringkas memori')
+  )
+}
+
+function extractManualMemoryNote(input: string) {
+  const normalized = normalizeText(input)
+  const patterns = [
+    /^\/remember\s+(.+)/i,
+    /^ingat\s+(.+)/i,
+    /^ingatkan\s+bahwa\s+(.+)/i,
+    /^catat\s+memory\s+(.+)/i,
+    /^catat\s+memori\s+(.+)/i,
+    /^simpan\s+memory\s+(.+)/i,
+    /^simpan\s+memori\s+(.+)/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = input.trim().match(pattern)
+    if (match?.[1]?.trim()) return match[1].trim()
+  }
+
+  if (normalized.startsWith('ingat bahwa ')) return input.trim().slice('ingat bahwa '.length).trim()
+  return null
+}
+
+async function updateTelegramMemory(user: LinkedUser, memory: NonNullable<UserPreferences['ai_memory']>) {
+  const supabase = createServiceRoleClient()
+  const preferences = {
+    ...getMemoryPreferences(user),
+    ai_memory: {
+      ...memory,
+      updated_at: new Date().toISOString(),
+    },
+  }
+
+  const { error } = await supabase
+    .from('users')
+    .update({ preferences })
+    .eq('id', user.id)
+
+  if (error) throw error
+  user.preferences = preferences
+}
+
+async function logMemoryCommand(user: LinkedUser, telegramMessageId: number, rawInput: string, reply: string) {
+  const supabase = createServiceRoleClient()
+  await supabase.from('ai_hub_logs').insert({
+    user_id: user.id,
+    source: 'telegram',
+    telegram_message_id: telegramMessageId,
+    raw_input: rawInput,
+    ai_response: {
+      items: [],
+      ai_message: reply,
+    },
+    status: 'confirmed',
+    error_message: null,
+    tokens_used: 0,
+    latency_ms: null,
+  })
+}
+
+async function handleTelegramMemoryCommand(user: LinkedUser, telegramMessageId: number, input: string) {
+  const currentMemory = user.preferences?.ai_memory ?? {}
+
+  if (isMemoryClearCommand(input)) {
+    const reply = 'Memory Telegram sudah saya kosongkan. Chat log lama tetap ada untuk audit, tapi tidak saya pakai sebagai long-term memory.'
+    await updateTelegramMemory(user, { summary: null, pinned: [] })
+    await logMemoryCommand(user, telegramMessageId, input, reply)
+    return reply
+  }
+
+  const manualNote = extractManualMemoryNote(input)
+  if (manualNote) {
+    const pinned = [...(currentMemory.pinned ?? []), manualNote].slice(-20)
+    const reply = `Saya ingat: ${manualNote}`
+    await updateTelegramMemory(user, { ...currentMemory, pinned })
+    await logMemoryCommand(user, telegramMessageId, input, reply)
+    return reply
+  }
+
+  if (isMemoryCompactCommand(input)) {
+    const supabase = createServiceRoleClient()
+    const { data } = await supabase
+      .from('ai_hub_logs')
+      .select('created_at, raw_input, ai_response')
+      .eq('user_id', user.id)
+      .eq('source', 'telegram')
+      .in('status', ['confirmed', 'draft'])
+      .order('created_at', { ascending: false })
+      .limit(30)
+
+    const compacted = buildCompactMemorySummary((data ?? []) as TelegramMemoryLog[], user.preferences?.timezone ?? 'Asia/Jakarta')
+    await updateTelegramMemory(user, {
+      ...currentMemory,
+      summary: compacted,
+      pinned: currentMemory.pinned ?? [],
+    })
+
+    const reply = compacted
+      ? `Memory sudah saya compact. Ringkasannya:\n${compacted}`
+      : 'Belum ada chat Telegram yang cukup untuk di-compact.'
+    await logMemoryCommand(user, telegramMessageId, input, reply)
+    return reply
+  }
+
+  if (isMemoryStatusCommand(input)) {
+    const pinned = currentMemory.pinned?.length
+      ? currentMemory.pinned.map((item, index) => `${index + 1}. ${item}`).join('\n')
+      : 'Belum ada pinned memory.'
+    const summary = currentMemory.summary?.trim() || 'Belum ada compact summary.'
+    const reply = `Memory aktif:\nSummary: ${summary}\n\nPinned:\n${pinned}`
+    await logMemoryCommand(user, telegramMessageId, input, reply)
+    return reply
+  }
+
+  return null
+}
+
+function buildCompactMemorySummary(history: TelegramMemoryLog[], timezone: string) {
+  const lines = history
+    .slice()
+    .reverse()
+    .map((log) => {
+      const when = formatInTimeZone(new Date(log.created_at), timezone, 'd MMM HH.mm')
+      const userText = cleanSnippet(log.raw_input, 160)
+      const aiText = cleanSnippet(extractAIMessage(log.ai_response), 180)
+      return `${when}: User "${userText}"${aiText ? `; Assistant "${aiText}"` : ''}`
+    })
+    .filter(Boolean)
+
+  if (!lines.length) return null
+
+  return lines.slice(-18).join('\n').slice(0, 3500)
 }
 
 function buildTelegramDashboardSnapshot(params: {
@@ -624,6 +856,23 @@ async function handleToday(user: LinkedUser) {
   ].join('\n')
 }
 
+function buildTelegramHelpMessage() {
+  return [
+    'Command yang tersedia:',
+    '/tasks - lihat task aktif terdekat',
+    '/today - ringkasan hari ini',
+    '/habits - lihat habit aktif',
+    '/memory - lihat memory aktif',
+    '/remember teks - simpan hal penting ke memory',
+    '/compactmemory - ringkas chat terakhir ke memory',
+    '/forgetmemory - kosongkan long-term memory',
+    '/confirm - simpan draft terakhir',
+    '/cancel - batalkan draft terakhir',
+    '',
+    'Selain command, kamu tetap bisa ngomong natural seperti: bimbingan skripsi besok ubah ke jam 11 siang.',
+  ].join('\n')
+}
+
 export async function POST(request: NextRequest) {
   if (!validateTelegramSecret(request)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -680,6 +929,17 @@ export async function POST(request: NextRequest) {
   if (text.startsWith('/today')) {
     await sendTelegramMessage(chatId, await handleToday(linkedUser))
     return Response.json({ ok: true })
+  }
+
+  if (text.startsWith('/help')) {
+    await sendTelegramMessage(chatId, buildTelegramHelpMessage())
+    return Response.json({ ok: true })
+  }
+
+  const memoryCommandReply = await handleTelegramMemoryCommand(linkedUser, message.message_id, text)
+  if (memoryCommandReply) {
+    await sendTelegramMessage(chatId, memoryCommandReply)
+    return Response.json({ ok: true, memory_command: true })
   }
 
   const calendarUpdateReply = await handleTelegramCalendarUpdate(linkedUser, text)
