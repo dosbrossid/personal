@@ -154,6 +154,8 @@ function ClassCourseModal({
   const recommendedSemesterLabel = getAcademicSemesterLabel(firstSessionDate || null);
 
   const handleSave = async () => {
+    if (isSaving) return;
+
     if (!name.trim()) {
       toast.error('Nama kelas wajib diisi');
       return;
@@ -166,6 +168,10 @@ function ClassCourseModal({
 
     if (!defaultStartTime) {
       toast.error('Jam mulai default wajib diisi');
+      return;
+    }
+    if (defaultEndTime && defaultEndTime <= defaultStartTime) {
+      toast.error('Jam selesai default harus setelah jam mulai');
       return;
     }
 
@@ -184,8 +190,7 @@ function ClassCourseModal({
       contextual_role: role,
       status,
       notes: notes.trim() || null,
-    });
-    setIsSaving(false);
+    }).finally(() => setIsSaving(false));
 
     if (ok) {
       onClose();
@@ -193,7 +198,9 @@ function ClassCourseModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(nextOpen) => {
+      if (!nextOpen && !isSaving) onClose();
+    }}>
       <DialogContent className="flex max-h-[88vh] flex-col overflow-hidden border-border/60 bg-card p-0 sm:max-w-2xl">
         <DialogHeader className="shrink-0 border-b border-border/40 px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2.5 text-[18px]">
@@ -350,8 +357,8 @@ function ClassCourseModal({
         </div>
 
         <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border/40 px-6 py-4">
-          <Button variant="outline" onClick={onClose} className="h-9 rounded-lg border-border/60 text-[12px]">Batal</Button>
-          <Button onClick={handleSave} disabled={isSaving} className="h-9 gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-[12px] font-semibold text-white shadow-md shadow-emerald-500/20">
+          <Button variant="outline" onClick={onClose} disabled={isSaving} className="h-9 rounded-lg border-border/60 text-[12px]">Batal</Button>
+          <Button onClick={handleSave} disabled={isSaving || !name.trim()} className="h-9 gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-[12px] font-semibold text-white shadow-md shadow-emerald-500/20">
             <CheckCircle2 className="h-3.5 w-3.5" />
             {isSaving ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Buat Kelas'}
           </Button>
@@ -403,8 +410,22 @@ function SessionModal({
   const [reflectionNote, setReflectionNote] = useState(session?.reflection_note ?? '');
 
   const handleSave = async () => {
+    if (isSaving) return;
+
     if (!sessionDate || !startAt) {
       toast.error('Tanggal sesi dan jam mulai wajib diisi');
+      return;
+    }
+    if (Number(meetingNumber) < 1) {
+      toast.error('Nomor pertemuan minimal 1');
+      return;
+    }
+    if (endAt && endAt <= startAt) {
+      toast.error('Jam selesai pertemuan harus setelah jam mulai');
+      return;
+    }
+    if (assignmentGiven && assignmentDueAt && assignmentDueAt <= startAt) {
+      toast.error('Deadline tugas harus setelah jam mulai pertemuan');
       return;
     }
 
@@ -422,8 +443,7 @@ function SessionModal({
       assignment_title: assignmentGiven ? assignmentTitle.trim() || null : null,
       assignment_due_at: assignmentGiven ? toIsoString(assignmentDueAt) : null,
       reflection_note: reflectionNote.trim() || null,
-    });
-    setIsSaving(false);
+    }).finally(() => setIsSaving(false));
 
     if (ok) {
       onClose();
@@ -431,7 +451,9 @@ function SessionModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(nextOpen) => {
+      if (!nextOpen && !isSaving) onClose();
+    }}>
       <DialogContent className="flex max-h-[88vh] flex-col overflow-hidden border-border/60 bg-card p-0 sm:max-w-2xl">
         <DialogHeader className="shrink-0 border-b border-border/40 px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2.5 text-[18px]">
@@ -520,8 +542,8 @@ function SessionModal({
         </div>
 
         <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border/40 px-6 py-4">
-          <Button variant="outline" onClick={onClose} className="h-9 rounded-lg border-border/60 text-[12px]">Batal</Button>
-          <Button onClick={handleSave} disabled={isSaving} className="h-9 gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-[12px] font-semibold text-white shadow-md shadow-blue-500/20">
+          <Button variant="outline" onClick={onClose} disabled={isSaving} className="h-9 rounded-lg border-border/60 text-[12px]">Batal</Button>
+          <Button onClick={handleSave} disabled={isSaving || !sessionDate || !startAt} className="h-9 gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-[12px] font-semibold text-white shadow-md shadow-blue-500/20">
             <CheckCircle2 className="h-3.5 w-3.5" />
             {isSaving ? 'Menyimpan...' : isEdit ? 'Simpan Pertemuan' : 'Tambah Pertemuan'}
           </Button>
@@ -547,13 +569,19 @@ function ConfirmDeleteModal({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleConfirm = async () => {
+    if (isDeleting) return;
     setIsDeleting(true);
-    await onConfirm();
-    setIsDeleting(false);
+    try {
+      await onConfirm();
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(nextOpen) => {
+      if (!nextOpen && !isDeleting) onClose();
+    }}>
       <DialogContent className="border-border/60 bg-card sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5 text-[16px]">
@@ -565,7 +593,7 @@ function ConfirmDeleteModal({
           <DialogDescription className="pt-2">{description}</DialogDescription>
         </DialogHeader>
         <div className="flex items-center justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={onClose} className="h-9 rounded-lg border-border/60 text-[12px]">Batal</Button>
+          <Button variant="outline" onClick={onClose} disabled={isDeleting} className="h-9 rounded-lg border-border/60 text-[12px]">Batal</Button>
           <Button onClick={handleConfirm} disabled={isDeleting} className="h-9 gap-2 rounded-lg bg-red-500 text-[12px] font-semibold text-white shadow-md shadow-red-500/20 hover:bg-red-600">
             <Trash2 className="h-3.5 w-3.5" />
             {isDeleting ? 'Menghapus...' : 'Ya, hapus'}
@@ -589,6 +617,7 @@ export default function ClassesPage() {
     session: null,
   });
   const [deleteSessionTarget, setDeleteSessionTarget] = useState<ClassSession | null>(null);
+  const [completingSessionId, setCompletingSessionId] = useState<string | null>(null);
 
   const { classes, isLoading, mutate: mutateClasses } = useClasses({
     status: statusFilter === 'all' ? undefined : statusFilter,
@@ -790,21 +819,28 @@ export default function ClassesPage() {
   };
 
   const handleMarkSessionCompleted = async (session: ClassSession) => {
-    const result = await markClassSessionCompleted(session.id, {
-      attendance_count: session.attendance_count,
-      assignment_given: session.assignment_given,
-      assignment_title: session.assignment_title,
-      assignment_due_at: session.assignment_due_at,
-      reflection_note: session.reflection_note,
-    });
+    if (completingSessionId) return;
 
-    if (result.error) {
-      toast.error(result.error);
-      return;
+    setCompletingSessionId(session.id);
+    try {
+      const result = await markClassSessionCompleted(session.id, {
+        attendance_count: session.attendance_count,
+        assignment_given: session.assignment_given,
+        assignment_title: session.assignment_title,
+        assignment_due_at: session.assignment_due_at,
+        reflection_note: session.reflection_note,
+      });
+
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success(`Pertemuan ${session.meeting_number} ditandai selesai`);
+      await handleRefreshAll();
+    } finally {
+      setCompletingSessionId(null);
     }
-
-    toast.success(`Pertemuan ${session.meeting_number} ditandai selesai`);
-    await handleRefreshAll();
   };
 
   const statCards = [
@@ -1215,10 +1251,11 @@ export default function ClassesPage() {
                                       <Button
                                         variant="outline"
                                         onClick={() => handleMarkSessionCompleted(session)}
+                                        disabled={completingSessionId === session.id}
                                         className="h-8 gap-1.5 rounded-lg border-border/60 text-[11px]"
                                       >
                                         <CheckCircle2 className="h-3.5 w-3.5" />
-                                        Selesai
+                                        {completingSessionId === session.id ? 'Menyimpan...' : 'Selesai'}
                                       </Button>
                                     )}
                                     <DropdownMenu>

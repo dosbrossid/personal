@@ -11,6 +11,16 @@ import {
 } from '@/lib/class-management'
 import type { ActionResult, ClassCourse, ClassSession } from '@/core/types'
 
+function isInvalidTimeRange(start?: string | null, end?: string | null) {
+  if (!start || !end) return false
+  return new Date(end).getTime() <= new Date(start).getTime()
+}
+
+function isInvalidClockRange(start?: string | null, end?: string | null) {
+  if (!start || !end) return false
+  return end <= start
+}
+
 export async function createClassCourse(data: {
   name: string
   course_code?: string | null
@@ -39,6 +49,9 @@ export async function createClassCourse(data: {
 
     if (!data.default_start_time) {
       return { data: null, error: 'Jam mulai kelas wajib diisi' }
+    }
+    if (isInvalidClockRange(data.default_start_time, data.default_end_time)) {
+      return { data: null, error: 'Jam selesai harus setelah jam mulai' }
     }
 
     const course = await createClassCourseWithSessions(supabase, user.id, data)
@@ -152,6 +165,12 @@ export async function createClassSession(data: {
     if (courseError) {
       return { data: null, error: courseError.message }
     }
+    if (isInvalidTimeRange(data.start_at, data.end_at)) {
+      return { data: null, error: 'Jam selesai pertemuan harus setelah jam mulai' }
+    }
+    if (data.assignment_given && isInvalidTimeRange(data.start_at, data.assignment_due_at)) {
+      return { data: null, error: 'Deadline tugas harus setelah jam mulai pertemuan' }
+    }
 
     const session = await createSingleClassSession(supabase, {
       userId: user.id,
@@ -196,6 +215,18 @@ export async function updateClassSession(
 
     if (existingError) {
       return { data: null, error: existingError.message }
+    }
+
+    const nextStartAt = updates.start_at ?? existing.start_at
+    const nextEndAt = updates.end_at ?? existing.end_at
+    const nextAssignmentDueAt = updates.assignment_due_at ?? existing.assignment_due_at
+    const nextAssignmentGiven = updates.assignment_given ?? existing.assignment_given
+
+    if (isInvalidTimeRange(nextStartAt, nextEndAt)) {
+      return { data: null, error: 'Jam selesai pertemuan harus setelah jam mulai' }
+    }
+    if (nextAssignmentGiven && isInvalidTimeRange(nextStartAt, nextAssignmentDueAt)) {
+      return { data: null, error: 'Deadline tugas harus setelah jam mulai pertemuan' }
     }
 
     const { data: session, error } = await supabase
