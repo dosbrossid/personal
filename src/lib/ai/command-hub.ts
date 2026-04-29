@@ -277,32 +277,33 @@ async function insertDraftItem(
     }
 
     case 'CALENDAR': {
+      const startAt = item.data.start_at ?? new Date().toISOString()
+      const reminderConfig = item.data.reminder_config ?? (
+        typeof item.data.reminder_minutes === 'number'
+          ? [{ type: 'before_minutes' as const, minutes: item.data.reminder_minutes }]
+          : []
+      )
+      const primaryReminderMinutes = reminderConfig.find((rule) => rule.type === 'before_minutes')?.minutes ?? item.data.reminder_minutes ?? null
       const { data, error } = await supabase
         .from('calendar_events')
         .insert({
           user_id: userId,
           title: item.data.title,
           description: item.data.description,
-          start_at: item.data.start_at ?? new Date().toISOString(),
+          start_at: startAt,
           end_at: item.data.end_at,
           is_all_day: !item.data.start_at,
-          reminder_minutes: item.data.reminder_minutes ?? 15,
+          reminder_minutes: primaryReminderMinutes,
+          reminder_config: reminderConfig,
           contextual_role: item.data.contextual_role,
           recurrence: 'none',
         })
-        .select('id')
+        .select('*')
         .single()
 
       if (error) return null
       recordId = data.id
-      if (item.data.reminder_minutes && item.data.start_at) {
-        await queueCalendarReminderNotifications(supabase, userId, {
-          id: recordId!,
-          title: item.data.title,
-          start_at: item.data.start_at ?? new Date().toISOString(),
-          reminder_minutes: item.data.reminder_minutes,
-        })
-      }
+      await queueCalendarReminderNotifications(supabase, userId, data)
       break
     }
 

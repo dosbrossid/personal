@@ -20,6 +20,33 @@
 
 ## Log
 
+## BUG-100 | 2026-04-29 | SEVERITY: High
+
+**Gejala:** Di mobile, enter/paragraph spacing pada Blog CMS awalnya normal saat menulis, tetapi setelah disimpan lalu dibuka untuk edit lagi, jarak antar baris menjadi berlebihan; postingan publik juga ikut terlihat terlalu renggang.
+**Root Cause:** Sanitizer rich text belum menormalisasi paragraph kosong berisi `<br>` secara idempotent, sementara editor/preview/public prose memberi margin/min-height paragraph yang membuat blank paragraph hasil save-load terasa berlipat.
+**Fix:** Collapse consecutive blank paragraphs di sanitizer, kecilkan rhythm paragraph editor, dan set margin paragraph publik/preview agar blank paragraph tidak menciptakan jarak berlebihan.
+**Pelajaran:** Rich text content harus punya pipeline HTML yang idempotent antara editor state, database, preview, dan public render.
+**Status:** RESOLVED
+**Terkait:** `src/components/modules/blog/BlogRichTextEditor.tsx`, `src/actions/blog.actions.ts`, `src/app/public-blog/blog/[slug]/page.tsx`
+
+## BUG-101 | 2026-04-29 | SEVERITY: High
+
+**Gejala:** Event kalender yang sudah disimpan tidak bisa diedit dari UI.
+**Root Cause:** Action menu event disembunyikan dengan `opacity-0` sampai hover, sehingga di mobile/touch event terlihat tidak punya affordance edit; selain itu create/edit belum meneruskan `reminder_config` sehingga state form multi-reminder tidak persist penuh.
+**Fix:** Buat trigger menu event selalu terlihat di mobile dan terus hanya hover-reveal di desktop, lalu teruskan `reminder_config` pada create/update event.
+**Pelajaran:** CRUD kalender harus diverifikasi end-to-end: open existing event, prefill form, submit update, mutate SWR, dan re-render event.
+**Status:** RESOLVED
+**Terkait:** `src/app/(dashboard)/calendar/page.tsx`, `src/actions/calendar.actions.ts`, `src/app/api/calendar/[id]/route.ts`
+
+## BUG-102 | 2026-04-29 | SEVERITY: High
+
+**Gejala:** Bot Telegram belum bisa menyimpan multi-reminder untuk satu event kalender.
+**Root Cause:** Schema/UI sudah mendukung `reminder_config`, tetapi AI response schema, parser, prompt, dan executor command hub masih berpusat pada `reminder_minutes` tunggal.
+**Fix:** Tambahkan `reminder_config` ke `AIResponseItem`, parse rule `before_minutes` dan `same_day_at`, ajari prompt format multi-reminder, simpan config ke `calendar_events`, dan queue semua rule reminder dari event yang dibuat AI/Telegram.
+**Pelajaran:** Setelah schema multi-rule hadir, semua jalur create/update calendar harus ikut mengirim `reminder_config`, bukan hanya UI/Class Management.
+**Status:** RESOLVED
+**Terkait:** `src/lib/ai/parser.ts`, `src/lib/ai/command-hub.ts`, `src/app/api/webhook/telegram/route.ts`, `src/lib/ai/prompts.ts`
+
 ## BUG-001 | 2026-04-27 | SEVERITY: High
 
 **Gejala:** TypeScript build gagal di `src/app/api/ai/command/route.ts` dengan error `Property 'catch' does not exist on type 'PromiseLike<...>'`.

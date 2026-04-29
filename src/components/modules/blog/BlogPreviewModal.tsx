@@ -151,7 +151,7 @@ export function BlogPreviewModal({
             </div>
 
             <article
-              className="prose prose-slate max-w-none text-[15px] leading-7 prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-a:text-primary prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground dark:prose-invert"
+              className="prose prose-slate max-w-none text-[15px] leading-7 prose-headings:text-foreground prose-p:my-3 prose-p:text-foreground prose-strong:text-foreground prose-a:text-primary prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground dark:prose-invert [&_p:has(br:only-child)]:my-1"
               dangerouslySetInnerHTML={{
                 __html: hasContent ? contentHtml : '<p>Konten artikel masih kosong.</p>',
               }}

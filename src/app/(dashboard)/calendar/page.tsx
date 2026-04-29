@@ -139,6 +139,7 @@ export default function CalendarPage() {
       end_at: data.end_at || undefined,
       is_all_day: data.is_all_day ?? false,
       reminder_minutes: data.reminder_minutes ?? null,
+      reminder_config: data.reminder_config ?? [],
       contextual_role: data.contextual_role || 'general',
       recurrence: data.recurrence || 'none',
     });
@@ -161,6 +162,7 @@ export default function CalendarPage() {
       end_at: data.end_at,
       is_all_day: data.is_all_day,
       reminder_minutes: data.reminder_minutes ?? null,
+      reminder_config: data.reminder_config ?? [],
       contextual_role: data.contextual_role,
       recurrence: data.recurrence,
     });
@@ -429,7 +431,7 @@ export default function CalendarPage() {
                         </span>
                       ) : (
                         <DropdownMenu>
-                          <DropdownMenuTrigger className="shrink-0 rounded-lg p-1.5 opacity-0 transition-all duration-200 hover:bg-muted group-hover:opacity-100">
+                          <DropdownMenuTrigger className="shrink-0 rounded-lg p-1.5 opacity-100 transition-all duration-200 hover:bg-muted sm:opacity-0 sm:group-hover:opacity-100">
                             <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44 rounded-xl border-border/60 bg-card shadow-xl">

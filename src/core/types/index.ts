@@ -280,6 +280,7 @@ export interface AIResponseItem {
     source_url: string | null;
     file_format: string | null;
     reminder_minutes: number | null;
+    reminder_config?: CalendarReminderRule[] | null;
     semester: string | null;
     mata_kuliah: string | null;
   };

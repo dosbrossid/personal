@@ -196,6 +196,8 @@ export function sanitizeBlogHtml(value: string) {
 
   return normalized
     .replace(/<(p|blockquote|h1|h2|ul|ol)>\s*<\/\1>/gi, '')
+    .replace(/<p>\s*(<br\s*\/?>\s*)+<\/p>/gi, '<p><br /></p>')
+    .replace(/(<p>\s*<br\s*\/?>\s*<\/p>\s*){2,}/gi, '<p><br /></p>')
     .replace(/(<br \/>){3,}/g, '<br /><br />')
     .trim();
 }

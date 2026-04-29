@@ -3,12 +3,40 @@
 // Validates and normalizes raw AI JSON into typed AIResponse
 // ============================================================
 
-import type { AIResponse, AIResponseItem } from '@/core/types'
+import type { AIResponse, AIResponseItem, CalendarReminderRule } from '@/core/types'
 import type { RoleContext, Priority } from '@/core/constants'
 
 const VALID_ACTIONS = ['TASK', 'NOTE', 'CALENDAR', 'ACADEMIC'] as const
 const VALID_ROLES = ['dosen', 'creator', 'affiliate', 'consultant', 'general'] as const
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
+
+function parseReminderConfig(value: unknown): CalendarReminderRule[] | null {
+  if (!Array.isArray(value)) return null
+
+  const rules = value
+    .map((rule): CalendarReminderRule | null => {
+      if (!rule || typeof rule !== 'object') return null
+      const candidate = rule as Record<string, unknown>
+
+      if (candidate.type === 'before_minutes' && typeof candidate.minutes === 'number') {
+        const minutes = Math.max(0, Math.round(candidate.minutes))
+        return { type: 'before_minutes', minutes }
+      }
+
+      if (candidate.type === 'same_day_at' && typeof candidate.hour === 'number') {
+        const hour = Math.max(0, Math.min(23, Math.round(candidate.hour)))
+        const minute = typeof candidate.minute === 'number'
+          ? Math.max(0, Math.min(59, Math.round(candidate.minute)))
+          : 0
+        return { type: 'same_day_at', hour, minute }
+      }
+
+      return null
+    })
+    .filter((rule): rule is CalendarReminderRule => Boolean(rule))
+
+  return rules.length ? rules : null
+}
 
 export function parseAIResponse(raw: string): AIResponse | null {
   try {
@@ -59,6 +87,7 @@ export function parseAIResponse(raw: string): AIResponse | null {
           source_url: data.source_url ? String(data.source_url) : null,
           file_format: data.file_format ? String(data.file_format) : null,
           reminder_minutes: typeof data.reminder_minutes === 'number' ? data.reminder_minutes : 15,
+          reminder_config: parseReminderConfig(data.reminder_config),
           semester: data.semester ? String(data.semester) : null,
           mata_kuliah: data.mata_kuliah ? String(data.mata_kuliah) : null,
         },

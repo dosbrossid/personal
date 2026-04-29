@@ -171,7 +171,7 @@ export default async function BlogPostPage({ params }: Props) {
         )}
 
         <div
-          className="prose prose-base mb-14 max-w-none prose-headings:font-bold prose-a:text-primary prose-p:leading-relaxed prose-pre:border prose-pre:border-border prose-pre:bg-muted dark:prose-invert sm:prose-lg sm:mb-16"
+          className="prose prose-base mb-14 max-w-none prose-headings:font-bold prose-a:text-primary prose-p:my-3 prose-p:leading-relaxed prose-pre:border prose-pre:border-border prose-pre:bg-muted dark:prose-invert sm:prose-lg sm:mb-16 [&_p:has(br:only-child)]:my-1"
           dangerouslySetInnerHTML={{ __html: post.content_html }}
         />
 
