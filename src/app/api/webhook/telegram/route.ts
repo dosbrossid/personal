@@ -8,7 +8,7 @@ import { addDays } from 'date-fns'
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { createServiceRoleClient } from '@/lib/supabase/service'
 import { getTelegramFileAsDataUrl, sendTelegramMessage } from '@/lib/telegram'
-import { callLLM, callLLMResponses } from '@/lib/ai/client'
+import { analyzeImageWithVision, callLLM } from '@/lib/ai/client'
 import { buildAIExecutionMessage, executeAIResponseItemsWithClient } from '@/lib/ai/command-hub'
 import { buildAssistantSystemPrompt } from '@/lib/ai/prompts'
 import { buildTelegramSmartRecallReply } from '@/lib/telegram-recall'
@@ -924,6 +924,19 @@ function buildLoggedTelegramInput(text: string, attachment: TelegramImageAttachm
   return `${text || '[Image message]'}\n[Telegram image attached: ${label}]`
 }
 
+function buildMainModelInputWithVisionAnalysis(text: string, visionAnalysis: string | null) {
+  if (!visionAnalysis) return text
+
+  return [
+    text || 'Bantu saya dari gambar ini.',
+    '',
+    'KONTEKS GAMBAR DARI VISION MODEL:',
+    visionAnalysis,
+    '',
+    'Gunakan konteks gambar di atas sebagai hasil OCR/observasi visual. Jangan mengarang detail yang tidak ada. Jika user meminta aksi, buat draft/action berdasarkan konteks ini dan data dashboard.',
+  ].join('\n')
+}
+
 function getLargestTelegramPhoto(message: NonNullable<TelegramUpdate['message']>) {
   if (!message.photo?.length) return null
   return message.photo.reduce((largest, photo) => {
@@ -1113,10 +1126,19 @@ export async function POST(request: NextRequest) {
     return Response.json({ ok: true })
   }
 
-  const aiMessages = await buildTelegramAIContext(linkedUser, text, imageAttachment)
-  const { response, raw, tokensUsed, latencyMs } = imageAttachment
-    ? await callLLMResponses(aiMessages)
-    : await callLLM(aiMessages)
+  const visionResult = imageAttachment
+    ? await analyzeImageWithVision({
+        userPrompt: text,
+        imageDataUrl: imageAttachment.dataUrl,
+        mimeType: imageAttachment.mimeType,
+      })
+    : null
+  const mainModelInput = buildMainModelInputWithVisionAnalysis(text, visionResult?.analysis ?? null)
+  const { response, raw, tokensUsed, latencyMs } = await callLLM(
+    await buildTelegramAIContext(linkedUser, mainModelInput)
+  )
+  const totalTokensUsed = (tokensUsed ?? 0) + (visionResult?.tokensUsed ?? 0) || null
+  const totalLatencyMs = latencyMs + (visionResult?.latencyMs ?? 0)
   const aiResponse = response as AIResponse | null
 
   if (!aiResponse) {
@@ -1138,8 +1160,8 @@ export async function POST(request: NextRequest) {
         },
         status: 'confirmed',
         error_message: `AI response could not be parsed, used smart recall fallback: ${raw.slice(0, 200)}`,
-        tokens_used: tokensUsed,
-        latency_ms: latencyMs,
+        tokens_used: totalTokensUsed,
+        latency_ms: totalLatencyMs,
       })
 
       await sendTelegramMessage(chatId, smartRecallReply)
@@ -1155,8 +1177,8 @@ export async function POST(request: NextRequest) {
     ai_response: aiResponse,
     status: aiResponse ? (aiResponse.items.length > 0 ? 'draft' : 'confirmed') : 'failed',
     error_message: aiResponse ? null : `AI response could not be parsed: ${raw.slice(0, 200)}`,
-    tokens_used: tokensUsed,
-    latency_ms: latencyMs,
+    tokens_used: totalTokensUsed,
+    latency_ms: totalLatencyMs,
   })
 
   if (!aiResponse) {

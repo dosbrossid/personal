@@ -218,6 +218,69 @@ export async function callLLMResponses(
   }
 }
 
+export async function analyzeImageWithVision(params: {
+  userPrompt: string
+  imageDataUrl: string
+  mimeType: string
+}): Promise<{ analysis: string; tokensUsed: number | null; latencyMs: number }> {
+  if (!OPENCODE_VISION_API_URL || !OPENCODE_API_KEY) {
+    throw new Error(
+      `Missing env vars: OPENCODE_VISION_API_URL=${OPENCODE_VISION_API_URL ? 'set' : 'MISSING'}, OPENCODE_API_KEY=${OPENCODE_API_KEY ? 'set' : 'MISSING'}`
+    )
+  }
+
+  const startTime = Date.now()
+
+  const res = await fetch(OPENCODE_VISION_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENCODE_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: OPENCODE_VISION_MODEL,
+      instructions: [
+        'You are a vision extraction tool for a personal dashboard assistant.',
+        'Analyze the image carefully and return plain text only.',
+        'Extract all visible text, dates, times, names, prices, schedules, deadlines, task-like items, and context that may be useful.',
+        'Do not create JSON. Do not decide actions. The main assistant model will decide what to do next.',
+        'If the image is unclear, say what is uncertain.',
+      ].join('\n'),
+      input: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: params.userPrompt || 'Analisis gambar ini secara detail.',
+            },
+            {
+              type: 'input_image',
+              image_url: params.imageDataUrl,
+              detail: 'auto',
+            },
+          ],
+        },
+      ],
+      temperature: 0.2,
+    }),
+  })
+
+  const latencyMs = Date.now() - startTime
+
+  if (!res.ok) {
+    const errorBody = await res.text().catch(() => 'Unknown error')
+    throw new Error(`OpenCode Vision API error (${res.status}): ${errorBody}`)
+  }
+
+  const data = (await res.json()) as OpenCodeResponsesAPIResponse
+  return {
+    analysis: extractResponsesText(data),
+    tokensUsed: data.usage?.total_tokens ?? null,
+    latencyMs,
+  }
+}
+
 export function shouldUseResponsesAPI(messages: ChatMessage[]) {
   return hasImageContent(messages)
 }
