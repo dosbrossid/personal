@@ -7,8 +7,8 @@ import { type NextRequest } from 'next/server'
 import { addDays } from 'date-fns'
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { createServiceRoleClient } from '@/lib/supabase/service'
-import { sendTelegramMessage } from '@/lib/telegram'
-import { callLLM } from '@/lib/ai/client'
+import { getTelegramFileAsDataUrl, sendTelegramMessage } from '@/lib/telegram'
+import { callLLM, callLLMResponses } from '@/lib/ai/client'
 import { buildAIExecutionMessage, executeAIResponseItemsWithClient } from '@/lib/ai/command-hub'
 import { buildAssistantSystemPrompt } from '@/lib/ai/prompts'
 import { buildTelegramSmartRecallReply } from '@/lib/telegram-recall'
@@ -21,6 +21,21 @@ interface TelegramUpdate {
   message?: {
     message_id: number
     text?: string
+    caption?: string
+    photo?: Array<{
+      file_id: string
+      file_unique_id: string
+      width: number
+      height: number
+      file_size?: number
+    }>
+    document?: {
+      file_id: string
+      file_unique_id: string
+      file_name?: string
+      mime_type?: string
+      file_size?: number
+    }
     chat: {
       id: number
       first_name?: string
@@ -40,6 +55,12 @@ interface TelegramMemoryLog {
   created_at: string
   raw_input: string
   ai_response: unknown
+}
+
+interface TelegramImageAttachment {
+  dataUrl: string
+  mimeType: string
+  name?: string
 }
 
 function validateTelegramSecret(request: NextRequest) {
@@ -98,7 +119,11 @@ function parseStoredAIResponse(value: unknown): AIResponse | null {
   return candidate as AIResponse
 }
 
-async function buildTelegramAIContext(user: LinkedUser, input: string) {
+async function buildTelegramAIContext(
+  user: LinkedUser,
+  input: string,
+  attachment?: TelegramImageAttachment | null
+) {
   const supabase = createServiceRoleClient()
 
   const [
@@ -192,9 +217,28 @@ async function buildTelegramAIContext(user: LinkedUser, input: string) {
     ),
   })
 
+  const userText = input.trim() || 'Analisis gambar ini dan bantu saya memahami atau mengolahnya.'
+
   return [
     { role: 'system' as const, content: systemPrompt },
-    { role: 'user' as const, content: input.trim() },
+    attachment
+      ? {
+          role: 'user' as const,
+          content: [
+            {
+              type: 'text' as const,
+              text: `${userText}\n\nAda gambar dari Telegram untuk dianalisis. Jika user hanya minta analisa, jawab di ai_message tanpa membuat item. Jika user minta simpan ke vault, minta link karena vault hanya menerima URL.`,
+            },
+            {
+              type: 'image_url' as const,
+              image_url: {
+                url: attachment.dataUrl,
+                detail: 'auto' as const,
+              },
+            },
+          ],
+        }
+      : { role: 'user' as const, content: userText },
   ]
 }
 
@@ -869,8 +913,46 @@ function buildTelegramHelpMessage() {
     '/confirm - simpan draft terakhir',
     '/cancel - batalkan draft terakhir',
     '',
+    'Kamu juga bisa kirim gambar/screenshot dengan caption, misalnya: ini jadwal, masukin kalender.',
     'Selain command, kamu tetap bisa ngomong natural seperti: bimbingan skripsi besok ubah ke jam 11 siang.',
   ].join('\n')
+}
+
+function buildLoggedTelegramInput(text: string, attachment: TelegramImageAttachment | null) {
+  if (!attachment) return text
+  const label = attachment.name ? `${attachment.mimeType}: ${attachment.name}` : attachment.mimeType
+  return `${text || '[Image message]'}\n[Telegram image attached: ${label}]`
+}
+
+function getLargestTelegramPhoto(message: NonNullable<TelegramUpdate['message']>) {
+  if (!message.photo?.length) return null
+  return message.photo.reduce((largest, photo) => {
+    const largestSize = largest.file_size ?? largest.width * largest.height
+    const photoSize = photo.file_size ?? photo.width * photo.height
+    return photoSize > largestSize ? photo : largest
+  })
+}
+
+async function extractTelegramImageAttachment(message: NonNullable<TelegramUpdate['message']>) {
+  const photo = getLargestTelegramPhoto(message)
+  if (photo) {
+    return {
+      dataUrl: await getTelegramFileAsDataUrl(photo.file_id, 'image/jpeg'),
+      mimeType: 'image/jpeg',
+      name: 'telegram-photo.jpg',
+    }
+  }
+
+  const document = message.document
+  if (document?.mime_type?.startsWith('image/')) {
+    return {
+      dataUrl: await getTelegramFileAsDataUrl(document.file_id, document.mime_type),
+      mimeType: document.mime_type,
+      name: document.file_name,
+    }
+  }
+
+  return null
 }
 
 export async function POST(request: NextRequest) {
@@ -881,13 +963,28 @@ export async function POST(request: NextRequest) {
   const update = (await request.json().catch(() => ({}))) as TelegramUpdate
   const message = update.message
 
-  if (!message?.chat?.id || !message.text) {
+  if (!message?.chat?.id) {
     return Response.json({ ok: true, skipped: true })
   }
 
   const chatId = String(message.chat.id)
-  const text = message.text.trim()
+  const text = (message.text ?? message.caption ?? '').trim()
   const supabase = createServiceRoleClient()
+  let imageAttachment: TelegramImageAttachment | null = null
+
+  try {
+    imageAttachment = await extractTelegramImageAttachment(message)
+  } catch (error) {
+    await sendTelegramMessage(
+      chatId,
+      `Saya belum bisa membaca gambar itu: ${error instanceof Error ? error.message : 'file Telegram gagal diambil'}`
+    )
+    return Response.json({ ok: true, image_failed: true })
+  }
+
+  if (!text && !imageAttachment) {
+    return Response.json({ ok: true, skipped: true })
+  }
 
   const linkedUser = await findLinkedUser(chatId)
 
@@ -1016,9 +1113,10 @@ export async function POST(request: NextRequest) {
     return Response.json({ ok: true })
   }
 
-  const { response, raw, tokensUsed, latencyMs } = await callLLM(
-    await buildTelegramAIContext(linkedUser, text)
-  )
+  const aiMessages = await buildTelegramAIContext(linkedUser, text, imageAttachment)
+  const { response, raw, tokensUsed, latencyMs } = imageAttachment
+    ? await callLLMResponses(aiMessages)
+    : await callLLM(aiMessages)
   const aiResponse = response as AIResponse | null
 
   if (!aiResponse) {
@@ -1033,7 +1131,7 @@ export async function POST(request: NextRequest) {
         user_id: linkedUser.id,
         source: 'telegram',
         telegram_message_id: message.message_id,
-        raw_input: text,
+        raw_input: buildLoggedTelegramInput(text, imageAttachment),
         ai_response: {
           items: [],
           ai_message: smartRecallReply,
@@ -1053,7 +1151,7 @@ export async function POST(request: NextRequest) {
     user_id: linkedUser.id,
     source: 'telegram',
     telegram_message_id: message.message_id,
-    raw_input: text,
+    raw_input: buildLoggedTelegramInput(text, imageAttachment),
     ai_response: aiResponse,
     status: aiResponse ? (aiResponse.items.length > 0 ? 'draft' : 'confirmed') : 'failed',
     error_message: aiResponse ? null : `AI response could not be parsed: ${raw.slice(0, 200)}`,
