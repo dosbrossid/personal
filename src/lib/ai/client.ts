@@ -13,8 +13,8 @@ const OPENCODE_API_URL = process.env.OPENCODE_API_URL
 const OPENCODE_API_KEY = process.env.OPENCODE_API_KEY
 // Model can be configured via env — try faster models like 'mimo-v2-pro' or 'minimax-m2.5'
 const OPENCODE_MODEL = process.env.OPENCODE_MODEL || 'minimax-m2.5'
-const OPENCODE_VISION_API_URL = process.env.OPENCODE_VISION_API_URL || 'https://opencode.ai/zen/v1/responses'
-const OPENCODE_VISION_MODEL = process.env.OPENCODE_VISION_MODEL || 'gpt-5-nano'
+const OPENCODE_VISION_API_URL = process.env.OPENCODE_VISION_API_URL || OPENCODE_API_URL
+const OPENCODE_VISION_MODEL = process.env.OPENCODE_VISION_MODEL || 'kimi-k2.6'
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
@@ -44,21 +44,6 @@ interface OpenCodeResponse {
     completion_tokens: number
     total_tokens: number
   }
-}
-
-interface OpenCodeResponsesAPIResponse {
-  output_text?: string
-  usage?: {
-    input_tokens?: number
-    output_tokens?: number
-    total_tokens?: number
-  }
-  output?: Array<{
-    content?: Array<{
-      type?: string
-      text?: string
-    }>
-  }>
 }
 
 interface StreamCallbacks {
@@ -118,106 +103,6 @@ export async function callLLM(
   }
 }
 
-function hasImageContent(messages: ChatMessage[]) {
-  return messages.some((message) =>
-    Array.isArray(message.content) &&
-    message.content.some((part) => part.type === 'image_url')
-  )
-}
-
-function buildResponsesInput(messages: ChatMessage[]) {
-  const instructions = messages
-    .filter((message) => message.role === 'system')
-    .map((message) => typeof message.content === 'string' ? message.content : '')
-    .filter(Boolean)
-    .join('\n\n')
-
-  const input = messages
-    .filter((message) => message.role !== 'system')
-    .map((message) => {
-      const content = typeof message.content === 'string'
-        ? [{ type: 'input_text', text: message.content }]
-        : message.content.map((part) => {
-            if (part.type === 'text') {
-              return { type: 'input_text', text: part.text }
-            }
-
-            return {
-              type: 'input_image',
-              image_url: part.image_url.url,
-              detail: part.image_url.detail ?? 'auto',
-            }
-          })
-
-      return {
-        role: message.role === 'assistant' ? 'assistant' : 'user',
-        content,
-      }
-    })
-
-  return { instructions, input }
-}
-
-function extractResponsesText(data: OpenCodeResponsesAPIResponse) {
-  if (typeof data.output_text === 'string') return data.output_text
-
-  return (data.output ?? [])
-    .flatMap((item) => item.content ?? [])
-    .map((content) => content.text ?? '')
-    .filter(Boolean)
-    .join('\n')
-}
-
-/**
- * Responses API call — used for multimodal requests like Telegram images.
- */
-export async function callLLMResponses(
-  messages: ChatMessage[],
-  options?: { model?: string; temperature?: number }
-): Promise<{ response: AIResponse | null; raw: string; tokensUsed: number | null; latencyMs: number }> {
-  if (!OPENCODE_VISION_API_URL || !OPENCODE_API_KEY) {
-    throw new Error(
-      `Missing env vars: OPENCODE_VISION_API_URL=${OPENCODE_VISION_API_URL ? 'set' : 'MISSING'}, OPENCODE_API_KEY=${OPENCODE_API_KEY ? 'set' : 'MISSING'}`
-    )
-  }
-
-  const startTime = Date.now()
-  const { instructions, input } = buildResponsesInput(messages)
-
-  const res = await fetch(OPENCODE_VISION_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENCODE_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: options?.model ?? OPENCODE_VISION_MODEL,
-      instructions,
-      input,
-      temperature: options?.temperature ?? 0.3,
-    }),
-  })
-
-  const latencyMs = Date.now() - startTime
-
-  if (!res.ok) {
-    const errorBody = await res.text().catch(() => 'Unknown error')
-    throw new Error(`OpenCode Responses API error (${res.status}): ${errorBody}`)
-  }
-
-  const data = (await res.json()) as OpenCodeResponsesAPIResponse
-  const rawContent = extractResponsesText(data)
-  const tokensUsed = data.usage?.total_tokens ?? null
-  const parsed = parseAIResponse(rawContent)
-
-  return {
-    response: parsed,
-    raw: rawContent,
-    tokensUsed,
-    latencyMs,
-  }
-}
-
 export async function analyzeImageWithVision(params: {
   userPrompt: string
   imageDataUrl: string
@@ -239,25 +124,30 @@ export async function analyzeImageWithVision(params: {
     },
     body: JSON.stringify({
       model: OPENCODE_VISION_MODEL,
-      instructions: [
-        'You are a vision extraction tool for a personal dashboard assistant.',
-        'Analyze the image carefully and return plain text only.',
-        'Extract all visible text, dates, times, names, prices, schedules, deadlines, task-like items, and context that may be useful.',
-        'Do not create JSON. Do not decide actions. The main assistant model will decide what to do next.',
-        'If the image is unclear, say what is uncertain.',
-      ].join('\n'),
-      input: [
+      messages: [
+        {
+          role: 'system',
+          content: [
+            'You are a vision extraction tool for a personal dashboard assistant.',
+            'Analyze the image carefully and return plain text only.',
+            'Extract all visible text, dates, times, names, prices, schedules, deadlines, task-like items, and context that may be useful.',
+            'Do not create JSON. Do not decide actions. The main assistant model will decide what to do next.',
+            'If the image is unclear, say what is uncertain.',
+          ].join('\n'),
+        },
         {
           role: 'user',
           content: [
             {
-              type: 'input_text',
+              type: 'text',
               text: params.userPrompt || 'Analisis gambar ini secara detail.',
             },
             {
-              type: 'input_image',
-              image_url: params.imageDataUrl,
-              detail: 'auto',
+              type: 'image_url',
+              image_url: {
+                url: params.imageDataUrl,
+                detail: 'auto',
+              },
             },
           ],
         },
@@ -273,16 +163,12 @@ export async function analyzeImageWithVision(params: {
     throw new Error(`OpenCode Vision API error (${res.status}): ${errorBody}`)
   }
 
-  const data = (await res.json()) as OpenCodeResponsesAPIResponse
+  const data = (await res.json()) as OpenCodeResponse
   return {
-    analysis: extractResponsesText(data),
+    analysis: data.choices?.[0]?.message?.content ?? '',
     tokensUsed: data.usage?.total_tokens ?? null,
     latencyMs,
   }
-}
-
-export function shouldUseResponsesAPI(messages: ChatMessage[]) {
-  return hasImageContent(messages)
 }
 
 /**

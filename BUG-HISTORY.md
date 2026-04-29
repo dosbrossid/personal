@@ -987,6 +987,15 @@ TEMPLATE — Copy paste untuk setiap bug baru:
 **Terkait:** (file/module yang terdampak)
 -->
 
+## BUG-100 | 2026-04-29 | SEVERITY: High
+
+**Gejala:** Vision Telegram tidak berjalan saat memakai `gpt-5-nano` di endpoint OpenCode Responses, sehingga gambar tidak bisa dianalisis sebelum diteruskan ke model utama.
+**Root Cause:** Konfigurasi vision diarahkan ke `/zen/v1/responses` dengan payload Responses API (`instructions` + `input_image`), sementara jalur OpenCode Go utama memakai endpoint chat-completions dan lebih kompatibel untuk routing model yang tersedia.
+**Fix:** Alihkan vision extractor ke endpoint OpenCode Go chat-completions, gunakan model Kimi 2.6 sebagai extractor, dan tetap teruskan hasil analisis gambar sebagai teks ke model utama.
+**Pelajaran:** Untuk arsitektur hybrid deterministic + AI, vision extractor sebaiknya memakai provider path yang sama stabilnya dengan model utama; jangan campur format API berbeda kalau tidak benar-benar terverifikasi.
+**Status:** RESOLVED
+**Terkait:** `src/lib/ai/client.ts`, `.env.example`
+
 _Belum ada bug tercatat. Development backend dimulai._
 
 ---
