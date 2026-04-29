@@ -88,6 +88,7 @@ const CREATE_KEYWORDS = [
 
 const STOPWORDS = new Set([
   'apa',
+  'aja',
   'ada',
   'yang',
   'saya',
@@ -117,6 +118,21 @@ const STOPWORDS = new Set([
   'bulan',
   'task',
   'tugas',
+  'deadline',
+  'tenggat',
+  'jatuh',
+  'tempo',
+  'belum',
+  'selesai',
+  'kelar',
+  'aktif',
+  'open',
+  'pending',
+  'todo',
+  'status',
+  'semua',
+  'daftar',
+  'list',
   'agenda',
   'kalender',
   'jadwal',
@@ -210,6 +226,14 @@ function resolveDateScope(input: string): DateScope {
   if (input.includes('minggu ini') || input.includes('pekan ini')) return 'this_week'
   if (input.includes('hari ini') || input.includes('today')) return 'today'
   return 'upcoming'
+}
+
+function hasExplicitDateScope(input: string) {
+  return containsAny(input, ['hari ini', 'today', 'besok', 'lusa', 'minggu ini', 'pekan ini'])
+}
+
+function isDeadlineRecall(input: string) {
+  return containsAny(input, ['deadline', 'tenggat', 'jatuh tempo'])
 }
 
 function extractKeywords(input: string) {
@@ -330,6 +354,8 @@ async function handleTaskRecall(client: TelegramRecallClient, user: TelegramReca
   const timezone = getTimezone(user)
   const scope = buildDateScope(resolveDateScope(input), timezone)
   const urgentOnly = input.includes('urgent') || input.includes('prioritas') || input.includes('penting')
+  const explicitDateScope = hasExplicitDateScope(input)
+  const deadlineRecall = isDeadlineRecall(input)
 
   let query: TelegramQueryChain = client
     .from('tasks')
@@ -342,13 +368,17 @@ async function handleTaskRecall(client: TelegramRecallClient, user: TelegramReca
     query = query.in('priority', ['high', 'urgent'])
   }
 
-  if (input.includes('hari ini') || input.includes('besok') || input.includes('minggu ini') || input.includes('pekan ini')) {
+  if (explicitDateScope) {
     query = query.gte('due_date', scope.fromDateKey).lte('due_date', scope.toDateKey)
   }
 
   const keywords = extractKeywords(input)
   const dataResult = await query.order('due_date', { ascending: true, nullsFirst: false }).limit(6)
   let tasks = (dataResult.data ?? []) as Array<{ title: string; priority: string; due_date: string | null; status: string; contextual_role: string }>
+
+  if (deadlineRecall) {
+    tasks = tasks.filter((task) => task.due_date)
+  }
 
   if (keywords.length) {
     tasks = tasks.filter((task) =>
@@ -359,11 +389,23 @@ async function handleTaskRecall(client: TelegramRecallClient, user: TelegramReca
   }
 
   if (!tasks.length) {
-    return `Saya belum menemukan task yang cocok untuk pertanyaan itu di rentang ${scope.label}.`
+    const emptyScope = explicitDateScope
+      ? `di rentang ${scope.label}`
+      : deadlineRecall
+        ? 'di daftar deadline aktif'
+        : 'di daftar task aktif'
+
+    return `Saya belum menemukan task yang cocok untuk pertanyaan itu ${emptyScope}.`
   }
 
-  return `Task yang saya temukan:\n${tasks
-    .map((task, index) => `${index + 1}. ${task.title} (${task.priority}${task.due_date ? ` · due ${task.due_date}` : ''} · role ${task.contextual_role})`)
+  const header = deadlineRecall
+    ? 'Deadline task yang saya temukan:'
+    : explicitDateScope
+      ? `Task ${scope.label} yang saya temukan:`
+      : 'Task aktif yang saya temukan:'
+
+  return `${header}\n${tasks
+    .map((task, index) => `${index + 1}. ${task.title} (${task.status} · ${task.priority}${task.due_date ? ` · due ${task.due_date}` : ''} · role ${task.contextual_role})`)
     .join('\n')}`
 }
 

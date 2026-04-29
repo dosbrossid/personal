@@ -8,7 +8,7 @@ import { createServiceRoleClient } from '@/lib/supabase/service'
 import { sendTelegramMessage } from '@/lib/telegram'
 import { callLLM } from '@/lib/ai/client'
 import { buildAIExecutionMessage, executeAIResponseItemsWithClient } from '@/lib/ai/command-hub'
-import { buildSystemPrompt } from '@/lib/ai/prompts'
+import { buildAssistantSystemPrompt } from '@/lib/ai/prompts'
 import { mapDraftDetail } from '@/lib/ai/parser'
 import { buildTelegramSmartRecallReply } from '@/lib/telegram-recall'
 import type { AIResponse, AIResponseItem } from '@/core/types'
@@ -79,32 +79,200 @@ function parseStoredAIResponse(value: unknown): AIResponse | null {
 async function buildTelegramAIContext(user: LinkedUser, input: string) {
   const supabase = createServiceRoleClient()
 
-  const { data: categories } = await supabase
-    .from('categories')
-    .select('name, contextual_role')
-    .eq('user_id', user.id)
-    .eq('is_deleted', false)
+  const [
+    categoriesResult,
+    tasksResult,
+    eventsResult,
+    habitsResult,
+    notesResult,
+    vaultResult,
+  ] = await Promise.all([
+    supabase
+      .from('categories')
+      .select('name, contextual_role')
+      .eq('user_id', user.id)
+      .eq('is_deleted', false),
+    supabase
+      .from('tasks')
+      .select('title, status, priority, due_date, contextual_role, description')
+      .eq('user_id', user.id)
+      .eq('is_deleted', false)
+      .neq('status', 'done')
+      .order('due_date', { ascending: true, nullsFirst: false })
+      .limit(20),
+    supabase
+      .from('calendar_events')
+      .select('title, start_at, end_at, contextual_role, description')
+      .eq('user_id', user.id)
+      .eq('is_deleted', false)
+      .gte('start_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .order('start_at', { ascending: true })
+      .limit(15),
+    supabase
+      .from('habits')
+      .select('name, cadence_mode, cadence_config')
+      .eq('user_id', user.id)
+      .eq('is_deleted', false)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    supabase
+      .from('brain_notes')
+      .select('title, content_body, note_type, contextual_role, updated_at')
+      .eq('user_id', user.id)
+      .eq('is_deleted', false)
+      .order('updated_at', { ascending: false })
+      .limit(8),
+    supabase
+      .from('academic_vault_items')
+      .select('title, description, document_type, mata_kuliah, semester, updated_at')
+      .eq('user_id', user.id)
+      .eq('is_deleted', false)
+      .order('updated_at', { ascending: false })
+      .limit(8),
+  ])
 
   const timezone = user.preferences?.timezone || 'Asia/Jakarta'
   const activeRoles = user.preferences?.active_roles?.length
     ? user.preferences.active_roles
     : ['dosen', 'creator', 'affiliate', 'consultant', 'general']
 
-  const systemPrompt = buildSystemPrompt({
+  const systemPrompt = buildAssistantSystemPrompt({
     currentDatetimeISO: new Date().toISOString(),
     userTimezone: timezone,
     utcOffset: timezone === 'Asia/Jakarta' ? '+07:00' : '+00:00',
-    userCategories: (categories ?? []).map((category) => ({
+    userCategories: (categoriesResult.data ?? []).map((category) => ({
       name: String(category.name),
       role: category.contextual_role as RoleContext,
     })),
     userActiveRoles: activeRoles as RoleContext[],
+    dashboardContext: buildTelegramDashboardSnapshot({
+      tasks: tasksResult.data ?? [],
+      events: eventsResult.data ?? [],
+      habits: habitsResult.data ?? [],
+      notes: notesResult.data ?? [],
+      vault: vaultResult.data ?? [],
+      timezone,
+    }),
   })
 
   return [
     { role: 'system' as const, content: systemPrompt },
     { role: 'user' as const, content: input.trim() },
   ]
+}
+
+function cleanSnippet(value: string | null | undefined, maxLength = 110) {
+  return (value ?? '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength)
+}
+
+function buildTelegramDashboardSnapshot(params: {
+  tasks: Array<{
+    title: string
+    status: string
+    priority: string
+    due_date: string | null
+    contextual_role: string
+    description: string | null
+  }>
+  events: Array<{
+    title: string
+    start_at: string
+    end_at: string | null
+    contextual_role: string
+    description: string | null
+  }>
+  habits: Array<{
+    name: string
+    cadence_mode: string
+    cadence_config: unknown
+  }>
+  notes: Array<{
+    title: string
+    content_body: string
+    note_type: string
+    contextual_role: string
+    updated_at: string
+  }>
+  vault: Array<{
+    title: string
+    description: string | null
+    document_type: string
+    mata_kuliah: string | null
+    semester: string | null
+    updated_at: string
+  }>
+  timezone: string
+}) {
+  const taskLines = params.tasks.length
+    ? params.tasks
+        .map((task, index) => {
+          const due = task.due_date ? `due ${task.due_date}` : 'no due date'
+          const desc = cleanSnippet(task.description)
+          return `${index + 1}. ${task.title} | status ${task.status} | ${task.priority} | ${due} | role ${task.contextual_role}${desc ? ` | note ${desc}` : ''}`
+        })
+        .join('\n')
+    : 'No active tasks.'
+
+  const eventLines = params.events.length
+    ? params.events
+        .map((event, index) => {
+          const startAt = new Intl.DateTimeFormat('id-ID', {
+            timeZone: params.timezone,
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          }).format(new Date(event.start_at))
+          const desc = cleanSnippet(event.description)
+          return `${index + 1}. ${event.title} | ${startAt} | role ${event.contextual_role}${desc ? ` | note ${desc}` : ''}`
+        })
+        .join('\n')
+    : 'No upcoming calendar events.'
+
+  const habitLines = params.habits.length
+    ? params.habits
+        .map((habit, index) => `${index + 1}. ${habit.name} | cadence ${habit.cadence_mode}`)
+        .join('\n')
+    : 'No active habits.'
+
+  const noteLines = params.notes.length
+    ? params.notes
+        .map((note, index) => {
+          const excerpt = cleanSnippet(note.content_body)
+          return `${index + 1}. ${note.title} | ${note.note_type} | role ${note.contextual_role}${excerpt ? ` | ${excerpt}` : ''}`
+        })
+        .join('\n')
+    : 'No recent notes.'
+
+  const vaultLines = params.vault.length
+    ? params.vault
+        .map((item, index) => {
+          const parts = [item.document_type, item.mata_kuliah, item.semester].filter(Boolean).join(' | ')
+          const desc = cleanSnippet(item.description)
+          return `${index + 1}. ${item.title} | ${parts || 'vault item'}${desc ? ` | ${desc}` : ''}`
+        })
+        .join('\n')
+    : 'No recent vault items.'
+
+  return [
+    'ACTIVE TASKS / DEADLINES:',
+    taskLines,
+    '',
+    'UPCOMING / RECENT CALENDAR EVENTS:',
+    eventLines,
+    '',
+    'ACTIVE HABITS:',
+    habitLines,
+    '',
+    'RECENT NOTES:',
+    noteLines,
+    '',
+    'RECENT VAULT ITEMS:',
+    vaultLines,
+  ].join('\n')
 }
 
 async function findLinkedUser(chatId: string) {
@@ -260,32 +428,6 @@ export async function POST(request: NextRequest) {
     return Response.json({ ok: true })
   }
 
-  const smartRecallReply = await buildTelegramSmartRecallReply(
-    supabase as unknown as Parameters<typeof buildTelegramSmartRecallReply>[0],
-    linkedUser,
-    text
-  )
-
-  if (smartRecallReply) {
-    await supabase.from('ai_hub_logs').insert({
-      user_id: linkedUser.id,
-      source: 'telegram',
-      telegram_message_id: message.message_id,
-      raw_input: text,
-      ai_response: {
-        items: [],
-        ai_message: smartRecallReply,
-      },
-      status: 'confirmed',
-      error_message: null,
-      tokens_used: 0,
-      latency_ms: null,
-    })
-
-    await sendTelegramMessage(chatId, smartRecallReply)
-    return Response.json({ ok: true, recalled: true })
-  }
-
   if (text.startsWith('/cancel')) {
     await supabase
       .from('ai_hub_logs')
@@ -344,13 +486,41 @@ export async function POST(request: NextRequest) {
   )
   const aiResponse = response as AIResponse | null
 
+  if (!aiResponse) {
+    const smartRecallReply = await buildTelegramSmartRecallReply(
+      supabase as unknown as Parameters<typeof buildTelegramSmartRecallReply>[0],
+      linkedUser,
+      text
+    )
+
+    if (smartRecallReply) {
+      await supabase.from('ai_hub_logs').insert({
+        user_id: linkedUser.id,
+        source: 'telegram',
+        telegram_message_id: message.message_id,
+        raw_input: text,
+        ai_response: {
+          items: [],
+          ai_message: smartRecallReply,
+        },
+        status: 'confirmed',
+        error_message: `AI response could not be parsed, used smart recall fallback: ${raw.slice(0, 200)}`,
+        tokens_used: tokensUsed,
+        latency_ms: latencyMs,
+      })
+
+      await sendTelegramMessage(chatId, smartRecallReply)
+      return Response.json({ ok: true, recalled: true, fallback: true })
+    }
+  }
+
   await supabase.from('ai_hub_logs').insert({
     user_id: linkedUser.id,
     source: 'telegram',
     telegram_message_id: message.message_id,
     raw_input: text,
     ai_response: aiResponse,
-    status: aiResponse ? 'draft' : 'failed',
+    status: aiResponse ? (aiResponse.items.length > 0 ? 'draft' : 'confirmed') : 'failed',
     error_message: aiResponse ? null : `AI response could not be parsed: ${raw.slice(0, 200)}`,
     tokens_used: tokensUsed,
     latency_ms: latencyMs,
