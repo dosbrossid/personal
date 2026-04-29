@@ -11,7 +11,7 @@ export default function DashboardLayout({
     <div className="flex min-h-screen overflow-x-hidden bg-background">
       <AppSidebar />
       <CommandPalette />
-      <main className="relative ml-0 flex-1 overflow-x-hidden md:ml-[260px]">
+      <main className="relative ml-0 flex-1 overflow-x-hidden md:ml-[280px]">
         {/* Top gradient accent line */}
         <div className="gradient-accent-line sticky top-0 z-30 hidden h-[2px] w-full md:block" />
         {/* Content area with dot grid pattern */}
