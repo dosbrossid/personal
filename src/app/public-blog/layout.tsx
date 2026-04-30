@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   description: 'Catatan Ziaul Maula tentang bisnis digital, pemasaran digital, e-business, web app, dan hal-hal yang sedang dipelajari.',
   icons: {
     icon: [
+      { url: '/favicon.ico', type: 'image/x-icon', sizes: '64x64' },
       { url: '/icon', type: 'image/png', sizes: '512x512' },
       { url: '/icon-192', type: 'image/png', sizes: '192x192' },
     ],
