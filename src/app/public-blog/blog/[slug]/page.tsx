@@ -187,7 +187,7 @@ export default async function BlogPostPage({ params }: Props) {
         )}
 
         <div
-          className="prose mb-12 max-w-none prose-headings:font-sans prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[#1a8917] prose-p:my-5 prose-p:font-serif prose-p:text-[21px] prose-p:leading-[1.72] prose-p:text-[#242424] prose-li:font-serif prose-li:text-[21px] prose-li:leading-[1.72] prose-li:text-[#242424] prose-blockquote:border-l-[#242424] prose-blockquote:font-serif prose-blockquote:text-[#6b6b6b] prose-pre:border prose-pre:border-[#f2f2f2] prose-pre:bg-[#f7f7f7] dark:prose-invert dark:prose-p:text-foreground dark:prose-li:text-foreground dark:prose-pre:border-border dark:prose-pre:bg-muted sm:mb-14 [&_p:has(br:only-child)]:my-1"
+          className="prose mb-12 max-w-none prose-headings:font-sans prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[#1a8917] prose-p:my-4 prose-p:font-serif prose-p:text-[18px] prose-p:leading-[1.78] prose-p:text-[#242424] prose-li:font-serif prose-li:text-[18px] prose-li:leading-[1.78] prose-li:text-[#242424] prose-blockquote:border-l-[#242424] prose-blockquote:font-serif prose-blockquote:text-[#6b6b6b] prose-pre:border prose-pre:border-[#f2f2f2] prose-pre:bg-[#f7f7f7] dark:prose-invert dark:prose-p:text-foreground dark:prose-li:text-foreground dark:prose-pre:border-border dark:prose-pre:bg-muted sm:mb-14 sm:prose-p:my-5 sm:prose-p:text-[21px] sm:prose-p:leading-[1.72] sm:prose-li:text-[21px] sm:prose-li:leading-[1.72] [&_p:has(br:only-child)]:my-1"
           dangerouslySetInnerHTML={{ __html: post.content_html }}
         />
 
@@ -268,7 +268,7 @@ export default async function BlogPostPage({ params }: Props) {
                 Semua tulisan
               </Link>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 sm:gap-4">
               {suggestedPosts.map((related) => (
                 <Link
                   key={related.id}
@@ -287,13 +287,13 @@ export default async function BlogPostPage({ params }: Props) {
                     )}
                   </div>
                   <div>
-                    <h3 className="line-clamp-2 text-[15px] font-bold leading-snug text-[#242424] group-hover:text-[#1a8917] dark:text-foreground">
+                    <h3 className="line-clamp-2 text-[18px] font-bold leading-snug text-[#242424] group-hover:text-[#1a8917] dark:text-foreground sm:text-[16px]">
                       {related.title}
                     </h3>
-                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                    <p className="mt-2 line-clamp-3 text-[14px] leading-relaxed text-[#6b6b6b] dark:text-muted-foreground sm:line-clamp-2 sm:text-[13px]">
                       {related.excerpt || 'Baca catatan lain dari Ziaul Maula.'}
                     </p>
-                    <p className="mt-3 text-xs text-muted-foreground">
+                    <p className="mt-3 text-[13px] text-[#6b6b6b] dark:text-muted-foreground sm:text-xs">
                       {related.published_at ? format(parseISO(related.published_at), 'MMM d, yyyy') : 'Artikel'}
                     </p>
                   </div>
