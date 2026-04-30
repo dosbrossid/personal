@@ -20,6 +20,15 @@
 
 ## Log
 
+## BUG-107 | 2026-04-30 | SEVERITY: High
+
+**Gejala:** Saat membuat atau mengedit artikel blog, format warna font/highlight menular ke paragraf berikutnya, tidak ada clear formatting dan history palette warna, serta di artikel publish selection/kursor bisa bergeser ketika teks diblok lalu diberi bold/formatting.
+**Root Cause:** Editor blog memakai `contentEditable` + `document.execCommand`, sehingga selection hilang saat toolbar/color input mengambil fokus. `onBlur` juga menulis ulang `innerHTML` via sanitizer, membuat range selection pada konten publish yang kompleks menjadi stale.
+**Fix:** Migrasi `BlogRichTextEditor` ke Tiptap/ProseMirror resmi dengan extension color, highlight, underline, text-align, image, toolbar command chain, clear formatting, dan recent palette untuk text color serta highlight.
+**Pelajaran:** Untuk rich text editor yang menjadi fitur inti, jangan mengandalkan `execCommand`; pakai engine editor yang punya model dokumen dan selection state eksplisit.
+**Status:** RESOLVED
+**Terkait:** `src/components/modules/blog/BlogRichTextEditor.tsx`, `package.json`, `package-lock.json`
+
 ## BUG-106 | 2026-04-30 | SEVERITY: High
 
 **Gejala:** Gambar blog yang dites download masih bukan WebP, berarti fitur auto-convert dan compress belum benar-benar terjamin.
