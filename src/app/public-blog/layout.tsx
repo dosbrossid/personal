@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { Mail, MapPin, Phone, Rss } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getDashboardLoginUrl } from '@/lib/app-routing';
 import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-routing';
 
-export const metadata = {
+export const metadata: Metadata = {
+  metadataBase: new URL('https://zmaula.web.id'),
   title: {
     default: 'Ziaul Maula, SE, M.Si',
     template: '%s | Ziaul Maula',
@@ -18,15 +20,37 @@ export const metadata = {
     apple: [{ url: '/apple-icon', type: 'image/png', sizes: '180x180' }],
   },
   alternates: {
+    canonical: 'https://zmaula.web.id',
     types: {
       'application/rss+xml': '/api/public/rss',
     },
   },
+  robots: {
+    index: true,
+    follow: true,
+  },
   openGraph: {
     title: 'Ziaul Maula, SE, M.Si',
     description: 'Blog pribadi berisi tulisan tentang bisnis digital, pemasaran digital, e-business, web app, dan proses belajar.',
+    url: 'https://zmaula.web.id',
     type: 'website',
+    locale: 'id_ID',
     siteName: 'Ziaul Maula',
+    images: [
+      {
+        url: '/icon',
+        width: 512,
+        height: 512,
+        alt: 'Ziaul Maula',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Ziaul Maula, SE, M.Si',
+    description: 'Blog pribadi berisi tulisan tentang bisnis digital, pemasaran digital, e-business, web app, dan proses belajar.',
+    images: ['/icon'],
   },
 };
 

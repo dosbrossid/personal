@@ -31,6 +31,12 @@ export function getPublicBlogPostUrl(slug: string) {
   return `https://zmaula.web.id/blog/${slug}`;
 }
 
-export function getPublicBlogOgImageUrl(slug: string) {
-  return `https://zmaula.web.id/api/public/og/blog/${encodeURIComponent(slug)}`;
+export function getPublicBlogOgImageUrl(slug: string, version?: string | null) {
+  const url = `https://zmaula.web.id/api/public/og/blog/${encodeURIComponent(slug)}`;
+
+  if (!version) {
+    return url;
+  }
+
+  return `${url}?v=${encodeURIComponent(version)}`;
 }

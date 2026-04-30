@@ -55,12 +55,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = post.meta_title || post.title;
   const description = post.meta_description || post.excerpt || '';
   const canonicalUrl = post.canonical_url || getPublicBlogPostUrl(post.slug);
-  const ogImageUrl = getPublicBlogOgImageUrl(post.slug);
+  const ogImageUrl = getPublicBlogOgImageUrl(post.slug, post.published_at);
   const imageAlt = post.featured_image_alt || post.title;
 
   return {
     title,
     description,
+    authors: [{ name: 'Ziaul Maula', url: 'https://zmaula.web.id' }],
+    publisher: 'Ziaul Maula',
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+      },
+    },
     alternates: {
       canonical: canonicalUrl,
     },
@@ -78,6 +88,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         },
       ],
       type: 'article',
+      locale: 'id_ID',
       siteName: 'Ziaul Maula Blog',
       publishedTime: post.published_at || undefined,
     },

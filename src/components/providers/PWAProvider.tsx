@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 
 type BeforeInstallPromptEvent = Event & {
@@ -26,14 +27,34 @@ function isIOSDevice() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as Window & { MSStream?: unknown }).MSStream;
 }
 
-function isAndroidDevice() {
-  return /Android/i.test(navigator.userAgent);
+function isPublicBlogSurface(pathname: string) {
+  const hostname = window.location.hostname;
+
+  return (
+    hostname === 'zmaula.web.id' ||
+    pathname.startsWith('/public-blog') ||
+    (hostname !== 'app.zmaula.web.id' && pathname.startsWith('/blog'))
+  );
 }
 
 export function PWAProvider() {
+  const pathname = usePathname();
+
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
       return;
+    }
+
+    if (isPublicBlogSurface(pathname)) {
+      const suppressInstallPrompt = (event: Event) => {
+        event.preventDefault();
+      };
+
+      window.addEventListener('beforeinstallprompt', suppressInstallPrompt);
+
+      return () => {
+        window.removeEventListener('beforeinstallprompt', suppressInstallPrompt);
+      };
     }
 
     let isRefreshing = false;
@@ -96,10 +117,14 @@ export function PWAProvider() {
     return () => {
       navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
     };
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || isRunningStandalone() || !window.isSecureContext) {
+      return;
+    }
+
+    if (isPublicBlogSurface(pathname)) {
       return;
     }
 
@@ -117,15 +142,6 @@ export function PWAProvider() {
       sessionStorage.setItem(INSTALL_PROMPT_SESSION_KEY, '1');
 
       if (!isIOSDevice()) {
-        if (isAndroidDevice()) {
-          toast('Install PWA belum siap di browser ini.', {
-            id: INSTALL_TOAST_ID,
-            description:
-              'Jangan pilih Add to Home screen manual dulu. Tunggu tombol Install native dari Chrome agar app terbuka standalone, bukan sebagai shortcut browser.',
-            duration: 14000,
-          });
-        }
-
         return;
       }
 
@@ -178,7 +194,7 @@ export function PWAProvider() {
       window.removeEventListener('beforeinstallprompt', handleInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [pathname]);
 
   return null;
 }

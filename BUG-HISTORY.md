@@ -20,11 +20,29 @@
 
 ## Log
 
+## BUG-110 | 2026-04-30 | SEVERITY: High
+
+**Gejala:** Setelah shortcut PWA lama dihapus dari home screen Android, dashboard masih tidak memunculkan install native dan hanya menampilkan warning agar tidak memakai Add to Home Screen.
+**Root Cause:** Fallback Android terlalu defensif: saat Chrome tidak mengirim `beforeinstallprompt`, UI malah menampilkan toast peringatan tanpa action. Ini membingungkan, apalagi Android bisa masih menganggap PWA terinstall kalau yang dihapus hanya shortcut, bukan app/entry Chrome.
+**Fix:** Hapus fallback warning Android. Dashboard hanya menampilkan tombol install saat event native `beforeinstallprompt` benar-benar tersedia; iOS tetap diberi instruksi manual karena memang tidak punya event native yang sama.
+**Pelajaran:** Untuk PWA Android, jangan membuat fallback install palsu. Kalau browser tidak menyediakan prompt native, lebih baik silent dan beri panduan uninstall/reinstall terpisah.
+**Status:** RESOLVED
+**Terkait:** `src/components/providers/PWAProvider.tsx`
+
+## BUG-109 | 2026-04-30 | SEVERITY: Medium
+
+**Gejala:** Notifikasi/prompt install PWA muncul di frontpage dan blog publik, padahal area publik harus fokus membaca artikel tanpa gangguan dashboard app.
+**Root Cause:** `PWAProvider` dipasang di root layout global, sehingga public blog ikut menerima fallback install toast dan native install prompt handling.
+**Fix:** Membuat `PWAProvider` mengenali surface public blog (`zmaula.web.id` atau route public-blog) lalu mencegah native install prompt secara silent tanpa menampilkan toast; prompt install tetap aktif untuk dashboard app.
+**Pelajaran:** Provider global perlu sadar konteks domain/surface, terutama ketika satu Next app melayani dashboard privat dan blog publik.
+**Status:** RESOLVED
+**Terkait:** `src/components/providers/PWAProvider.tsx`
+
 ## BUG-108 | 2026-04-30 | SEVERITY: High
 
 **Gejala:** Gambar featured image artikel blog tidak muncul ketika link artikel diposting ke Threads, meski halaman publik sudah memiliki `og:image`.
 **Root Cause:** Metadata OpenGraph memakai URL Supabase `.webp` langsung tanpa `og:image:width`, `og:image:height`, `og:url`, dan canonical eksplisit. Threads/Meta scraper lebih aman menerima image absolut dari domain artikel sendiri dalam format crawler-safe seperti PNG/JPEG.
-**Fix:** Menambahkan endpoint OG image PNG 1200x630 dari domain blog sendiri, plus metadata OpenGraph/Twitter yang lebih lengkap: canonical, `og:url`, dimensi image, alt text, dan `type: image/png`.
+**Fix:** Menambahkan endpoint OG image PNG 1200x630 dari domain blog sendiri, plus metadata OpenGraph/Twitter yang lebih lengkap: canonical, `og:url`, title, description, locale, author, robots, dimensi image, alt text, cache-busting versi publish, dan `type: image/png`.
 **Pelajaran:** Untuk social preview, gambar yang tampil di halaman belum cukup; OG image harus crawler-safe, absolut, punya dimensi, dan tidak bergantung pada format/storage URL yang mungkin tidak disukai scraper.
 **Status:** RESOLVED
 **Terkait:** `src/app/public-blog/blog/[slug]/page.tsx`, `src/app/api/public/og/blog/[slug]/route.tsx`
