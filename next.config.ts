@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const emptyPolyfillModule = './src/lib/noop-polyfill-module.ts';
+
 const remotePatterns: NonNullable<NextConfig['images']>['remotePatterns'] = [
   {
     protocol: 'https',
@@ -32,6 +34,23 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60 * 60 * 24 * 7,
     remotePatterns,
+  },
+  turbopack: {
+    resolveAlias: {
+      '../build/polyfills/polyfill-module': emptyPolyfillModule,
+      'next/dist/build/polyfills/polyfill-module': emptyPolyfillModule,
+      'next/dist/build/polyfills/polyfill-module.js': emptyPolyfillModule,
+      'next/dist/esm/build/polyfills/polyfill-module': emptyPolyfillModule,
+      'next/dist/esm/build/polyfills/polyfill-module.js': emptyPolyfillModule,
+    },
+  },
+  webpack(config) {
+    config.resolve.alias['../build/polyfills/polyfill-module'] = emptyPolyfillModule;
+    config.resolve.alias['next/dist/build/polyfills/polyfill-module'] = emptyPolyfillModule;
+    config.resolve.alias['next/dist/build/polyfills/polyfill-module.js'] = emptyPolyfillModule;
+    config.resolve.alias['next/dist/esm/build/polyfills/polyfill-module'] = emptyPolyfillModule;
+    config.resolve.alias['next/dist/esm/build/polyfills/polyfill-module.js'] = emptyPolyfillModule;
+    return config;
   },
   async headers() {
     return [
