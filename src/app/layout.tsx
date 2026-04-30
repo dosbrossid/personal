@@ -7,19 +7,22 @@ import { SWRProvider } from "@/components/providers/SWRProvider";
 import { PWAProvider } from "@/components/providers/PWAProvider";
 
 export const metadata: Metadata = {
-  title: "SecondBrain — AI Personal Dashboard",
+  title: "Zmaula Personal Dashboard",
   description:
     "Sistem manajemen pribadi berbasis AI untuk multi-peran profesional. Satu pintu masuk untuk semua peran Anda.",
   keywords: ["dashboard", "second brain", "AI", "productivity", "personal management"],
-  applicationName: "SecondBrain",
+  applicationName: "Zmaula Personal Dashboard",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "SecondBrain",
+    title: "Zmaula",
   },
   formatDetection: {
     telephone: false,
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
   },
 };
 

@@ -3,17 +3,19 @@ import type { MetadataRoute } from 'next';
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/',
-    name: 'SecondBrain — AI Personal Dashboard',
-    short_name: 'SecondBrain',
+    name: 'Zmaula Personal Dashboard',
+    short_name: 'Zmaula',
     description:
-      'Dashboard pribadi berbasis AI untuk tugas, catatan, agenda, blog, dan workflow harian.',
+      'Dashboard pribadi berbasis AI untuk tugas, catatan, agenda, blog, vault, dan workflow harian.',
     start_url: '/',
     scope: '/',
     display: 'standalone',
+    display_override: ['standalone', 'minimal-ui', 'browser'],
     orientation: 'portrait',
     background_color: '#f5f7fb',
     theme_color: '#0f766e',
     lang: 'id-ID',
+    dir: 'ltr',
     categories: ['productivity', 'business', 'education'],
     icons: [
       {
@@ -48,10 +50,22 @@ export default function manifest(): MetadataRoute.Manifest {
         description: 'Lihat dan kelola daftar tugas',
       },
       {
+        name: 'Agenda',
+        short_name: 'Agenda',
+        url: '/calendar',
+        description: 'Buka kalender dan agenda',
+      },
+      {
         name: 'Catatan',
         short_name: 'Catatan',
         url: '/notes',
         description: 'Buka catatan cepat dan ide',
+      },
+      {
+        name: 'Blog',
+        short_name: 'Blog',
+        url: '/blog',
+        description: 'Kelola tulisan dan draft blog',
       },
     ],
   };
