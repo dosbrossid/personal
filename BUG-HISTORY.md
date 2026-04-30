@@ -20,6 +20,15 @@
 
 ## Log
 
+## BUG-108 | 2026-04-30 | SEVERITY: High
+
+**Gejala:** Gambar featured image artikel blog tidak muncul ketika link artikel diposting ke Threads, meski halaman publik sudah memiliki `og:image`.
+**Root Cause:** Metadata OpenGraph memakai URL Supabase `.webp` langsung tanpa `og:image:width`, `og:image:height`, `og:url`, dan canonical eksplisit. Threads/Meta scraper lebih aman menerima image absolut dari domain artikel sendiri dalam format crawler-safe seperti PNG/JPEG.
+**Fix:** Menambahkan endpoint OG image PNG 1200x630 dari domain blog sendiri, plus metadata OpenGraph/Twitter yang lebih lengkap: canonical, `og:url`, dimensi image, alt text, dan `type: image/png`.
+**Pelajaran:** Untuk social preview, gambar yang tampil di halaman belum cukup; OG image harus crawler-safe, absolut, punya dimensi, dan tidak bergantung pada format/storage URL yang mungkin tidak disukai scraper.
+**Status:** RESOLVED
+**Terkait:** `src/app/public-blog/blog/[slug]/page.tsx`, `src/app/api/public/og/blog/[slug]/route.tsx`
+
 ## BUG-107 | 2026-04-30 | SEVERITY: High
 
 **Gejala:** Saat membuat atau mengedit artikel blog, format warna font/highlight menular ke paragraf berikutnya, tidak ada clear formatting dan history palette warna, serta di artikel publish selection/kursor bisa bergeser ketika teks diblok lalu diberi bold/formatting.

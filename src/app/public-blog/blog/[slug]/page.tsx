@@ -9,7 +9,12 @@ import type { BlogPost } from '@/core/types';
 import type { Metadata } from 'next';
 import { ViewCountTracker } from '../../[slug]/ViewCountTracker';
 import { ReadingProgressBar } from '../../[slug]/ReadingProgressBar';
-import { getPublicBlogPostUrl, mapBlogPostWithTags, type BlogPostWithTagRows } from '@/lib/blog';
+import {
+  getPublicBlogOgImageUrl,
+  getPublicBlogPostUrl,
+  mapBlogPostWithTags,
+  type BlogPostWithTagRows,
+} from '@/lib/blog';
 import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-routing';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -40,27 +45,52 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = await createServerClient();
   const { data: post } = await supabase
     .from('blog_posts')
-    .select('title, excerpt, meta_title, meta_description, featured_image_url')
+    .select('title, slug, excerpt, meta_title, meta_description, featured_image_url, featured_image_alt, published_at, canonical_url')
     .eq('slug', slug)
     .eq('status', 'published')
     .single();
 
   if (!post) return { title: 'Not Found' };
 
+  const title = post.meta_title || post.title;
+  const description = post.meta_description || post.excerpt || '';
+  const canonicalUrl = post.canonical_url || getPublicBlogPostUrl(post.slug);
+  const ogImageUrl = getPublicBlogOgImageUrl(post.slug);
+  const imageAlt = post.featured_image_alt || post.title;
+
   return {
-    title: post.meta_title || post.title,
-    description: post.meta_description || post.excerpt || '',
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
-      title: post.meta_title || post.title,
-      description: post.meta_description || post.excerpt || '',
-      images: post.featured_image_url ? [post.featured_image_url] : [],
+      title,
+      description,
+      url: canonicalUrl,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: imageAlt,
+          type: 'image/png',
+        },
+      ],
       type: 'article',
       siteName: 'Ziaul Maula Blog',
+      publishedTime: post.published_at || undefined,
     },
     twitter: {
       card: 'summary_large_image',
-      title: post.meta_title || post.title,
-      description: post.meta_description || post.excerpt || '',
+      title,
+      description,
+      images: [
+        {
+          url: ogImageUrl,
+          alt: imageAlt,
+        },
+      ],
     },
   };
 }

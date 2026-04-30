@@ -30,3 +30,7 @@ export function getPublicBlogPostUrl(slug: string) {
 
   return `https://zmaula.web.id/blog/${slug}`;
 }
+
+export function getPublicBlogOgImageUrl(slug: string) {
+  return `https://zmaula.web.id/api/public/og/blog/${encodeURIComponent(slug)}`;
+}
