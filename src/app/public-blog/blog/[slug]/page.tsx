@@ -19,6 +19,11 @@ import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-rou
 
 type Props = { params: Promise<{ slug: string }> };
 
+const CONTENT_IMAGE_WIDTHS = [384, 640, 750, 828, 1080];
+const CONTENT_IMAGE_QUALITY = 75;
+const CONTENT_IMAGE_SIZES = '(max-width: 768px) calc(100vw - 24px), 720px';
+const FEATURED_IMAGE_SIZES = '(max-width: 768px) calc(100vw - 24px), 720px';
+
 const RELATED_POST_SELECT = `
   id,
   title,
@@ -39,6 +44,57 @@ const RELATED_POST_SELECT = `
     )
   )
 `;
+
+function getNextImageUrl(src: string, width: number) {
+  return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=${CONTENT_IMAGE_QUALITY}`;
+}
+
+function isSupabaseStorageImage(src: string) {
+  try {
+    const url = new URL(src);
+
+    return url.hostname.endsWith('.supabase.co') && url.pathname.includes('/storage/v1/object/public/');
+  } catch {
+    return false;
+  }
+}
+
+function upsertHtmlAttribute(attributes: string, name: string, value: string) {
+  const attributePattern = new RegExp(`\\s${name}=(["']).*?\\1`, 'i');
+  const escapedValue = value.replace(/"/g, '&quot;');
+
+  if (attributePattern.test(attributes)) {
+    return attributes.replace(attributePattern, ` ${name}="${escapedValue}"`);
+  }
+
+  return `${attributes} ${name}="${escapedValue}"`;
+}
+
+function optimizeBlogContentImages(html: string) {
+  return html.replace(/<img\b([^>]*?)>/gi, (match, attributes: string) => {
+    const srcMatch = attributes.match(/\ssrc=(["'])(.*?)\1/i);
+    const src = srcMatch?.[2];
+
+    if (!src || !isSupabaseStorageImage(src)) {
+      return match;
+    }
+
+    const srcSet = CONTENT_IMAGE_WIDTHS
+      .map((width) => `${getNextImageUrl(src, width)} ${width}w`)
+      .join(', ');
+
+    const fallbackSrc = getNextImageUrl(src, 828);
+    let nextAttributes = attributes;
+
+    nextAttributes = upsertHtmlAttribute(nextAttributes, 'src', fallbackSrc);
+    nextAttributes = upsertHtmlAttribute(nextAttributes, 'srcset', srcSet);
+    nextAttributes = upsertHtmlAttribute(nextAttributes, 'sizes', CONTENT_IMAGE_SIZES);
+    nextAttributes = upsertHtmlAttribute(nextAttributes, 'loading', 'lazy');
+    nextAttributes = upsertHtmlAttribute(nextAttributes, 'decoding', 'async');
+
+    return `<img${nextAttributes}>`;
+  });
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -152,6 +208,7 @@ export default async function BlogPostPage({ params }: Props) {
   const encodedShareUrl = encodeURIComponent(shareUrl);
   const encodedShareText = encodeURIComponent(shareText);
   const encodedShareTitle = encodeURIComponent(post.title);
+  const optimizedContentHtml = optimizeBlogContentImages(post.content_html);
 
   return (
     <>
@@ -215,8 +272,9 @@ export default async function BlogPostPage({ params }: Props) {
               alt={post.featured_image_alt || post.title}
               width={1440}
               height={900}
-              preload
-              sizes="(max-width: 1024px) 100vw, 960px"
+              fetchPriority="high"
+              loading="eager"
+              sizes={FEATURED_IMAGE_SIZES}
               className="h-auto w-full"
             />
             {post.featured_image_alt && (
@@ -229,7 +287,7 @@ export default async function BlogPostPage({ params }: Props) {
 
         <div
           className="prose mb-12 max-w-none prose-headings:font-sans prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[#1a8917] prose-p:my-[1.05em] prose-p:font-serif prose-p:text-[18px] prose-p:font-normal prose-p:leading-[28px] prose-p:text-[#242424] prose-li:font-serif prose-li:text-[18px] prose-li:font-normal prose-li:leading-[28px] prose-li:text-[#242424] prose-blockquote:border-l-[#242424] prose-blockquote:font-serif prose-blockquote:text-[#6b6b6b] prose-pre:border prose-pre:border-[#f2f2f2] prose-pre:bg-[#f7f7f7] dark:prose-invert dark:prose-p:text-foreground dark:prose-li:text-foreground dark:prose-pre:border-border dark:prose-pre:bg-muted sm:mb-14 sm:prose-p:my-[1.12em] [&_p:has(br:only-child)]:my-1"
-          dangerouslySetInnerHTML={{ __html: post.content_html }}
+          dangerouslySetInnerHTML={{ __html: optimizedContentHtml }}
         />
 
         <div className="mb-12 border-y border-[#f2f2f2] py-6 dark:border-border/60">
