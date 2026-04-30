@@ -62,12 +62,12 @@ export default async function BlogLayout({
   const articleListHref = `${homeHref}#latest-articles`;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-white text-[#242424] dark:bg-[#0f0f0f] dark:text-foreground">
       {/* ── Top gradient accent line ── */}
       <div className="gradient-accent-line h-[3px]" />
 
       {/* ── Navbar ── */}
-      <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-2xl">
+      <nav className="sticky top-0 z-50 border-b border-[#f2f2f2] bg-white/95 backdrop-blur-2xl dark:border-border/60 dark:bg-[#0f0f0f]/90">
         <div className="mx-auto flex min-h-16 max-w-[1400px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link href={homeHref} className="flex items-baseline gap-3 transition-opacity hover:opacity-80">
             <span className="text-[16px] font-black tracking-tight text-foreground sm:text-[17px]">Ziaul Maula</span>
@@ -111,7 +111,7 @@ export default async function BlogLayout({
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-border/60 bg-card/50">
+      <footer className="border-t border-[#f2f2f2] bg-white dark:border-border/60 dark:bg-[#0f0f0f]">
         <div className="mx-auto max-w-[1400px] px-4 py-10 sm:px-6 sm:py-12">
           <div className="grid gap-10 md:grid-cols-3">
             {/* Column 1 — Branding */}

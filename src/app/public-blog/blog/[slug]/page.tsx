@@ -115,36 +115,36 @@ export default async function BlogPostPage({ params }: Props) {
   return (
     <>
       <ReadingProgressBar />
-      <article className="mx-auto max-w-[760px]">
+      <article className="mx-auto max-w-[720px] bg-white dark:bg-[#0f0f0f]">
         <Link
           href={withPublicBlogBase(blogBasePath, '/')}
-          className="mb-8 inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:border-foreground/20 hover:text-foreground sm:mb-10"
+          className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-[#6b6b6b] transition hover:text-[#242424] dark:text-muted-foreground dark:hover:text-foreground sm:mb-10"
         >
           <ArrowLeft className="h-4 w-4" /> Kembali ke beranda
         </Link>
 
-        <header className="mb-8 border-b border-border/70 pb-7 sm:mb-10 sm:pb-8">
+        <header className="mb-8 border-b border-[#f2f2f2] pb-7 dark:border-border/60 sm:mb-10 sm:pb-8">
           <div className="mb-5 flex flex-wrap gap-2">
             {post.tags?.map((tag) => (
               <span
                 key={tag.id}
-                className="rounded-full border border-emerald-500/20 bg-emerald-500/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300"
+                className="text-xs font-medium text-[#6b6b6b] dark:text-muted-foreground"
               >
                 {tag.name}
               </span>
             ))}
           </div>
-          <h1 className="mb-5 text-[2.35rem] font-black leading-[1.04] tracking-[-0.055em] text-[#242424] dark:text-foreground sm:mb-6 sm:text-5xl lg:text-[3.65rem]">
+          <h1 className="mb-5 text-[2.25rem] font-bold leading-[1.1] tracking-[-0.04em] text-[#242424] dark:text-foreground sm:mb-6 sm:text-5xl lg:text-[3.55rem]">
             {post.title}
           </h1>
           {post.excerpt && (
-            <p className="mb-6 max-w-2xl text-[18px] leading-8 text-[#6b6b6b] dark:text-muted-foreground sm:text-[21px]">
+            <p className="mb-6 max-w-2xl text-[18px] leading-8 text-[#6b6b6b] dark:text-muted-foreground sm:text-[20px]">
               {post.excerpt}
             </p>
           )}
           <div className="flex flex-wrap items-center gap-4 text-sm text-[#6b6b6b] dark:text-muted-foreground sm:gap-6">
             <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1a8917] text-[12px] font-bold text-white shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#242424] text-[12px] font-bold text-white shadow-sm dark:bg-foreground dark:text-background">
                 ZM
               </div>
               <div className="leading-tight">
@@ -168,7 +168,7 @@ export default async function BlogPostPage({ params }: Props) {
         </header>
 
         {post.featured_image_url && (
-          <figure className="mb-8 overflow-hidden rounded-2xl border border-border bg-muted lg:mb-14">
+          <figure className="mb-8 overflow-hidden lg:mb-14">
             <Image
               src={post.featured_image_url}
               alt={post.featured_image_alt || post.title}
@@ -179,7 +179,7 @@ export default async function BlogPostPage({ params }: Props) {
               className="h-auto w-full"
             />
             {post.featured_image_alt && (
-              <figcaption className="p-4 text-center text-xs text-muted-foreground">
+              <figcaption className="pt-3 text-center text-xs text-[#6b6b6b] dark:text-muted-foreground">
                 {post.featured_image_alt}
               </figcaption>
             )}
@@ -187,25 +187,25 @@ export default async function BlogPostPage({ params }: Props) {
         )}
 
         <div
-          className="prose prose-lg mb-12 max-w-none prose-headings:font-black prose-headings:tracking-tight prose-a:text-[#1a8917] prose-p:my-4 prose-p:text-[#242424] prose-p:leading-[1.86] prose-li:text-[#242424] prose-blockquote:border-l-[#1a8917] prose-blockquote:text-[#6b6b6b] prose-pre:border prose-pre:border-border prose-pre:bg-muted dark:prose-invert dark:prose-p:text-foreground dark:prose-li:text-foreground sm:mb-14 [&_p:has(br:only-child)]:my-1"
+          className="prose mb-12 max-w-none prose-headings:font-sans prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[#1a8917] prose-p:my-5 prose-p:font-serif prose-p:text-[21px] prose-p:leading-[1.72] prose-p:text-[#242424] prose-li:font-serif prose-li:text-[21px] prose-li:leading-[1.72] prose-li:text-[#242424] prose-blockquote:border-l-[#242424] prose-blockquote:font-serif prose-blockquote:text-[#6b6b6b] prose-pre:border prose-pre:border-[#f2f2f2] prose-pre:bg-[#f7f7f7] dark:prose-invert dark:prose-p:text-foreground dark:prose-li:text-foreground dark:prose-pre:border-border dark:prose-pre:bg-muted sm:mb-14 [&_p:has(br:only-child)]:my-1"
           dangerouslySetInnerHTML={{ __html: post.content_html }}
         />
 
-        <div className="mb-10 rounded-[28px] border border-border/70 bg-[#faf9f5] p-5 shadow-sm dark:bg-muted/60 sm:p-6">
+        <div className="mb-12 border-y border-[#f2f2f2] py-6 dark:border-border/60">
           <div className="mb-5 flex flex-wrap gap-2">
             {post.tags?.map((tag) => (
               <span
                 key={tag.id}
-                className="rounded-full border border-border bg-background px-4 py-1.5 text-sm font-medium text-[#4b5563] dark:bg-background/60 dark:text-foreground"
+                className="rounded-full bg-[#f7f7f7] px-4 py-1.5 text-sm font-medium text-[#6b6b6b] dark:bg-muted dark:text-muted-foreground"
               >
                 #{tag.slug}
               </span>
             ))}
           </div>
-          <div className="flex flex-col gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-[#242424] dark:text-foreground">Bagikan artikel ini</p>
-              <p className="text-xs text-muted-foreground">Pilih kanal yang paling nyaman buat pembaca.</p>
+              <p className="text-xs text-[#6b6b6b] dark:text-muted-foreground">Pilih kanal yang paling nyaman buat pembaca.</p>
             </div>
             <div className="grid grid-cols-5 gap-2 sm:flex sm:items-center sm:gap-2">
             <a
@@ -213,7 +213,7 @@ export default async function BlogPostPage({ params }: Props) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Bagikan ke X"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-background text-[#242424] ring-1 ring-border/70 transition hover:bg-[#242424] hover:text-white dark:bg-background/60 dark:text-foreground"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#242424] ring-1 ring-[#e6e6e6] transition hover:bg-[#242424] hover:text-white dark:bg-[#0f0f0f] dark:ring-border dark:text-foreground"
             >
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             </a>
@@ -222,7 +222,7 @@ export default async function BlogPostPage({ params }: Props) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Bagikan ke LinkedIn"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-background text-[#0A66C2] ring-1 ring-border/70 transition hover:bg-[#0A66C2] hover:text-white dark:bg-background/60"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#0A66C2] ring-1 ring-[#e6e6e6] transition hover:bg-[#0A66C2] hover:text-white dark:bg-[#0f0f0f] dark:ring-border"
             >
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
             </a>
@@ -231,7 +231,7 @@ export default async function BlogPostPage({ params }: Props) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Bagikan ke Telegram"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-background text-[#229ED9] ring-1 ring-border/70 transition hover:bg-[#229ED9] hover:text-white dark:bg-background/60"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#229ED9] ring-1 ring-[#e6e6e6] transition hover:bg-[#229ED9] hover:text-white dark:bg-[#0f0f0f] dark:ring-border"
             >
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9.78 15.5 9.4 20.8c.54 0 .78-.23 1.06-.51l2.55-2.44 5.29 3.87c.97.53 1.65.25 1.91-.9l3.46-16.22h.01c.31-1.43-.52-1.99-1.46-1.64L1.89 10.76C.5 11.3.52 12.08 1.66 12.43l5.2 1.62L18.94 6.5c.57-.38 1.09-.17.66.21L9.78 15.5z"/></svg>
             </a>
@@ -240,7 +240,7 @@ export default async function BlogPostPage({ params }: Props) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Bagikan ke WhatsApp"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-background text-[#25D366] ring-1 ring-border/70 transition hover:bg-[#25D366] hover:text-white dark:bg-background/60"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#25D366] ring-1 ring-[#e6e6e6] transition hover:bg-[#25D366] hover:text-white dark:bg-[#0f0f0f] dark:ring-border"
             >
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.52 3.48A11.86 11.86 0 0 0 12.08 0C5.5 0 .15 5.35.15 11.93c0 2.1.55 4.16 1.6 5.97L0 24l6.25-1.64a11.93 11.93 0 0 0 5.83 1.49h.01c6.58 0 11.93-5.35 11.93-11.93 0-3.19-1.24-6.18-3.5-8.44zM12.09 21.84h-.01a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.7.97.99-3.61-.23-.37a9.89 9.89 0 0 1-1.52-5.3c0-5.47 4.45-9.92 9.93-9.92a9.86 9.86 0 0 1 7.02 2.91 9.86 9.86 0 0 1 2.91 7.02c0 5.47-4.46 9.91-9.99 9.91zm5.44-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.21 5.09 4.5.71.31 1.27.49 1.7.63.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2.01-1.42.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35z"/></svg>
             </a>
@@ -249,7 +249,7 @@ export default async function BlogPostPage({ params }: Props) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Buka link artikel"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-background text-muted-foreground ring-1 ring-border/70 transition hover:bg-[#1a8917] hover:text-white dark:bg-background/60"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#6b6b6b] ring-1 ring-[#e6e6e6] transition hover:bg-[#1a8917] hover:text-white dark:bg-[#0f0f0f] dark:ring-border"
             >
               <LinkIcon className="h-4 w-4" />
             </a>
@@ -258,11 +258,11 @@ export default async function BlogPostPage({ params }: Props) {
         </div>
 
         {suggestedPosts.length > 0 && (
-          <section className="mb-16 rounded-[30px] border border-border/70 bg-background p-5 shadow-sm sm:p-6">
+          <section className="mb-16 border-t border-[#f2f2f2] pt-10 dark:border-border/60">
             <div className="mb-6 flex items-end justify-between gap-4">
               <div>
-                <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#1a8917]">Suggested posts</p>
-                <h2 className="text-2xl font-black tracking-tight text-[#242424] dark:text-foreground">Lanjut baca</h2>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#6b6b6b] dark:text-muted-foreground">Suggested posts</p>
+                <h2 className="text-2xl font-bold tracking-tight text-[#242424] dark:text-foreground">Lanjut baca</h2>
               </div>
               <Link href={withPublicBlogBase(blogBasePath, '/')} className="hidden text-sm font-semibold text-[#1a8917] hover:underline sm:inline">
                 Semua tulisan
@@ -273,9 +273,9 @@ export default async function BlogPostPage({ params }: Props) {
                 <Link
                   key={related.id}
                   href={withPublicBlogBase(blogBasePath, `/blog/${related.slug}`)}
-                  className="group block overflow-hidden rounded-2xl border border-border/70 bg-[#faf9f5] transition hover:-translate-y-0.5 hover:border-[#1a8917]/30 hover:shadow-lg hover:shadow-slate-900/8 dark:bg-muted/60"
+                  className="group block overflow-hidden border-t border-[#f2f2f2] pt-4 transition dark:border-border/60"
                 >
-                  <div className="relative aspect-[4/3] bg-muted">
+                  <div className="relative mb-3 aspect-[4/3] bg-[#f7f7f7] dark:bg-muted">
                     {related.featured_image_url && (
                       <Image
                         src={related.featured_image_url}
@@ -286,8 +286,8 @@ export default async function BlogPostPage({ params }: Props) {
                       />
                     )}
                   </div>
-                  <div className="p-4">
-                    <h3 className="line-clamp-2 text-[15px] font-black leading-snug text-[#242424] group-hover:text-[#1a8917] dark:text-foreground">
+                  <div>
+                    <h3 className="line-clamp-2 text-[15px] font-bold leading-snug text-[#242424] group-hover:text-[#1a8917] dark:text-foreground">
                       {related.title}
                     </h3>
                     <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
