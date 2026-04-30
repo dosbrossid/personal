@@ -7,6 +7,12 @@
 import { type NextRequest } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth'
+import {
+  getPrimaryReminderMinutes,
+  normalizeCalendarReminderRules,
+  queueCalendarReminderNotifications,
+} from '@/lib/notification-queue'
+import type { CalendarEvent, CalendarReminderRule } from '@/core/types'
 
 // PATCH /api/calendar/:id
 export async function PATCH(
@@ -14,20 +20,35 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth()
+    const user = await requireAuth()
     const { id } = await params
     const supabase = await createServerClient()
     const body = await request.json()
+    const updates = { ...body }
+
+    if ('reminder_config' in updates || 'reminder_minutes' in updates) {
+      const reminderConfig = normalizeCalendarReminderRules({
+        reminder_minutes: typeof updates.reminder_minutes === 'number' ? updates.reminder_minutes : null,
+        reminder_config: (updates.reminder_config as CalendarReminderRule[] | undefined) ?? [],
+      })
+      updates.reminder_config = reminderConfig
+      updates.reminder_minutes = getPrimaryReminderMinutes(reminderConfig)
+    }
 
     const { data, error } = await supabase
       .from('calendar_events')
-      .update(body)
+      .update(updates)
       .eq('id', id)
+      .eq('user_id', user.id)
       .select()
       .single()
 
     if (error) {
       return Response.json({ error: error.message }, { status: 400 })
+    }
+
+    if ('start_at' in updates || 'reminder_minutes' in updates || 'reminder_config' in updates) {
+      await queueCalendarReminderNotifications(supabase, user.id, data as CalendarEvent)
     }
 
     return Response.json(data)
@@ -45,7 +66,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth()
+    const user = await requireAuth()
     const { id } = await params
     const supabase = await createServerClient()
 
@@ -53,6 +74,7 @@ export async function DELETE(
       .from('calendar_events')
       .update({ is_deleted: true })
       .eq('id', id)
+      .eq('user_id', user.id)
 
     if (error) {
       return Response.json({ error: error.message }, { status: 400 })

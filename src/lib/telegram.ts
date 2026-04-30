@@ -20,12 +20,17 @@ interface TelegramFileResponse {
 }
 
 const MAX_TELEGRAM_IMAGE_BYTES = 8 * 1024 * 1024
+const TELEGRAM_MAX_MESSAGE_LENGTH = 3900
 
 export function hasTelegramConfig() {
   return Boolean(process.env.TELEGRAM_BOT_TOKEN)
 }
 
-export async function sendTelegramMessage(chatId: string, text: string) {
+export async function sendTelegramMessage(
+  chatId: string,
+  text: string,
+  options?: { parseMode?: 'MarkdownV2' }
+) {
   const token = process.env.TELEGRAM_BOT_TOKEN
 
   if (!token) {
@@ -37,8 +42,9 @@ export async function sendTelegramMessage(chatId: string, text: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       chat_id: chatId,
-      text,
+      text: text.slice(0, TELEGRAM_MAX_MESSAGE_LENGTH),
       disable_web_page_preview: true,
+      ...(options?.parseMode ? { parse_mode: options.parseMode } : {}),
     }),
   })
 

@@ -17,7 +17,7 @@ import {
 import { buildAssistantSystemPrompt } from '@/lib/ai/prompts'
 import { buildTelegramSmartRecallReply } from '@/lib/telegram-recall'
 import { queueCalendarReminderNotifications } from '@/lib/notification-queue'
-import type { AIResponse, AIResponseItem, UserPreferences } from '@/core/types'
+import type { AIResponse, AIResponseItem, CalendarReminderRule, UserPreferences } from '@/core/types'
 import type { RoleContext } from '@/core/constants'
 import { getHabitCadenceLabel } from '@/lib/habits'
 
@@ -86,14 +86,34 @@ function getTodayDateInJakarta() {
   }).format(new Date())
 }
 
+function md(value: string | number | null | undefined) {
+  return String(value ?? '').replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, '\\$&')
+}
+
+async function sendTelegramRichMessage(chatId: string, text: string) {
+  try {
+    await sendTelegramMessage(chatId, text, { parseMode: 'MarkdownV2' })
+  } catch {
+    await sendTelegramMessage(chatId, text.replace(/[\\*_`[\]()~>#+\-=|{}.!]/g, ''))
+  }
+}
+
 function formatDraft(items: AIResponseItem[], message: string, timezone = 'Asia/Jakarta') {
-  if (items.length === 0) return message
+  if (items.length === 0) return `💬 *Jawaban*\n${md(message)}`
 
   const itemLines = items
-    .map((item, index) => `${index + 1}. ${item.action}: ${item.data.title}\n   ${mapTelegramDraftDetail(item, timezone)}`)
+    .map((item, index) => `${index + 1}\\. *${md(item.action)}* — ${md(item.data.title)}\n   ${md(mapTelegramDraftDetail(item, timezone))}`)
     .join('\n')
 
-  return `${message}\n\nDraft:\n${itemLines}\n\nBalas /confirm untuk menyimpan lewat Telegram atau buka aplikasi untuk review penuh.`
+  return [
+    `🧠 *Draft siap direview*`,
+    md(message),
+    '',
+    itemLines,
+    '',
+    `✅ Balas /confirm untuk menyimpan`,
+    `❌ Balas /cancel untuk membatalkan`,
+  ].join('\n')
 }
 
 function mapTelegramDraftDetail(item: AIResponseItem, timezone: string) {
@@ -111,6 +131,23 @@ function mapTelegramDraftDetail(item: AIResponseItem, timezone: string) {
       return `${item.data.file_format ?? 'Dokumen'}${mk}`
     }
   }
+}
+
+function formatTelegramReminderRules(rules: CalendarReminderRule[]) {
+  return rules
+    .map((rule) => {
+      if (rule.type === 'same_day_at') {
+        return `Hari H ${String(rule.hour).padStart(2, '0')}:${String(rule.minute).padStart(2, '0')}`
+      }
+
+      if (rule.minutes === 0) return 'saat mulai'
+      if (rule.minutes === 15) return '15 menit sebelumnya'
+      if (rule.minutes === 30) return '30 menit sebelumnya'
+      if (rule.minutes === 60) return '1 jam sebelumnya'
+      if (rule.minutes === 1440) return 'H-1'
+      return `${rule.minutes} menit sebelumnya`
+    })
+    .join(', ')
 }
 
 function parseStoredAIResponse(value: unknown): AIResponse | null {
@@ -668,6 +705,40 @@ function parseTelegramTime(input: string) {
   return { hour, minute }
 }
 
+function parseTelegramReminderRules(input: string): CalendarReminderRule[] {
+  const normalized = normalizeText(input)
+  const rules: CalendarReminderRule[] = []
+
+  if (/\b(h\s*-?\s*1|h-1|sehari|1 hari|satu hari|besoknya|day before)\b/.test(normalized)) {
+    rules.push({ type: 'before_minutes', minutes: 1440 })
+  }
+
+  if (/\b(15 menit|seperempat jam)\b/.test(normalized)) {
+    rules.push({ type: 'before_minutes', minutes: 15 })
+  }
+
+  if (/\b(30 menit|setengah jam)\b/.test(normalized)) {
+    rules.push({ type: 'before_minutes', minutes: 30 })
+  }
+
+  if (/\b(1 jam|satu jam|60 menit)\b/.test(normalized)) {
+    rules.push({ type: 'before_minutes', minutes: 60 })
+  }
+
+  const sameDayAtMatch = normalized.match(/\b(?:hari h|hari ini|pagi)\s*(?:jam|pukul)?\s*(\d{1,2})(?::|\.| lewat )?(\d{2})?\b/)
+    ?? normalized.match(/\b(?:reminder|ingatkan)\s*(?:jam|pukul)\s*(\d{1,2})(?::|\.| lewat )?(\d{2})?\b/)
+
+  if (sameDayAtMatch) {
+    const hour = Math.max(0, Math.min(23, Number(sameDayAtMatch[1])))
+    const minute = sameDayAtMatch[2] ? Math.max(0, Math.min(59, Number(sameDayAtMatch[2]))) : 0
+    rules.push({ type: 'same_day_at', hour, minute })
+  }
+
+  return rules.filter((rule, index, allRules) =>
+    allRules.findIndex((candidate) => JSON.stringify(candidate) === JSON.stringify(rule)) === index
+  )
+}
+
 function extractCalendarTitleKeywords(input: string) {
   const stopwords = new Set([
     'ubah',
@@ -683,6 +754,11 @@ function extractCalendarTitleKeywords(input: string) {
     'event',
     'acara',
     'waktu',
+    'reminder',
+    'pengingat',
+    'ingatkan',
+    'tambah',
+    'tambahkan',
     'jam',
     'pukul',
     'ke',
@@ -709,24 +785,28 @@ function extractCalendarTitleKeywords(input: string) {
     .filter((word) => word.length >= 3 && !stopwords.has(word) && !/^\d+$/.test(word))
 }
 
-function shouldTryCalendarUpdate(input: string) {
+function hasCalendarUpdateIntent(input: string) {
   const normalized = normalizeText(input)
   const hasUpdateIntent = ['ubah', 'diubah', 'ganti', 'edit', 'update', 'reschedule'].some((word) =>
     normalized.includes(word)
   )
-  const hasCalendarCue = ['jadwal', 'calendar', 'kalender', 'agenda', 'event', 'acara', 'bimbingan'].some((word) =>
+  const hasCalendarCue = ['jadwal', 'calendar', 'kalender', 'agenda', 'event', 'acara', 'bimbingan', 'reminder', 'pengingat'].some((word) =>
     normalized.includes(word)
   )
 
-  return hasUpdateIntent && hasCalendarCue && Boolean(parseTelegramTime(input))
+  return hasUpdateIntent && hasCalendarCue
 }
 
 async function handleTelegramCalendarUpdate(user: LinkedUser, input: string) {
-  if (!shouldTryCalendarUpdate(input)) return null
+  if (!hasCalendarUpdateIntent(input)) return null
 
   const timezone = user.preferences?.timezone || 'Asia/Jakarta'
   const time = parseTelegramTime(input)
-  if (!time) return null
+  const reminderRules = parseTelegramReminderRules(input)
+
+  if (!time && reminderRules.length === 0) {
+    return '🕒 *Mau ubah apa?*\nSaya menangkap ini sebagai edit agenda, tapi belum ada jam atau reminder baru\\. Contoh: `ubah bimbingan skripsi besok ke jam 11 siang` atau `ubah reminder bimbingan skripsi jadi H-1 dan 15 menit sebelumnya`\\.'
+  }
 
   const targetDateKey = resolveTelegramDateKey(input, timezone)
   const startDateKey = targetDateKey ?? getLocalDateKey(-1, timezone)
@@ -747,19 +827,20 @@ async function handleTelegramCalendarUpdate(user: LinkedUser, input: string) {
     .limit(20)
 
   if (error) {
-    return `Saya belum bisa membaca kalender untuk update itu: ${error.message}`
+    return `⚠️ *Kalender belum bisa dibaca*\n${md(error.message)}`
   }
 
   const candidates = (events ?? []).filter((event) => {
     if (!titleKeywords.length) return true
     const title = normalizeText(String(event.title))
-    return titleKeywords.every((keyword) => title.includes(keyword))
+    return titleKeywords.every((keyword) => title.includes(keyword)) ||
+      titleKeywords.some((keyword) => title.includes(keyword))
   })
 
   if (!candidates.length) {
     return targetDateKey
-      ? `Saya belum menemukan agenda yang cocok pada ${targetDateKey}. Coba sebutkan judul acaranya persis.`
-      : 'Saya belum menemukan agenda yang cocok untuk diubah. Coba sebutkan judul dan tanggalnya.'
+      ? `🔎 *Agenda belum ketemu*\nSaya belum menemukan agenda yang cocok pada *${md(targetDateKey)}*\\. Coba sebutkan judul acaranya persis\\.`
+      : '🔎 *Agenda belum ketemu*\nSaya belum menemukan agenda yang cocok untuk diubah\\. Coba sebutkan judul dan tanggalnya\\.'
   }
 
   if (candidates.length > 1) {
@@ -768,7 +849,7 @@ async function handleTelegramCalendarUpdate(user: LinkedUser, input: string) {
       .map((event, index) => `${index + 1}. ${event.title} (${formatTelegramLocalDateTime(event.start_at, timezone)})`)
       .join('\n')
 
-    return `Saya menemukan beberapa agenda yang mungkin cocok:\n${options}\n\nTolong sebutkan yang mana yang mau diubah.`
+    return `🔎 *Saya menemukan beberapa agenda:*\n${md(options)}\n\nTolong sebutkan yang mana yang mau diubah\\.`
   }
 
   const event = candidates[0]
@@ -778,11 +859,19 @@ async function handleTelegramCalendarUpdate(user: LinkedUser, input: string) {
     ? currentEnd.getTime() - currentStart.getTime()
     : null
   const eventDateKey = targetDateKey ?? formatInTimeZone(currentStart, timezone, 'yyyy-MM-dd')
-  const newStart = fromZonedTime(
-    `${eventDateKey}T${String(time.hour).padStart(2, '0')}:${String(time.minute).padStart(2, '0')}:00`,
-    timezone
-  )
-  const newEnd = durationMs ? new Date(newStart.getTime() + durationMs) : null
+  const newStart = time
+    ? fromZonedTime(
+        `${eventDateKey}T${String(time.hour).padStart(2, '0')}:${String(time.minute).padStart(2, '0')}:00`,
+        timezone
+      )
+    : currentStart
+  const newEnd = time && durationMs ? new Date(newStart.getTime() + durationMs) : currentEnd
+  const nextReminderConfig = reminderRules.length > 0
+    ? reminderRules
+    : ((event.reminder_config as CalendarReminderRule[] | null) ?? [])
+  const nextReminderMinutes = nextReminderConfig.find((rule) => rule.type === 'before_minutes')?.minutes
+    ?? event.reminder_minutes
+    ?? null
 
   const { data: updatedEvent, error: updateError } = await supabase
     .from('calendar_events')
@@ -790,6 +879,8 @@ async function handleTelegramCalendarUpdate(user: LinkedUser, input: string) {
       start_at: newStart.toISOString(),
       end_at: newEnd?.toISOString() ?? null,
       is_all_day: false,
+      reminder_minutes: nextReminderMinutes,
+      reminder_config: nextReminderConfig,
     })
     .eq('id', event.id)
     .eq('user_id', user.id)
@@ -797,7 +888,7 @@ async function handleTelegramCalendarUpdate(user: LinkedUser, input: string) {
     .single()
 
   if (updateError || !updatedEvent) {
-    return `Saya gagal mengubah jadwal itu: ${updateError?.message ?? 'event tidak ditemukan'}`
+    return `⚠️ *Gagal mengubah agenda*\n${md(updateError?.message ?? 'event tidak ditemukan')}`
   }
 
   await queueCalendarReminderNotifications(
@@ -806,7 +897,10 @@ async function handleTelegramCalendarUpdate(user: LinkedUser, input: string) {
     updatedEvent
   )
 
-  return `Sudah saya ubah "${updatedEvent.title}" ke ${formatTelegramLocalDateTime(updatedEvent.start_at, timezone)} WIB.`
+  const reminderText = reminderRules.length > 0
+    ? `\n🔔 Reminder: ${md(formatTelegramReminderRules(reminderRules))}`
+    : ''
+  return `✅ *Agenda diperbarui*\n📌 ${md(updatedEvent.title)}\n🕒 ${md(formatTelegramLocalDateTime(updatedEvent.start_at, timezone))} WIB${reminderText}`
 }
 
 async function findLinkedUser(chatId: string) {
@@ -833,11 +927,11 @@ async function handleTasks(user: LinkedUser) {
     .limit(5)
 
   if (!data?.length) {
-    return 'Tidak ada task aktif. Napas dulu, dashboard juga butuh hari tenang.'
+    return '✅ *Task aktif kosong*\nTidak ada task aktif\\. Napas dulu, dashboard juga butuh hari tenang\\.'
   }
 
-  return `5 task aktif terdekat:\n${data
-    .map((task, index) => `${index + 1}. ${task.title} (${task.priority}${task.due_date ? `, ${task.due_date}` : ''})`)
+  return `📌 *5 task aktif terdekat:*\n${data
+    .map((task, index) => `${index + 1}\\. ${md(task.title)} \\(${md(task.priority)}${task.due_date ? `, ${md(task.due_date)}` : ''}\\)`)
     .join('\n')}`
 }
 
@@ -852,10 +946,10 @@ async function handleHabits(user: LinkedUser) {
     .order('created_at', { ascending: false })
     .limit(10)
 
-  if (!data?.length) return 'Belum ada habit aktif.'
+  if (!data?.length) return '🌱 *Habit kosong*\nBelum ada habit aktif\\.'
 
-  return `Habit aktif:\n${data
-    .map((habit, index) => `${index + 1}. ${habit.name} (${getHabitCadenceLabel(habit)})`)
+  return `🌱 *Habit aktif:*\n${data
+    .map((habit, index) => `${index + 1}\\. ${md(habit.name)} \\(${md(getHabitCadenceLabel(habit))}\\)`)
     .join('\n')}`
 }
 
@@ -897,10 +991,10 @@ async function handleToday(user: LinkedUser) {
   const habits = habitsResult.data ?? []
 
   return [
-    `Ringkasan hari ini (${today})`,
-    `Task: ${tasks.length ? tasks.map((task) => task.title).join(', ') : 'kosong'}`,
-    `Agenda: ${events.length ? events.map((event) => event.title).join(', ') : 'kosong'}`,
-    `Habit: ${habits.length ? habits.map((habit) => habit.name).join(', ') : 'kosong'}`,
+    `🗓️ *Ringkasan hari ini* \\(${md(today)}\\)`,
+    `📌 *Task:* ${tasks.length ? md(tasks.map((task) => task.title).join(', ')) : 'kosong'}`,
+    `🕒 *Agenda:* ${events.length ? md(events.map((event) => event.title).join(', ')) : 'kosong'}`,
+    `🌱 *Habit:* ${habits.length ? md(habits.map((habit) => habit.name).join(', ')) : 'kosong'}`,
   ].join('\n')
 }
 
@@ -1018,17 +1112,17 @@ export async function POST(request: NextRequest) {
   }
 
   if (text.startsWith('/tasks')) {
-    await sendTelegramMessage(chatId, await handleTasks(linkedUser))
+    await sendTelegramRichMessage(chatId, await handleTasks(linkedUser))
     return Response.json({ ok: true })
   }
 
   if (text.startsWith('/habits')) {
-    await sendTelegramMessage(chatId, await handleHabits(linkedUser))
+    await sendTelegramRichMessage(chatId, await handleHabits(linkedUser))
     return Response.json({ ok: true })
   }
 
   if (text.startsWith('/today')) {
-    await sendTelegramMessage(chatId, await handleToday(linkedUser))
+    await sendTelegramRichMessage(chatId, await handleToday(linkedUser))
     return Response.json({ ok: true })
   }
 
@@ -1060,7 +1154,7 @@ export async function POST(request: NextRequest) {
       latency_ms: null,
     })
 
-    await sendTelegramMessage(chatId, calendarUpdateReply)
+    await sendTelegramRichMessage(chatId, calendarUpdateReply)
     return Response.json({ ok: true, calendar_updated: true })
   }
 
@@ -1072,7 +1166,7 @@ export async function POST(request: NextRequest) {
       .eq('source', 'telegram')
       .eq('status', 'draft')
 
-    await sendTelegramMessage(chatId, 'Draft Telegram terakhir sudah dibatalkan.')
+    await sendTelegramRichMessage(chatId, '❌ *Draft dibatalkan*\nDraft Telegram terakhir sudah dibatalkan\\.')
     return Response.json({ ok: true })
   }
 
@@ -1088,14 +1182,14 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (latestDraftError) {
-      await sendTelegramMessage(chatId, `Gagal membaca draft terakhir: ${latestDraftError.message}`)
+      await sendTelegramRichMessage(chatId, `⚠️ *Gagal membaca draft*\n${md(latestDraftError.message)}`)
       return Response.json({ ok: true, confirmed: false })
     }
 
     const aiResponse = parseStoredAIResponse(latestDraft?.ai_response)
 
     if (!latestDraft || !aiResponse) {
-      await sendTelegramMessage(chatId, 'Tidak ada draft Telegram yang siap dikonfirmasi.')
+      await sendTelegramRichMessage(chatId, 'ℹ️ *Tidak ada draft*\nBelum ada draft Telegram yang siap dikonfirmasi\\.')
       return Response.json({ ok: true, confirmed: false })
     }
 
@@ -1113,7 +1207,7 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', latestDraft.id)
 
-    await sendTelegramMessage(chatId, buildAIExecutionMessage(execution))
+    await sendTelegramRichMessage(chatId, `✅ *Eksekusi selesai*\n${md(buildAIExecutionMessage(execution))}`)
     return Response.json({ ok: true })
   }
 
@@ -1155,7 +1249,7 @@ export async function POST(request: NextRequest) {
         latency_ms: totalLatencyMs,
       })
 
-      await sendTelegramMessage(chatId, smartRecallReply)
+      await sendTelegramRichMessage(chatId, `💬 *Jawaban*\n${md(smartRecallReply)}`)
       return Response.json({ ok: true, recalled: true, fallback: true })
     }
   }
@@ -1173,10 +1267,10 @@ export async function POST(request: NextRequest) {
   })
 
   if (!aiResponse) {
-    await sendTelegramMessage(chatId, 'AI belum bisa memproses pesan itu. Coba tulis lebih spesifik ya.')
+    await sendTelegramRichMessage(chatId, '⚠️ *Belum bisa diproses*\nCoba tulis lebih spesifik ya\\.')
     return Response.json({ ok: true, parsed: false })
   }
 
-  await sendTelegramMessage(chatId, formatDraft(aiResponse.items, aiResponse.ai_message, linkedUser.preferences?.timezone))
+  await sendTelegramRichMessage(chatId, formatDraft(aiResponse.items, aiResponse.ai_message, linkedUser.preferences?.timezone))
   return Response.json({ ok: true, parsed: true })
 }

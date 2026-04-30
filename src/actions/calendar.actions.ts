@@ -7,7 +7,11 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth'
-import { queueCalendarReminderNotifications } from '@/lib/notification-queue'
+import {
+  getPrimaryReminderMinutes,
+  normalizeCalendarReminderRules,
+  queueCalendarReminderNotifications,
+} from '@/lib/notification-queue'
 import type { ActionResult, CalendarEvent, CalendarReminderRule } from '@/core/types'
 
 /**
@@ -35,6 +39,11 @@ export async function createEvent(data: {
       return { data: null, error: 'Waktu mulai wajib diisi' }
     }
 
+    const reminderConfig = normalizeCalendarReminderRules({
+      reminder_minutes: data.reminder_minutes ?? null,
+      reminder_config: data.reminder_config ?? [],
+    })
+
     const { data: event, error } = await supabase
       .from('calendar_events')
       .insert({
@@ -44,8 +53,8 @@ export async function createEvent(data: {
         start_at: data.start_at,
         end_at: data.end_at || null,
         is_all_day: data.is_all_day || false,
-        reminder_minutes: data.reminder_minutes ?? null,
-        reminder_config: data.reminder_config ?? [],
+        reminder_minutes: getPrimaryReminderMinutes(reminderConfig),
+        reminder_config: reminderConfig,
         contextual_role: data.contextual_role || 'general',
         recurrence: data.recurrence || 'none',
       })
@@ -80,16 +89,27 @@ export async function updateEvent(
   try {
     const user = await requireAuth()
     const supabase = await createServerClient()
+    const normalizedUpdates = { ...updates }
+
+    if ('reminder_config' in updates || 'reminder_minutes' in updates) {
+      const reminderConfig = normalizeCalendarReminderRules({
+        reminder_minutes: updates.reminder_minutes ?? null,
+        reminder_config: updates.reminder_config ?? [],
+      })
+      normalizedUpdates.reminder_config = reminderConfig
+      normalizedUpdates.reminder_minutes = getPrimaryReminderMinutes(reminderConfig)
+    }
 
     const { data: event, error } = await supabase
       .from('calendar_events')
-      .update(updates)
+      .update(normalizedUpdates)
       .eq('id', id)
+      .eq('user_id', user.id)
       .select()
       .single()
 
     if (error) return { data: null, error: error.message }
-    if (updates.start_at || typeof updates.reminder_minutes === 'number' || Array.isArray(updates.reminder_config)) {
+    if (normalizedUpdates.start_at || 'reminder_minutes' in normalizedUpdates || Array.isArray(normalizedUpdates.reminder_config)) {
       await queueCalendarReminderNotifications(supabase, user.id, event as CalendarEvent)
     }
     return { data: event as CalendarEvent, error: null }
@@ -103,13 +123,14 @@ export async function updateEvent(
  */
 export async function deleteEvent(id: string): Promise<ActionResult<null>> {
   try {
-    await requireAuth()
+    const user = await requireAuth()
     const supabase = await createServerClient()
 
     const { error } = await supabase
       .from('calendar_events')
       .update({ is_deleted: true })
       .eq('id', id)
+      .eq('user_id', user.id)
 
     if (error) return { data: null, error: error.message }
     return { data: null, error: null }

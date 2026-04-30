@@ -14,12 +14,16 @@ interface InsertChain {
   insert: (values: unknown) => Promise<{ error: { message: string } | null }>
 }
 
+interface DeleteFilterChain {
+  eq: (column: string, value: string) => DeleteFilterChain & Promise<{ error: { message: string } | null }>
+}
+
 type NotificationClient = {
   from(table: 'users'): {
     select: (columns: string) => UserSelectChain
   }
   from(table: 'notifications'): InsertChain & {
-    delete: () => unknown
+    delete: () => DeleteFilterChain
   }
 }
 
@@ -110,7 +114,7 @@ async function clearPendingNotificationsForReference(
   const client = supabase as NotificationClient
   const deleteQuery = client
     .from('notifications')
-    .delete() as any
+    .delete()
 
   const { error } = await (deleteQuery
     .eq('user_id', userId)
@@ -169,9 +173,32 @@ function getLocalDateKey(dateValue: string, timezone: string) {
   return formatter.format(new Date(dateValue))
 }
 
-function normalizeReminderRules(event: Pick<CalendarEvent, 'reminder_minutes' | 'reminder_config'>) {
-  if (Array.isArray(event.reminder_config) && event.reminder_config.length > 0) {
-    return event.reminder_config
+export function normalizeCalendarReminderRules(
+  event: Pick<CalendarEvent, 'reminder_minutes' | 'reminder_config'>
+) {
+  const normalizedRules = Array.isArray(event.reminder_config)
+    ? event.reminder_config
+        .map((rule): CalendarReminderRule | null => {
+          if (rule.type === 'before_minutes') {
+            const minutes = Math.max(0, Math.round(rule.minutes))
+            return { type: 'before_minutes', minutes }
+          }
+
+          if (rule.type === 'same_day_at') {
+            const hour = Math.max(0, Math.min(23, Math.round(rule.hour)))
+            const minute = Math.max(0, Math.min(59, Math.round(rule.minute)))
+            return { type: 'same_day_at', hour, minute }
+          }
+
+          return null
+        })
+        .filter((rule): rule is CalendarReminderRule => Boolean(rule))
+    : []
+
+  if (normalizedRules.length > 0) {
+    return normalizedRules.filter((rule, index, rules) =>
+      rules.findIndex((candidate) => JSON.stringify(candidate) === JSON.stringify(rule)) === index
+    )
   }
 
   if (event.reminder_minutes === null || event.reminder_minutes === undefined || event.reminder_minutes < 0) {
@@ -181,11 +208,15 @@ function normalizeReminderRules(event: Pick<CalendarEvent, 'reminder_minutes' | 
   return [{ type: 'before_minutes', minutes: event.reminder_minutes } satisfies CalendarReminderRule]
 }
 
+export function getPrimaryReminderMinutes(rules: CalendarReminderRule[]) {
+  return rules.find((rule) => rule.type === 'before_minutes')?.minutes ?? null
+}
+
 function buildReminderSchedules(
   event: Pick<CalendarEvent, 'title' | 'start_at' | 'reminder_minutes' | 'reminder_config'>,
   timezone: string
 ) {
-  const rules = normalizeReminderRules(event)
+  const rules = normalizeCalendarReminderRules(event)
   const startAt = new Date(event.start_at)
 
   return rules

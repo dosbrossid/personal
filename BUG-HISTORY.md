@@ -1014,6 +1014,33 @@ TEMPLATE — Copy paste untuk setiap bug baru:
 **Status:** RESOLVED
 **Terkait:** `src/lib/ai/command-hub.ts`, `src/app/api/ai/command/route.ts`, `src/app/api/webhook/telegram/route.ts`
 
+## BUG-103 | 2026-04-30 | SEVERITY: High
+
+**Gejala:** Saat user Telegram meminta edit agenda, bot kadang membuat agenda baru alih-alih mengubah agenda yang sudah ada.
+**Root Cause:** Guard deterministic edit hanya aktif pada pola sempit dan tidak ada fallback keras untuk mencegah LLM membuat item `CALENDAR` baru ketika intent user jelas update/edit.
+**Fix:** Perluas deteksi intent edit kalender, perbaiki pencarian kandidat agenda, dan blok creation flow ketika intent edit belum berhasil dicocokkan.
+**Pelajaran:** Intent mutasi pada data existing harus ditangani deterministic lebih dulu; LLM hanya boleh create ketika intent benar-benar create, bukan saat update matcher gagal.
+**Status:** RESOLVED
+**Terkait:** `src/app/api/webhook/telegram/route.ts`
+
+## BUG-104 | 2026-04-30 | SEVERITY: High
+
+**Gejala:** Multi-reminder kalender masih error di UI dan AI Bot.
+**Root Cause:** Queue reminder mencoba menghapus pending notification lama, tetapi RLS awal belum memberi policy `DELETE` untuk tabel `notifications`; selain itu validasi/normalisasi reminder belum dibuat sebagai shared helper yang konsisten.
+**Fix:** Tambahkan migration policy delete own notifications, normalisasi reminder rule sebelum insert/update, dan tampilkan summary multi-reminder dengan jelas di UI.
+**Pelajaran:** Fitur yang membuat ulang queue harus punya izin delete/update lifecycle lengkap; kalau hanya insert policy, save event bisa gagal di tahap requeue.
+**Status:** RESOLVED
+**Terkait:** `src/lib/notification-queue.ts`, `src/actions/calendar.actions.ts`, `src/app/(dashboard)/calendar/page.tsx`, `supabase/migrations/202604300001_notifications_delete_own.sql`
+
+## BUG-105 | 2026-04-30 | SEVERITY: Medium
+
+**Gejala:** Pesan Telegram bot terlihat datar, tidak rapi, tanpa markdown, dan kurang mudah discan.
+**Root Cause:** Formatter Telegram mengirim plain text mentah tanpa parse mode dan tanpa struktur visual per jenis balasan.
+**Fix:** Tambahkan formatter Markdown Telegram, escape karakter markdown, dan gunakan emoji secukupnya untuk draft, hasil edit, list task/habit/today, dan error.
+**Pelajaran:** Untuk channel chat, kualitas output bukan kosmetik; formatting adalah bagian dari UX dan mengurangi salah baca pada action penting.
+**Status:** RESOLVED
+**Terkait:** `src/app/api/webhook/telegram/route.ts`, `src/lib/telegram.ts`
+
 _Belum ada bug tercatat. Development backend dimulai._
 
 ---

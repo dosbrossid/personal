@@ -18,15 +18,32 @@ function parseReminderConfig(value: unknown): CalendarReminderRule[] | null {
       if (!rule || typeof rule !== 'object') return null
       const candidate = rule as Record<string, unknown>
 
-      if (candidate.type === 'before_minutes' && typeof candidate.minutes === 'number') {
-        const minutes = Math.max(0, Math.round(candidate.minutes))
+      const rawMinutes = typeof candidate.minutes === 'number'
+        ? candidate.minutes
+        : typeof candidate.minutes === 'string'
+          ? Number(candidate.minutes)
+          : null
+
+      if (candidate.type === 'before_minutes' && typeof rawMinutes === 'number' && Number.isFinite(rawMinutes)) {
+        const minutes = Math.max(0, Math.round(rawMinutes))
         return { type: 'before_minutes', minutes }
       }
 
-      if (candidate.type === 'same_day_at' && typeof candidate.hour === 'number') {
-        const hour = Math.max(0, Math.min(23, Math.round(candidate.hour)))
-        const minute = typeof candidate.minute === 'number'
-          ? Math.max(0, Math.min(59, Math.round(candidate.minute)))
+      const rawHour = typeof candidate.hour === 'number'
+        ? candidate.hour
+        : typeof candidate.hour === 'string'
+          ? Number(candidate.hour)
+          : null
+      const rawMinute = typeof candidate.minute === 'number'
+        ? candidate.minute
+        : typeof candidate.minute === 'string'
+          ? Number(candidate.minute)
+          : 0
+
+      if (candidate.type === 'same_day_at' && typeof rawHour === 'number' && Number.isFinite(rawHour)) {
+        const hour = Math.max(0, Math.min(23, Math.round(rawHour)))
+        const minute = typeof rawMinute === 'number' && Number.isFinite(rawMinute)
+          ? Math.max(0, Math.min(59, Math.round(rawMinute)))
           : 0
         return { type: 'same_day_at', hour, minute }
       }

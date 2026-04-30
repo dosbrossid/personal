@@ -5,7 +5,12 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { buildAssistantSystemPrompt, buildSystemPrompt } from '@/lib/ai/prompts'
-import { queueCalendarReminderNotifications, queueTaskDeadlineNotifications } from '@/lib/notification-queue'
+import {
+  getPrimaryReminderMinutes,
+  normalizeCalendarReminderRules,
+  queueCalendarReminderNotifications,
+  queueTaskDeadlineNotifications,
+} from '@/lib/notification-queue'
 import type { AIResponseItem, UserPreferences } from '@/core/types'
 import type { RoleContext } from '@/core/constants'
 
@@ -523,12 +528,11 @@ async function insertDraftItem(
 
     case 'CALENDAR': {
       const startAt = item.data.start_at ?? new Date().toISOString()
-      const reminderConfig = item.data.reminder_config ?? (
-        typeof item.data.reminder_minutes === 'number'
-          ? [{ type: 'before_minutes' as const, minutes: item.data.reminder_minutes }]
-          : []
-      )
-      const primaryReminderMinutes = reminderConfig.find((rule) => rule.type === 'before_minutes')?.minutes ?? item.data.reminder_minutes ?? null
+      const reminderConfig = normalizeCalendarReminderRules({
+        reminder_minutes: item.data.reminder_minutes,
+        reminder_config: item.data.reminder_config ?? [],
+      })
+      const primaryReminderMinutes = getPrimaryReminderMinutes(reminderConfig)
       const { data, error } = await supabase
         .from('calendar_events')
         .insert({

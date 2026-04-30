@@ -92,6 +92,13 @@ function getReminderSummary(event: Pick<CalendarEvent, 'reminder_minutes' | 'rem
   return rules.map(getReminderRuleLabel);
 }
 
+function getReminderSummaryText(event: Pick<CalendarEvent, 'reminder_minutes' | 'reminder_config'>) {
+  const labels = getReminderSummary(event);
+  if (!labels) return null;
+  if (labels.length <= 2) return labels.join(' + ');
+  return `${labels[0]} + ${labels.length - 1} lainnya`;
+}
+
 function isHolidayEvent(event: { event_source?: 'user' | 'holiday' }): event is CalendarDisplayEvent & { event_source: 'holiday' } {
   return event.event_source === 'holiday';
 }
@@ -456,9 +463,9 @@ export default function CalendarPage() {
                           ? 'Seharian'
                           : `${format(new Date(event.start_at), 'HH:mm')}${event.end_at ? ` - ${format(new Date(event.end_at), 'HH:mm')}` : ''}`}
                       </span>
-                      {getReminderSummary(event) && (
+                      {getReminderSummaryText(event) && (
                         <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
-                          <Bell className="h-3 w-3" /> {getReminderSummary(event)?.[0]}
+                          <Bell className="h-3 w-3" /> {getReminderSummaryText(event)}
                         </span>
                       )}
                       {isHolidayEvent(event) ? (
@@ -537,8 +544,8 @@ export default function CalendarPage() {
                               {ROLES[event.contextual_role].icon} {ROLES[event.contextual_role].label}
                             </span>
                           )}
-                          {getReminderSummary(event) && (
-                            <span className="text-[11px] text-muted-foreground">Reminder {getReminderSummary(event)?.[0]}</span>
+                          {getReminderSummaryText(event) && (
+                            <span className="text-[11px] text-muted-foreground">Reminder {getReminderSummaryText(event)}</span>
                           )}
                         </div>
                       </div>
