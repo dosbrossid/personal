@@ -115,7 +115,7 @@ export default async function BlogPostPage({ params }: Props) {
   return (
     <>
       <ReadingProgressBar />
-      <article className="mx-auto max-w-[720px] bg-white dark:bg-[#0f0f0f]">
+      <article className="mx-auto max-w-[720px] bg-white px-6 dark:bg-[#0f0f0f] sm:px-8 lg:px-0">
         <Link
           href={withPublicBlogBase(blogBasePath, '/')}
           className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-[#6b6b6b] transition hover:text-[#242424] dark:text-muted-foreground dark:hover:text-foreground sm:mb-10"
