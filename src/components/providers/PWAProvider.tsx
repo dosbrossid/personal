@@ -26,6 +26,10 @@ function isIOSDevice() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as Window & { MSStream?: unknown }).MSStream;
 }
 
+function isAndroidDevice() {
+  return /Android/i.test(navigator.userAgent);
+}
+
 export function PWAProvider() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
@@ -112,13 +116,22 @@ export function PWAProvider() {
 
       sessionStorage.setItem(INSTALL_PROMPT_SESSION_KEY, '1');
 
-      const description = isIOSDevice()
-        ? 'Di iPhone/iPad: buka Share, lalu pilih Add to Home Screen.'
-        : 'Kalau tombol native belum muncul, buka menu browser lalu pilih Install app/Add to Home screen.';
+      if (!isIOSDevice()) {
+        if (isAndroidDevice()) {
+          toast('Install PWA belum siap di browser ini.', {
+            id: INSTALL_TOAST_ID,
+            description:
+              'Jangan pilih Add to Home screen manual dulu. Tunggu tombol Install native dari Chrome agar app terbuka standalone, bukan sebagai shortcut browser.',
+            duration: 14000,
+          });
+        }
+
+        return;
+      }
 
       toast('Install Zmaula Dashboard', {
         id: INSTALL_TOAST_ID,
-        description,
+        description: 'Di iPhone/iPad: buka Share, lalu pilih Add to Home Screen.',
         duration: 12000,
         action: {
           label: 'Oke',

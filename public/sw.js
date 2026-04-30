@@ -1,8 +1,8 @@
-const VERSION = '2026-04-30-v2';
+const VERSION = '2026-04-30-v3';
 const APP_SHELL_CACHE = `zmaula-app-shell-${VERSION}`;
 const RUNTIME_CACHE = `zmaula-runtime-${VERSION}`;
 const OFFLINE_URL = '/offline';
-const APP_SHELL_ASSETS = ['/manifest.webmanifest', '/icon', '/apple-icon', OFFLINE_URL];
+const APP_SHELL_ASSETS = ['/manifest.webmanifest', '/icon-192', '/icon', '/apple-icon', OFFLINE_URL];
 const PUBLIC_NAVIGATION_PREFIXES = ['/public-blog', '/blog', '/tag'];
 const STATIC_ASSET_PREFIXES = ['/_next/static/', '/_next/image'];
 
