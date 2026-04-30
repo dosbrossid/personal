@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Briefcase,
   Clock,
-  GraduationCap,
   Megaphone,
   Monitor,
   Sparkles,
@@ -134,14 +133,8 @@ export default async function PublicBlogHome() {
         ═══════════════════════════════════════════ */}
         <section className="pt-8 md:pt-20">
           <div className="mx-auto max-w-4xl text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2.5 rounded-full border border-primary/20 bg-primary/[0.06] px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.2em] text-primary">
-              <GraduationCap className="h-4 w-4" />
-              Catatan Digital · Bisnis · AI
-            </div>
-
             {/* Headline */}
-            <h1 className="mt-8 text-[2.2rem] font-black leading-[1.08] tracking-[-0.04em] sm:text-[2.75rem] md:text-[4.5rem] lg:text-[5.5rem]">
+            <h1 className="text-[2.2rem] font-black leading-[1.08] tracking-[-0.04em] sm:text-[2.75rem] md:text-[4.5rem] lg:text-[5.5rem]">
               <span className="gradient-text-hero">Catatan, ide,</span>
               <br />
               <span className="text-foreground">dan proses belajar saya.</span>
