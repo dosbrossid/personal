@@ -8,6 +8,24 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 };
 
+type NavigatorWithStandalone = Navigator & {
+  standalone?: boolean;
+};
+
+const INSTALL_TOAST_ID = 'pwa-install-prompt';
+const INSTALL_PROMPT_SESSION_KEY = 'zmaula:pwa-install-prompt-shown';
+
+function isRunningStandalone() {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as NavigatorWithStandalone).standalone === true
+  );
+}
+
+function isIOSDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as Window & { MSStream?: unknown }).MSStream;
+}
+
 export function PWAProvider() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
@@ -77,18 +95,52 @@ export function PWAProvider() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || isRunningStandalone() || !window.isSecureContext) {
+      return;
+    }
+
+    let nativePromptWasShown = false;
+
+    const showInstallFallback = () => {
+      if (nativePromptWasShown || isRunningStandalone()) {
+        return;
+      }
+
+      if (sessionStorage.getItem(INSTALL_PROMPT_SESSION_KEY) === '1') {
+        return;
+      }
+
+      sessionStorage.setItem(INSTALL_PROMPT_SESSION_KEY, '1');
+
+      const description = isIOSDevice()
+        ? 'Di iPhone/iPad: buka Share, lalu pilih Add to Home Screen.'
+        : 'Kalau tombol native belum muncul, buka menu browser lalu pilih Install app/Add to Home screen.';
+
+      toast('Install Zmaula Dashboard', {
+        id: INSTALL_TOAST_ID,
+        description,
+        duration: 12000,
+        action: {
+          label: 'Oke',
+          onClick: () => toast.dismiss(INSTALL_TOAST_ID),
+        },
+      });
+    };
+
     const handleInstallPrompt = (event: Event) => {
       event.preventDefault();
+      nativePromptWasShown = true;
 
       const installPrompt = event as BeforeInstallPromptEvent;
 
       toast('Install Zmaula Dashboard?', {
-        id: 'pwa-install-prompt',
+        id: INSTALL_TOAST_ID,
         description: 'Buka lebih cepat dari home screen, terasa seperti app native.',
+        duration: 15000,
         action: {
           label: 'Install',
           onClick: async () => {
-            toast.dismiss('pwa-install-prompt');
+            toast.dismiss(INSTALL_TOAST_ID);
             await installPrompt.prompt();
             await installPrompt.userChoice.catch(() => undefined);
           },
@@ -96,10 +148,22 @@ export function PWAProvider() {
       });
     };
 
+    const handleAppInstalled = () => {
+      sessionStorage.setItem(INSTALL_PROMPT_SESSION_KEY, '1');
+      toast.success('Zmaula Dashboard berhasil diinstall.', {
+        id: INSTALL_TOAST_ID,
+      });
+    };
+
+    const fallbackTimer = window.setTimeout(showInstallFallback, 3000);
+
     window.addEventListener('beforeinstallprompt', handleInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
+      window.clearTimeout(fallbackTimer);
       window.removeEventListener('beforeinstallprompt', handleInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
