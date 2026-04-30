@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Script from 'next/script';
 import { format, parseISO } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import Link from 'next/link';
@@ -7,8 +8,6 @@ import { ArrowLeft, Clock, CalendarDays, Link as LinkIcon } from 'lucide-react';
 import { createServerClient } from '@/lib/supabase/server';
 import type { BlogPost } from '@/core/types';
 import type { Metadata } from 'next';
-import { ViewCountTracker } from '../../[slug]/ViewCountTracker';
-import { ReadingProgressBar } from '../../[slug]/ReadingProgressBar';
 import {
   getPublicBlogOgImageUrl,
   getPublicBlogPostUrl,
@@ -209,10 +208,11 @@ export default async function BlogPostPage({ params }: Props) {
   const encodedShareText = encodeURIComponent(shareText);
   const encodedShareTitle = encodeURIComponent(post.title);
   const optimizedContentHtml = optimizeBlogContentImages(post.content_html);
+  const viewTrackPath = `/api/public/blog/${post.id}/view`;
 
   return (
     <>
-      <ReadingProgressBar />
+      <div className="reading-progress-bar fixed left-0 right-0 top-0 z-[60] h-[3px] origin-left scale-x-0 bg-gradient-to-r from-primary via-primary/80 to-emerald-400 opacity-0 shadow-[0_0_8px_rgba(var(--primary-rgb),0.4)]" />
       <article className="mx-auto max-w-[720px] bg-white px-3 dark:bg-[#0f0f0f] sm:px-5 lg:px-0">
         <Link
           href={withPublicBlogBase(blogBasePath, '/')}
@@ -402,7 +402,9 @@ export default async function BlogPostPage({ params }: Props) {
           </section>
         )}
       </article>
-      <ViewCountTracker postId={post.id} />
+      <Script id={`blog-view-${post.id}`} strategy="lazyOnload">
+        {`fetch(${JSON.stringify(viewTrackPath)}, { method: 'POST' }).catch(function () {});`}
+      </Script>
     </>
   );
 }

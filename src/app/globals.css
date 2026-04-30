@@ -245,6 +245,27 @@
   50% { transform: translateY(-2px); }
 }
 
+@keyframes reading-progress-scale {
+  0% {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .reading-progress-bar {
+    animation: reading-progress-scale linear both;
+    animation-timeline: scroll(root block);
+  }
+}
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
