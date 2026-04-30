@@ -115,7 +115,7 @@ export default async function BlogPostPage({ params }: Props) {
   return (
     <>
       <ReadingProgressBar />
-      <article className="mx-auto max-w-[720px] bg-white px-4 dark:bg-[#0f0f0f] sm:px-6 lg:px-0">
+      <article className="mx-auto max-w-[720px] bg-white px-3 dark:bg-[#0f0f0f] sm:px-5 lg:px-0">
         <Link
           href={withPublicBlogBase(blogBasePath, '/')}
           className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-[#6b6b6b] transition hover:text-[#242424] dark:text-muted-foreground dark:hover:text-foreground sm:mb-10"
@@ -138,7 +138,7 @@ export default async function BlogPostPage({ params }: Props) {
             {post.title}
           </h1>
           {post.excerpt && (
-            <p className="mb-6 max-w-2xl text-[17px] leading-8 text-[#6b6b6b] dark:text-muted-foreground sm:text-[19px]">
+            <p className="mb-6 max-w-2xl text-[18px] font-normal leading-6 text-[#6b6b6b] dark:text-muted-foreground">
               {post.excerpt}
             </p>
           )}
@@ -187,7 +187,7 @@ export default async function BlogPostPage({ params }: Props) {
         )}
 
         <div
-          className="prose mb-12 max-w-none prose-headings:font-sans prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[#1a8917] prose-p:my-[1.05em] prose-p:font-serif prose-p:text-[17px] prose-p:leading-[1.58] prose-p:text-[#242424] prose-li:font-serif prose-li:text-[17px] prose-li:leading-[1.58] prose-li:text-[#242424] prose-blockquote:border-l-[#242424] prose-blockquote:font-serif prose-blockquote:text-[#6b6b6b] prose-pre:border prose-pre:border-[#f2f2f2] prose-pre:bg-[#f7f7f7] dark:prose-invert dark:prose-p:text-foreground dark:prose-li:text-foreground dark:prose-pre:border-border dark:prose-pre:bg-muted sm:mb-14 sm:prose-p:my-[1.12em] sm:prose-p:text-[19px] sm:prose-p:leading-[1.68] sm:prose-li:text-[19px] sm:prose-li:leading-[1.68] [&_p:has(br:only-child)]:my-1"
+          className="prose mb-12 max-w-none prose-headings:font-sans prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[#1a8917] prose-p:my-[1.05em] prose-p:font-serif prose-p:text-[18px] prose-p:font-normal prose-p:leading-[28px] prose-p:text-[#242424] prose-li:font-serif prose-li:text-[18px] prose-li:font-normal prose-li:leading-[28px] prose-li:text-[#242424] prose-blockquote:border-l-[#242424] prose-blockquote:font-serif prose-blockquote:text-[#6b6b6b] prose-pre:border prose-pre:border-[#f2f2f2] prose-pre:bg-[#f7f7f7] dark:prose-invert dark:prose-p:text-foreground dark:prose-li:text-foreground dark:prose-pre:border-border dark:prose-pre:bg-muted sm:mb-14 sm:prose-p:my-[1.12em] [&_p:has(br:only-child)]:my-1"
           dangerouslySetInnerHTML={{ __html: post.content_html }}
         />
 
