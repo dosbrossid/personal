@@ -25,7 +25,7 @@ export const metadata = {
 
 function InstagramGlyph() {
   return (
-    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
       <rect x="3.5" y="3.5" width="17" height="17" rx="4.5" />
       <circle cx="12" cy="12" r="4" />
       <circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" />
@@ -35,16 +35,15 @@ function InstagramGlyph() {
 
 function ThreadsGlyph() {
   return (
-    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9.2 9.2c.7-1.6 2.2-2.7 4.3-2.7 2.6 0 4.4 1.6 4.4 4.1 0 3.6-2.8 6.7-6.4 6.7-3.5 0-5.8-2.6-5.8-5.8 0-3.4 2.5-5.8 6.1-5.8 2.9 0 5 1.2 6.2 3.6" />
-      <path d="M13.3 10.4c2.8.2 4.5 1.2 4.5 3.2 0 1.8-1.6 3-4 3-2.3 0-3.9-1.1-3.9-2.9 0-1.7 1.5-2.9 3.9-2.9 1.4 0 2.6.3 3.5.9" />
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+      <path d="M17.38 11.37c-.18-.08-.36-.15-.55-.21-.33-3.09-2.01-4.85-4.66-4.87-1.6-.01-2.91.66-3.69 1.89l1.31.9c.59-.9 1.52-1.09 2.35-1.09h.02c1.77.01 2.82 1.11 3.1 3.22-.95-.13-1.98-.12-3.04.04-2.98.43-4.9 2.14-4.77 4.25.07 1.07.67 1.99 1.69 2.59.87.51 1.97.76 3.11.7 1.52-.08 2.71-.66 3.53-1.73.62-.81 1.01-1.87 1.18-3.22.77.46 1.34 1.11 1.66 1.89.55 1.33.58 3.51-1.18 5.27-1.55 1.55-3.42 2.22-6.23 2.24-3.12-.02-5.48-1.03-7.02-3.01-1.44-1.86-2.19-4.53-2.21-7.93.02-3.4.77-6.07 2.21-7.93 1.54-1.98 3.9-2.99 7.02-3.01 3.14.02 5.54 1.04 7.13 3.04.78.98 1.37 2.21 1.76 3.65l1.62-.43c-.47-1.7-1.18-3.16-2.13-4.36C19.66 1.08 16.84.03 13.2 0h-.01C9.56.03 6.76 1.08 4.84 3.22 3.13 5.12 2.25 8.11 2.22 12.29v.01c.03 4.18.91 7.17 2.62 9.07 1.92 2.14 4.72 3.19 8.35 3.22h.01c3.25-.02 5.52-.85 7.37-2.69 2.41-2.4 2.34-5.41 1.55-7.31-.57-1.37-1.62-2.48-3.04-3.22h.01ZM12.17 17.1c-1.26.07-2.58-.49-2.65-1.69-.05-.89.63-1.88 2.91-2.21.44-.06.86-.1 1.27-.1.57 0 1.11.06 1.61.17-.23 2.86-1.57 3.75-3.14 3.83Z" />
     </svg>
   );
 }
 
 function WhatsAppGlyph() {
   return (
-    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 20a8 8 0 1 0-4.2-1.2L5 21l2.4-2.5A8 8 0 0 0 12 20Z" />
       <path d="M9.4 8.8c.2-.5.4-.5.8-.5h.6c.2 0 .5.1.6.5l.5 1.4c.1.3 0 .5-.1.7l-.4.5c-.1.1-.2.3-.1.5.3.7 1 1.4 1.7 1.9.2.1.4.1.5 0l.6-.4c.2-.1.4-.2.7-.1l1.3.6c.3.1.5.3.5.6v.6c0 .3 0 .6-.5.8-.5.2-1.1.3-1.8.1-1.1-.3-2.4-1.1-3.5-2.2-1.1-1.1-1.9-2.4-2.2-3.5-.2-.7-.1-1.3.1-1.8Z" />
     </svg>
@@ -119,7 +118,7 @@ export default async function BlogLayout({
               <p className="text-[17px] font-black tracking-tight text-foreground">
                 Ziaul Maula
               </p>
-              <p className="text-[14px] leading-relaxed text-muted-foreground">
+              <p className="text-[15px] leading-relaxed text-muted-foreground">
                 Dosen FEB UNSAM · Digital Business Consultant · System Integrator.
                 Menulis tentang bisnis digital, pemasaran digital, e-business, dan web app.
               </p>
@@ -130,7 +129,7 @@ export default async function BlogLayout({
               <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                 Kontak
               </p>
-              <div className="space-y-3 text-[14px]">
+              <div className="space-y-3 text-[15px]">
                 <a
                   href="mailto:zmaula@unsam.ac.id"
                   className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-primary"
@@ -162,7 +161,7 @@ export default async function BlogLayout({
               <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                 Sosial Media
               </p>
-              <div className="space-y-3 text-[14px]">
+              <div className="space-y-3 text-[15px]">
                 <a
                   href="https://instagram.com/zmaula"
                   target="_blank"
@@ -195,7 +194,7 @@ export default async function BlogLayout({
           </div>
 
           {/* Bottom bar */}
-          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border/60 pt-6 text-[13px] text-muted-foreground md:flex-row">
+          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border/60 pt-6 text-[14px] text-muted-foreground md:flex-row">
             <p>© {new Date().getFullYear()} Ziaul Maula, SE, M.Si. Hak cipta dilindungi.</p>
             <a
               href="/api/public/rss"
