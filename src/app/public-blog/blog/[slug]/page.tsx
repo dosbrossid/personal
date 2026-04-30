@@ -187,7 +187,7 @@ export default async function BlogPostPage({ params }: Props) {
         )}
 
         <div
-          className="prose mb-12 max-w-none prose-headings:font-sans prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[#1a8917] prose-p:my-4 prose-p:font-serif prose-p:text-[18px] prose-p:leading-[1.78] prose-p:text-[#242424] prose-li:font-serif prose-li:text-[18px] prose-li:leading-[1.78] prose-li:text-[#242424] prose-blockquote:border-l-[#242424] prose-blockquote:font-serif prose-blockquote:text-[#6b6b6b] prose-pre:border prose-pre:border-[#f2f2f2] prose-pre:bg-[#f7f7f7] dark:prose-invert dark:prose-p:text-foreground dark:prose-li:text-foreground dark:prose-pre:border-border dark:prose-pre:bg-muted sm:mb-14 sm:prose-p:my-5 sm:prose-p:text-[21px] sm:prose-p:leading-[1.72] sm:prose-li:text-[21px] sm:prose-li:leading-[1.72] [&_p:has(br:only-child)]:my-1"
+          className="prose mb-12 max-w-none prose-headings:font-sans prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[#1a8917] prose-p:my-[1.05em] prose-p:font-serif prose-p:text-[18px] prose-p:leading-[1.58] prose-p:text-[#242424] prose-li:font-serif prose-li:text-[18px] prose-li:leading-[1.58] prose-li:text-[#242424] prose-blockquote:border-l-[#242424] prose-blockquote:font-serif prose-blockquote:text-[#6b6b6b] prose-pre:border prose-pre:border-[#f2f2f2] prose-pre:bg-[#f7f7f7] dark:prose-invert dark:prose-p:text-foreground dark:prose-li:text-foreground dark:prose-pre:border-border dark:prose-pre:bg-muted sm:mb-14 sm:prose-p:my-[1.12em] sm:prose-p:text-[20px] sm:prose-p:leading-[1.68] sm:prose-li:text-[20px] sm:prose-li:leading-[1.68] [&_p:has(br:only-child)]:my-1"
           dangerouslySetInnerHTML={{ __html: post.content_html }}
         />
 

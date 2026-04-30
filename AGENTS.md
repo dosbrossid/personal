@@ -284,6 +284,9 @@ if (result.error) mutate() // refetch real data
 
 | File | Purpose |
 |------|---------|
+| `docs/Shipping-Workflow.md` | Cara kerja owner: ship cepat, smoke test, mini sprint, dan definition of done |
+| `docs/Agent-Operating-Guide.md` | Panduan agent untuk menangani bug, ide, UX polish, dan architecture change |
+| `PRODUCT-INBOX.md` | Inbox wajib untuk setiap komplain, ide, polish, dan keputusan produk dari owner |
 | `docs/Backend-Plan-Part1-Architecture.md` | Backend plan: DB schema, API routes, auth |
 | `docs/Backend-Plan-Part2-SWR-Actions.md` | Backend plan: SWR hooks, Server Actions, blog CMS, roadmap |
 | `docs/PRD-Personal-Dashboard.md` | Product Requirements Document |
@@ -297,7 +300,29 @@ if (result.error) mutate() // refetch real data
 
 ---
 
-## 11. COMMUNICATION STYLE
+## 11. OWNER SHIPPING WORKFLOW
+
+Owner bekerja dengan pola **MVP → pakai nyata → temukan friction → improve bertahap**.
+Agent jangan memaksa proses heavy planning, tapi wajib memberi guardrail ringan.
+
+### Setiap ada komplain/ide dari owner:
+1. Tambahkan item ringkas ke `PRODUCT-INBOX.md`.
+2. Jika itu bug/regression, tambahkan juga entry ke `BUG-HISTORY.md`.
+3. Klasifikasikan sebagai `Hotfix`, `UX Polish`, atau `Architecture Upgrade`.
+4. Kerjakan fix terkecil yang memberi value paling nyata.
+5. Jalankan verifikasi sesuai dampak.
+
+### Agent wajib membaca:
+- `docs/Shipping-Workflow.md` untuk cara kerja owner.
+- `docs/Agent-Operating-Guide.md` untuk ritual update tracking, escalation, dan closeout.
+
+### Jangan lupa:
+- Sebutkan di final response apakah ada migration, env baru, dependency baru, dan apakah sudah push.
+- Kalau owner hanya memberi ide dan belum minta implementasi, catat di `PRODUCT-INBOX.md` lalu beri rekomendasi prioritas.
+
+---
+
+## 12. COMMUNICATION STYLE
 
 - Bicara dalam **Bahasa Indonesia** kecuali untuk code dan technical terms
 - Jelaskan **KENAPA** sebelum menjelaskan **APA** yang dilakukan
