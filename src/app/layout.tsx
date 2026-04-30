@@ -1,10 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "sonner";
-import { SWRProvider } from "@/components/providers/SWRProvider";
-import { PWAProvider } from "@/components/providers/PWAProvider";
 
 export const metadata: Metadata = {
   title: "Zmaula Personal Dashboard",
@@ -54,11 +50,7 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <SWRProvider>
-            <PWAProvider />
-            <TooltipProvider>{children}</TooltipProvider>
-            <Toaster richColors position="top-center" />
-          </SWRProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>
