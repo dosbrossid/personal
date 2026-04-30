@@ -2,6 +2,7 @@ const STATIC_COMPRESSIBLE_IMAGE_TYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
+  'image/gif',
 ]);
 
 interface CompressImageOptions {
@@ -43,7 +44,7 @@ export async function compressImageFile(
   options?: CompressImageOptions
 ): Promise<File> {
   if (!STATIC_COMPRESSIBLE_IMAGE_TYPES.has(file.type)) {
-    return file;
+    throw new Error('Format gambar belum didukung untuk kompresi WebP.');
   }
 
   const image = await loadImage(file);

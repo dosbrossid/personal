@@ -20,6 +20,15 @@
 
 ## Log
 
+## BUG-106 | 2026-04-30 | SEVERITY: High
+
+**Gejala:** Gambar blog yang dites download masih bukan WebP, berarti fitur auto-convert dan compress belum benar-benar terjamin.
+**Root Cause:** Pipeline upload hanya mengandalkan helper kompresi di client, sementara route upload server masih menerima dan menyimpan MIME/ekstensi asli seperti JPG, PNG, atau GIF. RSS juga menganggap featured image selalu JPEG.
+**Fix:** Client sekarang mewajibkan gambar static dikonversi ke WebP sebelum upload, server hanya menerima `image/webp`, nama file storage dipaksa `.webp`, metadata media memakai nama WebP, dan RSS menentukan MIME image dari URL.
+**Pelajaran:** Optimasi asset untuk Lighthouse harus ditegakkan sebagai kontrak server-side, bukan hanya UX/client-side helper.
+**Status:** RESOLVED
+**Terkait:** `src/lib/client-image.ts`, `src/app/api/blog/media/route.ts`, `src/app/api/public/rss/route.ts`, `src/app/public-blog/[slug]/ReadingProgressBar.tsx`, `src/app/public-blog/[slug]/ViewCountTracker.tsx`
+
 ## BUG-100 | 2026-04-29 | SEVERITY: High
 
 **Gejala:** Di mobile, enter/paragraph spacing pada Blog CMS awalnya normal saat menulis, tetapi setelah disimpan lalu dibuka untuk edit lagi, jarak antar baris menjadi berlebihan; postingan publik juga ikut terlihat terlalu renggang.

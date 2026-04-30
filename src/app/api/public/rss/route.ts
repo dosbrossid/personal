@@ -19,6 +19,14 @@ function escapeXml(str: string): string {
     .replace(/'/g, '&apos;')
 }
 
+function inferImageMimeType(url: string) {
+  const pathname = url.split('?')[0]?.toLowerCase() ?? ''
+  if (pathname.endsWith('.webp')) return 'image/webp'
+  if (pathname.endsWith('.png')) return 'image/png'
+  if (pathname.endsWith('.gif')) return 'image/gif'
+  return 'image/jpeg'
+}
+
 export async function GET() {
   try {
     const supabase = await createServerClient()
@@ -49,7 +57,7 @@ export async function GET() {
       <pubDate>${pubDate}</pubDate>
       <author>${escapeXml(AUTHOR)}</author>${
         post.featured_image_url
-          ? `\n      <enclosure url="${escapeXml(post.featured_image_url)}" type="image/jpeg" />`
+          ? `\n      <enclosure url="${escapeXml(post.featured_image_url)}" type="${inferImageMimeType(post.featured_image_url)}" />`
           : ''
       }
     </item>`

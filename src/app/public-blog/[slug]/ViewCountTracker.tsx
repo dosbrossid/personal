@@ -17,12 +17,21 @@ export function ViewCountTracker({ postId }: ViewCountTrackerProps) {
     if (tracked.current || !postId) return;
     tracked.current = true;
 
-    // Fire-and-forget — no need to await
-    fetch(`/api/public/blog/${postId}/view`, {
-      method: 'POST',
-    }).catch(() => {
-      // Silently fail — view count is not critical
-    });
+    const trackView = () => {
+      fetch(`/api/public/blog/${postId}/view`, {
+        method: 'POST',
+      }).catch(() => {
+        // Silently fail — view count is not critical.
+      });
+    };
+
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(trackView, { timeout: 2500 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = setTimeout(trackView, 1200);
+    return () => clearTimeout(timeoutId);
   }, [postId]);
 
   return null;

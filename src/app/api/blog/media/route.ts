@@ -9,14 +9,10 @@ import { createServiceRoleClient } from '@/lib/supabase/service';
 const BLOG_MEDIA_BUCKET = 'blog-media';
 const MAX_BLOG_IMAGE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
   'image/webp',
-  'image/gif',
 ]);
 
 function sanitizeStorageFileName(fileName: string) {
-  const extension = fileName.split('.').pop()?.toLowerCase() || 'png';
   const baseName = fileName
     .replace(/\.[^.]+$/, '')
     .toLowerCase()
@@ -24,7 +20,7 @@ function sanitizeStorageFileName(fileName: string) {
     .replace(/^-+|-+$/g, '')
     .slice(0, 80) || 'blog-image';
 
-  return `${baseName}.${extension}`;
+  return `${baseName}.webp`;
 }
 
 export async function POST(request: Request) {
@@ -47,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-      return Response.json({ error: 'Format gambar belum didukung. Gunakan JPG, PNG, WEBP, atau GIF.' }, { status: 400 });
+      return Response.json({ error: 'Gambar blog harus dikompres ke WebP sebelum upload.' }, { status: 400 });
     }
 
     if (file.size > MAX_BLOG_IMAGE_SIZE) {
@@ -78,7 +74,7 @@ export async function POST(request: Request) {
         .from('blog_media')
         .insert({
           user_id: user.id,
-          file_name: file.name,
+          file_name: sanitizeStorageFileName(file.name),
           file_url: storagePath,
           file_type: file.type,
           file_size_bytes: file.size,
