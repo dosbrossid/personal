@@ -13,6 +13,13 @@ export const metadata: Metadata = {
   keywords: ["dashboard", "second brain", "AI", "productivity", "personal management"],
   applicationName: "Zmaula Personal Dashboard",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icon", type: "image/png", sizes: "512x512" },
+      { url: "/icon-192", type: "image/png", sizes: "192x192" },
+    ],
+    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
