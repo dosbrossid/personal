@@ -299,6 +299,8 @@ export default function BlogCMSPage() {
   const totalViews = allPosts.reduce((acc, p) => acc + p.view_count, 0);
   const publishedCount = allPosts.filter(p => p.status === 'published').length;
   const draftCount = allPosts.filter(p => p.status === 'draft').length;
+  const scheduledCount = allPosts.filter(isScheduledDraft).length;
+  const averageViews = allPosts.length > 0 ? Math.round(totalViews / allPosts.length) : 0;
 
   const resetTagForm = () => {
     setEditingTagId(null);
@@ -400,10 +402,10 @@ export default function BlogCMSPage() {
   };
 
   const statCards = [
-    { label: 'Total Artikel', value: allPosts.length, icon: FileText, gradient: 'gradient-blue', glow: 'shadow-blue-500/20' },
-    { label: 'Published', value: publishedCount, icon: CheckCircle2, gradient: 'gradient-emerald', glow: 'shadow-emerald-500/20' },
-    { label: 'Draft', value: draftCount, icon: Edit3, gradient: 'gradient-amber', glow: 'shadow-amber-500/20' },
-    { label: 'Total Views', value: totalViews.toLocaleString('id-ID'), icon: BarChart3, gradient: 'gradient-violet', glow: 'shadow-violet-500/20' },
+    { label: 'Total Artikel', value: allPosts.length, hint: `${tags.length} kategori aktif`, icon: FileText, gradient: 'gradient-blue', glow: 'shadow-blue-500/20' },
+    { label: 'Published', value: publishedCount, hint: 'Live di blog publik', icon: CheckCircle2, gradient: 'gradient-emerald', glow: 'shadow-emerald-500/20' },
+    { label: 'Draft', value: draftCount, hint: `${scheduledCount} terjadwal`, icon: Edit3, gradient: 'gradient-amber', glow: 'shadow-amber-500/20' },
+    { label: 'Total Views', value: totalViews.toLocaleString('id-ID'), hint: `Rata-rata ${averageViews.toLocaleString('id-ID')} / artikel`, icon: BarChart3, gradient: 'gradient-violet', glow: 'shadow-violet-500/20' },
   ];
 
   if (isLoading) {
@@ -457,6 +459,7 @@ export default function BlogCMSPage() {
                 </div>
               </div>
               <p className="text-[26px] font-bold leading-none">{card.value}</p>
+              <p className="mt-2 text-[11px] font-medium text-white/65">{card.hint}</p>
             </div>
           );
         })}

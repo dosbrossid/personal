@@ -110,7 +110,7 @@ export default async function BlogLayout({
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-[#f2f2f2] bg-white dark:border-border/60 dark:bg-[#0f0f0f]">
+      <footer className="border-t border-[#eee9df] bg-[#faf8f2] dark:border-border/60 dark:bg-[#12110f]">
         <div className="mx-auto max-w-[1400px] px-4 py-10 sm:px-6 sm:py-12">
           <div className="grid gap-10 md:grid-cols-3">
             {/* Column 1 — Branding */}
