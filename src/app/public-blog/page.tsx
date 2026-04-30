@@ -137,7 +137,7 @@ export default async function PublicBlogHome() {
             {/* Badge */}
             <div className="inline-flex items-center gap-2.5 rounded-full border border-primary/20 bg-primary/[0.06] px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.2em] text-primary">
               <GraduationCap className="h-4 w-4" />
-              Blog · Bisnis Digital
+              Catatan Digital · Bisnis · AI
             </div>
 
             {/* Headline */}
@@ -153,9 +153,9 @@ export default async function PublicBlogHome() {
               <span className="font-semibold text-foreground">
                 Ziaul Maula, SE, M.Si
               </span>{' '}
-              — dosen Fakultas Ekonomi dan Bisnis UNSAM. Di sini saya menulis
-              tentang pemasaran digital, e-business, web app, sistem kerja
-              digital, dan hal-hal yang sedang saya pelajari.
+              — seorang dosen di Fakultas Ekonomi dan Bisnis UNSAM. Di sini
+              saya menulis tentang digital marketing, dunia teknologi, AI, web
+              app, dan hal-hal yang sedang saya pelajari.
             </p>
 
             {/* CTA Buttons */}

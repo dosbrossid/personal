@@ -150,8 +150,8 @@ export default async function BlogLayout({
                 Ziaul Maula
               </p>
               <p className="text-[15px] leading-relaxed text-muted-foreground">
-                Dosen FEB UNSAM · Digital Business Consultant · System Integrator.
-                Menulis tentang bisnis digital, pemasaran digital, e-business, dan web app.
+                Dosen FEB UNSAM · Digital Business Consultant · Senang menulis
+                tentang bisnis digital, pemasaran digital, e-business, dan web app.
               </p>
             </div>
 
