@@ -173,6 +173,26 @@ function getLocalDateKey(dateValue: string, timezone: string) {
   return formatter.format(new Date(dateValue))
 }
 
+function formatLocalClock(dateValue: string, timezone: string) {
+  return new Intl.DateTimeFormat('id-ID', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(dateValue))
+}
+
+function formatReminderLeadTime(minutes: number) {
+  if (minutes === 0) return 'sekarang'
+  if (minutes === 15) return '15 menit lagi'
+  if (minutes === 30) return '30 menit lagi'
+  if (minutes === 60) return '1 jam lagi'
+  if (minutes === 1440) return 'besok'
+  if (minutes % 1440 === 0) return `${minutes / 1440} hari lagi`
+  if (minutes % 60 === 0) return `${minutes / 60} jam lagi`
+  return `${minutes} menit lagi`
+}
+
 export function normalizeCalendarReminderRules(
   event: Pick<CalendarEvent, 'reminder_minutes' | 'reminder_config'>
 ) {
@@ -218,6 +238,7 @@ function buildReminderSchedules(
 ) {
   const rules = normalizeCalendarReminderRules(event)
   const startAt = new Date(event.start_at)
+  const now = Date.now()
 
   return rules
     .map((rule) => {
@@ -229,8 +250,8 @@ function buildReminderSchedules(
           scheduled_at: scheduledAt.toISOString(),
           body:
             rule.minutes === 0
-              ? `${event.title} dimulai sekarang`
-              : `${event.title} dimulai dalam ${rule.minutes} menit`,
+              ? `${event.title} dimulai sekarang.`
+              : `${event.title} mulai ${formatReminderLeadTime(rule.minutes)} pukul ${formatLocalClock(event.start_at, timezone)}.`,
         }
       }
 
@@ -242,9 +263,10 @@ function buildReminderSchedules(
 
       return {
         scheduled_at: scheduledAt.toISOString(),
-        body: `${event.title} mulai hari ini. Reminder jam ${String(rule.hour).padStart(2, '0')}:${String(rule.minute).padStart(2, '0')}`,
+        body: `${event.title} mulai hari ini pukul ${formatLocalClock(event.start_at, timezone)}. Ini reminder pagi jam ${String(rule.hour).padStart(2, '0')}:${String(rule.minute).padStart(2, '0')}.`,
       }
     })
+    .filter((item) => new Date(item.scheduled_at).getTime() > now)
     .filter((item, index, array) => array.findIndex((candidate) => candidate.scheduled_at === item.scheduled_at) === index)
 }
 
@@ -262,7 +284,7 @@ export async function queueCalendarReminderNotifications(
 
   for (const schedule of schedules) {
     await enqueueNotifications(supabase, userId, resolveChannels(snapshot), {
-      title: 'Reminder kalender',
+      title: '🔔 Reminder kalender',
       body: schedule.body,
       reference_type: 'calendar',
       reference_id: event.id,

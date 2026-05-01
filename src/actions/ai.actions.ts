@@ -8,7 +8,7 @@
 import { requireAuth } from '@/lib/auth'
 import { callLLM, logAIInteraction } from '@/lib/ai/client'
 import { parseAIResponse, mapDraftDetail } from '@/lib/ai/parser'
-import { buildAICommandMessages, executeAIResponseItems } from '@/lib/ai/command-hub'
+import { buildAICommandMessages, executeAIResponseItems, normalizeAIResponseForCommand } from '@/lib/ai/command-hub'
 import type { ActionResult, AIResponse, AIResponseItem } from '@/core/types'
 
 /**
@@ -55,6 +55,7 @@ export async function parseCommandDraft(input: string): Promise<
         error: 'AI tidak dapat memproses permintaan. Silakan coba lagi.',
       }
     }
+    aiResponse = normalizeAIResponseForCommand(input, aiResponse)
 
     // Log success
     await logAIInteraction({

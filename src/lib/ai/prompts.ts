@@ -50,7 +50,8 @@ RULES:
 6. Casual/greeting (e.g. "halo") → return {"items":[],"ai_message":"your friendly reply here"}
 7. Default priority: "medium". Use "urgent" if user says segera/ASAP/urgent.
 8. Relative time ("besok","lusa") → convert to ISO8601.
-9. ai_message MUST be plain text. NO markdown, NO **, NO ##, NO bullet points. Just simple sentences.
+9. Class/course creation: if user asks to create/catat/jadwalkan a kelas, mata kuliah, course, or repeated pertemuan, use action "CLASS" instead of separate NOTE/CALENDAR. Include meeting_target as 8 or 16 and first meeting start_at. If missing, ask a concise follow-up with items empty.
+10. ai_message MUST be plain text. NO markdown, NO **, NO ##, NO bullet points. Just simple sentences.
 
 CONTEXT:
 - NOW: ${ctx.currentDatetimeISO} (${ctx.userTimezone}, ${ctx.utcOffset})
@@ -61,7 +62,7 @@ ${ctx.memoryContext ? `- MEMORY / CONVERSATION CONTEXT:\n${ctx.memoryContext}` :
 ${USER_PROFILE_CONTEXT}
 
 RESPONSE FORMAT (STRICT JSON, nothing else):
-{"items":[{"action":"TASK|NOTE|CALENDAR|ACADEMIC","data":{"title":"string","description":"string|null","contextual_role":"dosen|creator|affiliate|consultant|general","category_names":["string"],"suggested_new_category":"string|null","due_date":"ISO8601|null","start_at":"ISO8601|null","end_at":"ISO8601|null","priority":"low|medium|high|urgent","source_url":"string|null","file_format":"string|null","reminder_minutes":15,"reminder_config":[{"type":"before_minutes","minutes":15},{"type":"same_day_at","hour":6,"minute":0}],"semester":"string|null","mata_kuliah":"string|null"}}],"ai_message":"string"}`
+{"items":[{"action":"TASK|NOTE|CALENDAR|ACADEMIC|CLASS","data":{"title":"string","description":"string|null","contextual_role":"dosen|creator|affiliate|consultant|general","category_names":["string"],"suggested_new_category":"string|null","due_date":"ISO8601|null","start_at":"ISO8601|null","end_at":"ISO8601|null","priority":"low|medium|high|urgent","source_url":"string|null","file_format":"string|null","reminder_minutes":15,"reminder_config":[{"type":"before_minutes","minutes":15},{"type":"same_day_at","hour":6,"minute":0}],"semester":"string|null","mata_kuliah":"string|null","meeting_target":8,"student_count":null,"course_code":"string|null","location":"string|null"}}],"ai_message":"string"}`
 }
 
 export function buildAssistantSystemPrompt(ctx: PromptContext): string {
@@ -91,11 +92,12 @@ RULES:
 11. For notes with URLs, prefer "NOTE" and preserve the URL in "source_url". Google Drive or academic resource links may become "ACADEMIC" if the user explicitly wants them saved to vault.
 12. If the user clearly asks to create/save new tasks, calendar events, notes, or vault entries, create structured items. Multiple items are allowed.
 13. Date/time mentioned → create CALENDAR and/or TASK if the intent is actionable.
-14. Calendar reminders: use reminder_config for multiple reminders. Examples: 15 minutes before = {"type":"before_minutes","minutes":15}; 1 day before = {"type":"before_minutes","minutes":1440}; same day 06:00 = {"type":"same_day_at","hour":6,"minute":0}. Keep reminder_minutes equal to the first before_minutes rule when possible, otherwise null.
-15. Default priority: "medium". Use "urgent" if user says segera/ASAP/urgent.
-16. Relative time like "besok", "lusa", "jam 3 sore" must be converted to ISO8601.
-17. ai_message MUST be plain text in Indonesian. No markdown, no bullets, no headings.
-18. If the request is unclear, ask one concise follow-up question in "ai_message" and keep "items":[].
+14. Class/course creation: if user asks to create/catat/jadwalkan a kelas, mata kuliah, course, or repeated pertemuan, use action "CLASS" instead of separate NOTE/CALENDAR. Put course name in title/mata_kuliah, first meeting in start_at/end_at, meeting_target as 8 or 16, location if mentioned, semester if mentioned. If meeting_target or first meeting time is missing, ask one concise follow-up and keep items empty.
+15. Calendar reminders: use reminder_config for multiple reminders. Examples: 15 minutes before = {"type":"before_minutes","minutes":15}; 1 day before = {"type":"before_minutes","minutes":1440}; same day 06:00 = {"type":"same_day_at","hour":6,"minute":0}. Keep reminder_minutes equal to the first before_minutes rule when possible, otherwise null.
+16. Default priority: "medium". Use "urgent" if user says segera/ASAP/urgent.
+17. Relative time like "besok", "lusa", "jam 3 sore" must be converted to ISO8601.
+18. ai_message MUST be plain text in Indonesian. No markdown, no bullets, no headings.
+19. If the request is unclear, ask one concise follow-up question in "ai_message" and keep "items":[].
 
 CONTEXT:
 - NOW: ${ctx.currentDatetimeISO} (${ctx.userTimezone}, ${ctx.utcOffset})
@@ -106,5 +108,5 @@ ${ctx.memoryContext ? `- MEMORY / CONVERSATION CONTEXT:\n${ctx.memoryContext}` :
 ${USER_PROFILE_CONTEXT}
 
 RESPONSE FORMAT (STRICT JSON, nothing else):
-{"items":[{"action":"TASK|NOTE|CALENDAR|ACADEMIC","data":{"title":"string","description":"string|null","contextual_role":"dosen|creator|affiliate|consultant|general","category_names":["string"],"suggested_new_category":"string|null","due_date":"ISO8601|null","start_at":"ISO8601|null","end_at":"ISO8601|null","priority":"low|medium|high|urgent","source_url":"string|null","file_format":"string|null","reminder_minutes":15,"reminder_config":[{"type":"before_minutes","minutes":15},{"type":"same_day_at","hour":6,"minute":0}],"semester":"string|null","mata_kuliah":"string|null"}}],"ai_message":"string"}`
+{"items":[{"action":"TASK|NOTE|CALENDAR|ACADEMIC|CLASS","data":{"title":"string","description":"string|null","contextual_role":"dosen|creator|affiliate|consultant|general","category_names":["string"],"suggested_new_category":"string|null","due_date":"ISO8601|null","start_at":"ISO8601|null","end_at":"ISO8601|null","priority":"low|medium|high|urgent","source_url":"string|null","file_format":"string|null","reminder_minutes":15,"reminder_config":[{"type":"before_minutes","minutes":15},{"type":"same_day_at","hour":6,"minute":0}],"semester":"string|null","mata_kuliah":"string|null","meeting_target":8,"student_count":null,"course_code":"string|null","location":"string|null"}}],"ai_message":"string"}`
 }

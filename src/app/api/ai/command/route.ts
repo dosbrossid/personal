@@ -13,6 +13,7 @@ import {
   buildAIExecutionMessage,
   buildMainModelInputWithVisionAnalysis,
   executeAIResponseItems,
+  normalizeAIResponseForCommand,
 } from '@/lib/ai/command-hub'
 import { parseAIResponse, mapDraftDetail } from '@/lib/ai/parser'
 import type { AIResponseItem } from '@/core/types'
@@ -68,7 +69,8 @@ export async function POST(request: NextRequest) {
 
       const messages = await buildAICommandMessages(user.id, input.trim())
       const { response, raw, tokensUsed, latencyMs } = await callLLM(messages)
-      const aiResponse = response ?? parseAIResponse(raw)
+      const parsedResponse = response ?? parseAIResponse(raw)
+      const aiResponse = parsedResponse ? normalizeAIResponseForCommand(input, parsedResponse) : null
 
       if (!aiResponse) {
         await logAIInteraction({
@@ -173,7 +175,10 @@ export async function POST(request: NextRequest) {
               const latencyMs = Date.now() - startTime
               fullContent = content
 
-              const aiResponse = parseAIResponse(fullContent)
+              const parsedResponse = parseAIResponse(fullContent)
+              const aiResponse = parsedResponse
+                ? normalizeAIResponseForCommand(input, parsedResponse)
+                : null
 
               if (!aiResponse) {
                 // Don't await logging — fire and forget

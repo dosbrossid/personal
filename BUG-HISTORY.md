@@ -1092,3 +1092,12 @@ _Belum ada bug tercatat. Development backend dimulai._
 
 > **Reminder:** Setiap kali menemukan bug, segera catat di sini SEBELUM fix.
 > Kalau solusi sudah dicoba 2x dan masih gagal → mundur, validasi premis.
+
+## BUG-106 | 2026-05-01 | SEVERITY: High
+
+**Gejala:** Reminder Telegram untuk kelas menampilkan copy mentah seperti `dimulai dalam 1440 menit`, dan AI chat baik Telegram maupun bubble belum mampu membuat entitas kelas nyata.
+**Root Cause:** Formatter queue reminder kalender masih memakai angka menit mentah, sementara schema AI Command Hub hanya mengenal `TASK`, `NOTE`, `CALENDAR`, dan `ACADEMIC`; belum ada action `CLASS` yang tersambung ke `class_courses` + generated `class_sessions`.
+**Fix:** Tambahkan formatter reminder manusiawi (`besok`, `1 jam lagi`, jam lokal event), skip reminder yang jadwal kirimnya sudah lewat, perluas AI schema/prompt/parser ke action `CLASS`, sambungkan executor ke `createClassCourseWithSessions`, dan tambahkan guard deterministic untuk mengubah draft kelas yang keliru menjadi draft `CLASS`.
+**Pelajaran:** Class management bukan variasi calendar biasa; kalau fitur punya lifecycle sendiri, AI command hub juga harus punya action tersendiri agar tidak membuat data setengah matang.
+**Status:** RESOLVED
+**Terkait:** `src/lib/notification-queue.ts`, `src/lib/ai/command-hub.ts`, `src/lib/ai/parser.ts`, `src/lib/ai/prompts.ts`, `src/app/api/webhook/telegram/route.ts`, `src/app/api/ai/command/route.ts`

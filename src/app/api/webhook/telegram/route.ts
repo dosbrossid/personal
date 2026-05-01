@@ -13,6 +13,7 @@ import {
   buildAIExecutionMessage,
   buildMainModelInputWithVisionAnalysis,
   executeAIResponseItemsWithClient,
+  normalizeAIResponseForCommand,
 } from '@/lib/ai/command-hub'
 import { buildAssistantSystemPrompt } from '@/lib/ai/prompts'
 import { buildTelegramSmartRecallReply } from '@/lib/telegram-recall'
@@ -129,6 +130,13 @@ function mapTelegramDraftDetail(item: AIResponseItem, timezone: string) {
     case 'ACADEMIC': {
       const mk = item.data.mata_kuliah ? ` · ${item.data.mata_kuliah}` : ''
       return `${item.data.file_format ?? 'Dokumen'}${mk}`
+    }
+    case 'CLASS': {
+      const meetings = item.data.meeting_target ? `${item.data.meeting_target} pertemuan` : 'kelas baru'
+      const startAt = item.data.start_at
+        ? ` · mulai ${formatInTimeZone(new Date(item.data.start_at), timezone, 'd MMM HH.mm')}`
+        : ''
+      return `${meetings}${startAt}`
     }
   }
 }
@@ -1224,7 +1232,9 @@ export async function POST(request: NextRequest) {
   )
   const totalTokensUsed = (tokensUsed ?? 0) + (visionResult?.tokensUsed ?? 0) || null
   const totalLatencyMs = latencyMs + (visionResult?.latencyMs ?? 0)
-  const aiResponse = response as AIResponse | null
+  const aiResponse = response
+    ? normalizeAIResponseForCommand(text, response as AIResponse)
+    : null
 
   if (!aiResponse) {
     const smartRecallReply = await buildTelegramSmartRecallReply(

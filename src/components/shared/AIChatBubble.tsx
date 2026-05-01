@@ -482,6 +482,7 @@ export function AIChatBubble() {
             mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/notes'));
             mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/calendar'));
             mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/vault'));
+            mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/classes'));
             mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/dashboard'));
         });
     }

@@ -5,13 +5,14 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { buildAssistantSystemPrompt, buildSystemPrompt } from '@/lib/ai/prompts'
+import { createClassCourseWithSessions, getUserTimezone } from '@/lib/class-management'
 import {
   getPrimaryReminderMinutes,
   normalizeCalendarReminderRules,
   queueCalendarReminderNotifications,
   queueTaskDeadlineNotifications,
 } from '@/lib/notification-queue'
-import type { AIResponseItem, UserPreferences } from '@/core/types'
+import type { AIResponse, AIResponseItem, UserPreferences } from '@/core/types'
 import type { RoleContext } from '@/core/constants'
 
 type MessageContentPart =
@@ -207,6 +208,7 @@ export function buildAIExecutionMessage(result: {
     NOTE: 'catatan',
     CALENDAR: 'agenda kalender',
     ACADEMIC: 'item vault',
+    CLASS: 'kelas',
   }
 
   const createdSummary = result.created
@@ -218,6 +220,94 @@ export function buildAIExecutionMessage(result: {
   }
 
   return `Saya sudah membuat ${createdSummary}.`
+}
+
+function normalizeText(value: string) {
+  return value.toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+function hasClassCreationIntent(input: string) {
+  const normalized = normalizeText(input)
+  const hasCreateIntent = ['buat', 'bikin', 'catat', 'jadwalkan', 'tambahkan', 'simpan', 'schedule'].some((word) =>
+    normalized.includes(word)
+  )
+  const hasClassCue = ['kelas', 'mata kuliah', 'matkul', 'course', 'pertemuan', 'ngajar', 'kuliah'].some((word) =>
+    normalized.includes(word)
+  )
+
+  return hasCreateIntent && hasClassCue
+}
+
+function parseMeetingTargetFromText(value: string): 8 | 16 | null {
+  const normalized = normalizeText(value)
+  if (/\b8\s*(x|kali|pertemuan|meeting)?\b/.test(normalized) || normalized.includes('delapan pertemuan')) return 8
+  if (/\b16\s*(x|kali|pertemuan|meeting)?\b/.test(normalized) || normalized.includes('enam belas pertemuan')) return 16
+  return null
+}
+
+function extractLocationFromText(value: string) {
+  const match = value.match(/\b(?:ruang|room|kelas)\s+([A-Z0-9][A-Z0-9-]{1,12})\b/i)
+  return match?.[1] ?? null
+}
+
+function cleanClassTitle(title: string) {
+  return title
+    .replace(/\s*[-–—·]\s*pertemuan\s*\d+.*$/i, '')
+    .replace(/\s*pertemuan\s*\d+.*$/i, '')
+    .replace(/^kelas\s+/i, '')
+    .trim()
+}
+
+function buildClassItemFromCalendarIntent(input: string, items: AIResponseItem[]): AIResponseItem | null {
+  const calendarItem = items.find((item) => item.action === 'CALENDAR' && item.data.start_at)
+  if (!calendarItem) return null
+
+  const noteItem = items.find((item) => item.action === 'NOTE')
+  const textPool = [
+    input,
+    calendarItem.data.title,
+    calendarItem.data.description ?? '',
+    noteItem?.data.title ?? '',
+    noteItem?.data.description ?? '',
+  ].join('\n')
+  const meetingTarget = parseMeetingTargetFromText(textPool)
+  if (!meetingTarget) return null
+
+  const title = cleanClassTitle(calendarItem.data.title) || cleanClassTitle(noteItem?.data.title ?? '') || calendarItem.data.title
+
+  return {
+    action: 'CLASS',
+    data: {
+      ...calendarItem.data,
+      title,
+      description: noteItem?.data.description ?? calendarItem.data.description,
+      contextual_role: 'dosen',
+      category_names: calendarItem.data.category_names ?? [],
+      suggested_new_category: calendarItem.data.suggested_new_category ?? null,
+      meeting_target: meetingTarget,
+      mata_kuliah: calendarItem.data.mata_kuliah ?? title,
+      semester: calendarItem.data.semester ?? noteItem?.data.semester ?? null,
+      location: calendarItem.data.location ?? extractLocationFromText(textPool),
+      student_count: calendarItem.data.student_count ?? null,
+      course_code: calendarItem.data.course_code ?? null,
+    },
+  }
+}
+
+export function normalizeAIResponseForCommand(input: string, response: AIResponse): AIResponse {
+  if (!hasClassCreationIntent(input) || response.items.some((item) => item.action === 'CLASS')) {
+    return response
+  }
+
+  const classItem = buildClassItemFromCalendarIntent(input, response.items)
+  if (!classItem) return response
+
+  return {
+    ...response,
+    items: [classItem],
+    ai_message:
+      'Saya menangkap ini sebagai jadwal kelas berulang. Saya buat draft kelas agar otomatis membuat pertemuan dan agenda kalendernya.',
+  }
 }
 
 async function getPromptContext(userId: string): Promise<PromptContextData> {
@@ -471,6 +561,28 @@ function buildDashboardSnapshot(params: {
   ].join('\n')
 }
 
+function formatDateKeyInTimezone(value: string, timezone: string) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(value))
+}
+
+function formatClockInTimezone(value: string, timezone: string) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(value))
+
+  const hour = parts.find((part) => part.type === 'hour')?.value ?? '00'
+  const minute = parts.find((part) => part.type === 'minute')?.value ?? '00'
+  return `${hour}:${minute}:00`
+}
+
 async function insertDraftItem(
   supabase: Awaited<ReturnType<typeof createServerClient>>,
   userId: string,
@@ -578,19 +690,49 @@ async function insertDraftItem(
       recordId = data.id
       break
     }
+
+    case 'CLASS': {
+      if (!item.data.start_at || !item.data.meeting_target) return null
+
+      const timezone = await getUserTimezone(
+        supabase as unknown as Parameters<typeof getUserTimezone>[0],
+        userId
+      )
+      const course = await createClassCourseWithSessions(
+        supabase as unknown as Parameters<typeof createClassCourseWithSessions>[0],
+        userId,
+        {
+          name: (item.data.mata_kuliah || item.data.title).trim(),
+          course_code: item.data.course_code ?? null,
+          semester_label: item.data.semester ?? null,
+          meeting_target: item.data.meeting_target,
+          student_count: item.data.student_count ?? 0,
+          first_session_date: formatDateKeyInTimezone(item.data.start_at, timezone),
+          default_start_time: formatClockInTimezone(item.data.start_at, timezone),
+          default_end_time: item.data.end_at ? formatClockInTimezone(item.data.end_at, timezone) : null,
+          location: item.data.location ?? null,
+          contextual_role: item.data.contextual_role || 'dosen',
+          notes: item.data.description ?? null,
+        }
+      )
+
+      recordId = course.id
+      break
+    }
   }
 
-  if (recordId && categoryIds.length > 0) {
-    const itemTypeMap: Record<AIResponseItem['action'], string> = {
+  if (recordId && categoryIds.length > 0 && item.action !== 'CLASS') {
+    const itemTypeMap: Record<Exclude<AIResponseItem['action'], 'CLASS'>, string> = {
       TASK: 'task',
       NOTE: 'brain_note',
       CALENDAR: 'calendar_event',
       ACADEMIC: 'academic_vault',
     }
 
+    const itemType = itemTypeMap[item.action as Exclude<AIResponseItem['action'], 'CLASS'>]
     const junctionRows = categoryIds.map((categoryId) => ({
       item_id: recordId!,
-      item_type: itemTypeMap[item.action],
+      item_type: itemType,
       category_id: categoryId,
     }))
 

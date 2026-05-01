@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, X, Edit3, CalendarDays, CheckSquare, Brain, GraduationCap } from 'lucide-react';
+import { Check, X, Edit3, CalendarDays, CheckSquare, Brain, GraduationCap, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROLES } from '@/core/constants';
 import type { RoleContext } from '@/core/constants';
@@ -28,6 +28,7 @@ const actionIcons = {
     NOTE: Brain,
     CALENDAR: CalendarDays,
     ACADEMIC: GraduationCap,
+    CLASS: BookOpen,
 };
 
 const actionColors = {
@@ -35,6 +36,7 @@ const actionColors = {
     NOTE: 'text-violet-400 bg-violet-500/10',
     CALENDAR: 'text-emerald-400 bg-emerald-500/10',
     ACADEMIC: 'text-amber-400 bg-amber-500/10',
+    CLASS: 'text-cyan-400 bg-cyan-500/10',
 };
 
 export function DraftPreview({ items, onDismiss, onSuccess }: DraftPreviewProps) {

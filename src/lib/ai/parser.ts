@@ -6,7 +6,7 @@
 import type { AIResponse, AIResponseItem, CalendarReminderRule } from '@/core/types'
 import type { RoleContext, Priority } from '@/core/constants'
 
-const VALID_ACTIONS = ['TASK', 'NOTE', 'CALENDAR', 'ACADEMIC'] as const
+const VALID_ACTIONS = ['TASK', 'NOTE', 'CALENDAR', 'ACADEMIC', 'CLASS'] as const
 const VALID_ROLES = ['dosen', 'creator', 'affiliate', 'consultant', 'general'] as const
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
 
@@ -53,6 +53,26 @@ function parseReminderConfig(value: unknown): CalendarReminderRule[] | null {
     .filter((rule): rule is CalendarReminderRule => Boolean(rule))
 
   return rules.length ? rules : null
+}
+
+function parseMeetingTarget(value: unknown): 8 | 16 | null {
+  const numeric = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number(value)
+      : null
+
+  return numeric === 8 || numeric === 16 ? numeric : null
+}
+
+function parseOptionalNumber(value: unknown) {
+  const numeric = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number(value)
+      : null
+
+  return typeof numeric === 'number' && Number.isFinite(numeric) ? numeric : null
 }
 
 export function parseAIResponse(raw: string): AIResponse | null {
@@ -107,6 +127,10 @@ export function parseAIResponse(raw: string): AIResponse | null {
           reminder_config: parseReminderConfig(data.reminder_config),
           semester: data.semester ? String(data.semester) : null,
           mata_kuliah: data.mata_kuliah ? String(data.mata_kuliah) : null,
+          meeting_target: parseMeetingTarget(data.meeting_target),
+          student_count: parseOptionalNumber(data.student_count),
+          course_code: data.course_code ? String(data.course_code) : null,
+          location: data.location ? String(data.location) : null,
         },
       }
 
@@ -142,6 +166,10 @@ export function mapDraftDetail(item: AIResponseItem): string {
     case 'ACADEMIC': {
       const mk = item.data.mata_kuliah ? ` · ${item.data.mata_kuliah}` : ''
       return `${item.data.file_format ?? 'Dokumen'}${mk}`
+    }
+    case 'CLASS': {
+      const meetings = item.data.meeting_target ? `${item.data.meeting_target} pertemuan` : 'kelas baru'
+      return item.data.start_at ? `${meetings} · mulai ${new Date(item.data.start_at).toLocaleDateString('id-ID')}` : meetings
     }
     default:
       return ''

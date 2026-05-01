@@ -266,7 +266,7 @@ export interface AIHubLog {
 
 // ─── AI Response Schema ───
 export interface AIResponseItem {
-  action: 'TASK' | 'NOTE' | 'CALENDAR' | 'ACADEMIC';
+  action: 'TASK' | 'NOTE' | 'CALENDAR' | 'ACADEMIC' | 'CLASS';
   data: {
     title: string;
     description: string | null;
@@ -283,6 +283,10 @@ export interface AIResponseItem {
     reminder_config?: CalendarReminderRule[] | null;
     semester: string | null;
     mata_kuliah: string | null;
+    meeting_target?: 8 | 16 | null;
+    student_count?: number | null;
+    course_code?: string | null;
+    location?: string | null;
   };
 }
 
