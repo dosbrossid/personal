@@ -1101,3 +1101,12 @@ _Belum ada bug tercatat. Development backend dimulai._
 **Pelajaran:** Class management bukan variasi calendar biasa; kalau fitur punya lifecycle sendiri, AI command hub juga harus punya action tersendiri agar tidak membuat data setengah matang.
 **Status:** RESOLVED
 **Terkait:** `src/lib/notification-queue.ts`, `src/lib/ai/command-hub.ts`, `src/lib/ai/parser.ts`, `src/lib/ai/prompts.ts`, `src/app/api/webhook/telegram/route.ts`, `src/app/api/ai/command/route.ts`
+
+## BUG-107 | 2026-05-01 | SEVERITY: High
+
+**Gejala:** PWA dashboard belum memberi cara install yang jelas; user tidak melihat prompt/notifikasi install, sementara PWA tidak boleh berlaku untuk halaman blog publik.
+**Root Cause:** Metadata manifest PWA masih dipasang di root layout sehingga ikut diwariskan ke blog, dan fallback install helper non-iOS diam ketika event `beforeinstallprompt` tidak dipicu browser.
+**Fix:** Pindahkan manifest/apple-web-app metadata ke layout dashboard saja, dan ubah fallback toast dashboard agar memberi instruksi manual Chrome/Android jika native prompt tidak muncul.
+**Pelajaran:** PWA install prompt tidak boleh bergantung penuh pada `beforeinstallprompt`; browser sering menahan prompt, jadi dashboard harus punya fallback edukatif yang eksplisit.
+**Status:** RESOLVED
+**Terkait:** `src/app/layout.tsx`, `src/app/(dashboard)/layout.tsx`, `src/components/providers/PWAProvider.tsx`

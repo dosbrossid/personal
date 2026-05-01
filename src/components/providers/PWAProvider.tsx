@@ -14,7 +14,7 @@ type NavigatorWithStandalone = Navigator & {
 };
 
 const INSTALL_TOAST_ID = 'pwa-install-prompt';
-const INSTALL_PROMPT_SESSION_KEY = 'zmaula:pwa-install-prompt-shown';
+const INSTALL_PROMPT_SESSION_KEY = 'zmaula:pwa-install-helper-v2-shown';
 
 function isRunningStandalone() {
   return (
@@ -141,16 +141,16 @@ export function PWAProvider() {
 
       sessionStorage.setItem(INSTALL_PROMPT_SESSION_KEY, '1');
 
-      if (!isIOSDevice()) {
-        return;
-      }
+      const description = isIOSDevice()
+        ? 'Di iPhone/iPad: buka Share, lalu pilih Add to Home Screen.'
+        : 'Kalau tombol native tidak muncul: di Chrome buka menu ⋮, lalu pilih Install app atau Add to Home screen.';
 
       toast('Install Zmaula Dashboard', {
         id: INSTALL_TOAST_ID,
-        description: 'Di iPhone/iPad: buka Share, lalu pilih Add to Home Screen.',
-        duration: 12000,
+        description,
+        duration: 20000,
         action: {
-          label: 'Oke',
+          label: 'Mengerti',
           onClick: () => toast.dismiss(INSTALL_TOAST_ID),
         },
       });

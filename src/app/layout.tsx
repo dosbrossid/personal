@@ -7,8 +7,6 @@ export const metadata: Metadata = {
   description:
     "Sistem manajemen pribadi berbasis AI untuk multi-peran profesional. Satu pintu masuk untuk semua peran Anda.",
   keywords: ["dashboard", "second brain", "AI", "productivity", "personal management"],
-  applicationName: "Zmaula Personal Dashboard",
-  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/favicon.ico", type: "image/x-icon", sizes: "64x64" },
@@ -17,16 +15,8 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
   },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Zmaula",
-  },
   formatDetection: {
     telephone: false,
-  },
-  other: {
-    'mobile-web-app-capable': 'yes',
   },
 };
 

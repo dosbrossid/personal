@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { AppSidebar } from '@/components/shared/AppSidebar';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 import { AIChatBubble } from '@/components/shared/AIChatBubble';
@@ -5,6 +6,19 @@ import { PWAProvider } from '@/components/providers/PWAProvider';
 import { SWRProvider } from '@/components/providers/SWRProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from 'sonner';
+
+export const metadata: Metadata = {
+  applicationName: 'Zmaula Personal Dashboard',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Zmaula',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
+};
 
 export default function DashboardLayout({
   children,
