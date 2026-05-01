@@ -129,20 +129,19 @@ export function WidgetTasks() {
         </span>
       </div>
 
-      <div className="mb-4 rounded-xl gradient-emerald p-4 text-white relative overflow-hidden">
-        <div className="absolute inset-0 animate-shimmer pointer-events-none opacity-40" />
-        <div className="relative z-10 grid grid-cols-3 gap-3">
+      <div className="mb-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+        <div className="grid grid-cols-3 gap-3">
           <div>
-            <p className="text-[11px] font-medium text-white/70">Urgent</p>
-            <p className="mt-1 text-[24px] font-bold leading-none">{urgentTasks.length}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Urgent</p>
+            <p className="mt-1 text-[24px] font-bold leading-none text-foreground">{urgentTasks.length}</p>
           </div>
           <div>
-            <p className="text-[11px] font-medium text-white/70">Due Hari Ini</p>
-            <p className="mt-1 text-[24px] font-bold leading-none">{dueTodayTasks.length}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Due Hari Ini</p>
+            <p className="mt-1 text-[24px] font-bold leading-none text-foreground">{dueTodayTasks.length}</p>
           </div>
           <div>
-            <p className="text-[11px] font-medium text-white/70">Upcoming</p>
-            <p className="mt-1 text-[24px] font-bold leading-none">{upcomingTasks.length}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Upcoming</p>
+            <p className="mt-1 text-[24px] font-bold leading-none text-foreground">{upcomingTasks.length}</p>
           </div>
         </div>
       </div>

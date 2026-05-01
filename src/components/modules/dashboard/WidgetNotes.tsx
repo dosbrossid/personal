@@ -117,20 +117,19 @@ export function WidgetNotes() {
         </button>
       </div>
 
-      <div className="mb-4 rounded-xl bg-[linear-gradient(135deg,rgba(59,130,246,0.95),rgba(99,102,241,0.92),rgba(168,85,247,0.9))] p-4 text-white shadow-lg shadow-blue-500/15 relative overflow-hidden">
-        <div className="absolute inset-0 animate-shimmer opacity-35 pointer-events-none" />
-        <div className="relative z-10 grid grid-cols-3 gap-3">
+      <div className="mb-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+        <div className="grid grid-cols-3 gap-3">
           <div>
-            <p className="text-[11px] font-medium text-white/72">Pinned</p>
-            <p className="mt-1 text-[24px] font-bold leading-none">{pinnedCount}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Pinned</p>
+            <p className="mt-1 text-[24px] font-bold leading-none text-foreground">{pinnedCount}</p>
           </div>
           <div>
-            <p className="text-[11px] font-medium text-white/72">Ide</p>
-            <p className="mt-1 text-[24px] font-bold leading-none">{ideaCount}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Ide</p>
+            <p className="mt-1 text-[24px] font-bold leading-none text-foreground">{ideaCount}</p>
           </div>
           <div>
-            <p className="text-[11px] font-medium text-white/72">Draft Kosong</p>
-            <p className="mt-1 text-[24px] font-bold leading-none">{emptyDraftCount}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Draft Kosong</p>
+            <p className="mt-1 text-[24px] font-bold leading-none text-foreground">{emptyDraftCount}</p>
           </div>
         </div>
       </div>

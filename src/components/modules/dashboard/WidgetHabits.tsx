@@ -60,14 +60,13 @@ export function WidgetHabits() {
         </span>
       </div>
 
-      <div className="relative mb-5 overflow-hidden rounded-xl p-4 text-white gradient-violet">
-        <div className="pointer-events-none absolute inset-0 animate-shimmer opacity-40" />
-        <div className="relative z-10 flex items-center justify-between">
+      <div className="mb-5 rounded-xl border border-border/60 bg-muted/20 p-4">
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-[12px] font-medium text-white/70">Progress Aktif</p>
-            <p className="mt-0.5 text-[28px] font-bold">{totalCompleted}</p>
+            <p className="text-[12px] font-medium text-muted-foreground">Progress Aktif</p>
+            <p className="mt-0.5 text-[28px] font-bold text-foreground">{totalCompleted}</p>
           </div>
-          <div className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-[12px] font-semibold backdrop-blur-sm">
+          <div className="flex items-center gap-1.5 rounded-full bg-background px-3 py-1.5 text-[12px] font-semibold text-muted-foreground shadow-sm ring-1 ring-border/60">
             <TrendingUp className="h-3 w-3" />
             {completionRate}% Rate
           </div>

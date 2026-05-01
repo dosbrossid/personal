@@ -100,20 +100,19 @@ export function WidgetCalendar() {
         </span>
       </div>
 
-      <div className="mb-4 rounded-xl bg-[linear-gradient(135deg,rgba(245,158,11,0.96),rgba(249,115,22,0.92),rgba(59,130,246,0.88))] p-4 text-white shadow-lg shadow-amber-500/15 relative overflow-hidden">
-        <div className="absolute inset-0 animate-shimmer opacity-35 pointer-events-none" />
-        <div className="relative z-10 grid grid-cols-3 gap-3">
+      <div className="mb-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+        <div className="grid grid-cols-3 gap-3">
           <div>
-            <p className="text-[11px] font-medium text-white/72">Sedang Jalan</p>
-            <p className="mt-1 text-[24px] font-bold leading-none">{ongoingCount}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Sedang Jalan</p>
+            <p className="mt-1 text-[24px] font-bold leading-none text-foreground">{ongoingCount}</p>
           </div>
           <div>
-            <p className="text-[11px] font-medium text-white/72">Hari Ini</p>
-            <p className="mt-1 text-[24px] font-bold leading-none">{todayCount}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Hari Ini</p>
+            <p className="mt-1 text-[24px] font-bold leading-none text-foreground">{todayCount}</p>
           </div>
           <div>
-            <p className="text-[11px] font-medium text-white/72">Besok</p>
-            <p className="mt-1 text-[24px] font-bold leading-none">{tomorrowCount}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Besok</p>
+            <p className="mt-1 text-[24px] font-bold leading-none text-foreground">{tomorrowCount}</p>
           </div>
         </div>
       </div>
