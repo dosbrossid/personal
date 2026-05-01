@@ -8,8 +8,8 @@ import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-rou
 export const metadata: Metadata = {
   metadataBase: new URL('https://zmaula.web.id'),
   title: {
-    default: 'Ziaul Maula, SE, M.Si',
-    template: '%s | Ziaul Maula',
+    default: 'Ziaul Maula Blog',
+    template: '%s | Ziaul Maula Blog',
   },
   description: 'Catatan Ziaul Maula tentang bisnis digital, pemasaran digital, e-business, web app, dan hal-hal yang sedang dipelajari.',
   icons: {
@@ -31,12 +31,12 @@ export const metadata: Metadata = {
     follow: true,
   },
   openGraph: {
-    title: 'Ziaul Maula, SE, M.Si',
+    title: 'Ziaul Maula Blog',
     description: 'Blog pribadi berisi tulisan tentang bisnis digital, pemasaran digital, e-business, web app, dan proses belajar.',
     url: 'https://zmaula.web.id',
     type: 'website',
     locale: 'id_ID',
-    siteName: 'Ziaul Maula',
+    siteName: 'Ziaul Maula Blog',
     images: [
       {
         url: '/icon',
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Ziaul Maula, SE, M.Si',
+    title: 'Ziaul Maula Blog',
     description: 'Blog pribadi berisi tulisan tentang bisnis digital, pemasaran digital, e-business, web app, dan proses belajar.',
     images: ['/icon'],
   },
@@ -127,7 +127,7 @@ export default async function BlogLayout({
 
             <a
               href={dashboardLoginUrl}
-              className="inline-flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-[var(--accent-cyan)] px-3 text-[12px] font-semibold text-white shadow-sm shadow-primary/20 transition-all duration-300 hover:shadow-md hover:shadow-primary/30 sm:px-4 sm:text-[13px]"
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-[#100f12] via-[#1d1b20] to-[#2d2930] px-3 text-[12px] font-semibold text-[#fffaf0] shadow-sm shadow-black/15 ring-1 ring-white/10 transition-colors hover:from-[#171519] hover:to-[#3a353d] sm:px-4 sm:text-[13px]"
             >
               <span className="sm:hidden">Masuk</span>
               <span className="hidden sm:inline">Login</span>
@@ -142,15 +142,15 @@ export default async function BlogLayout({
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-[#eee9df] bg-[#faf8f2] dark:border-border/60 dark:bg-[#12110f]">
+      <footer className="border-t border-white/10 bg-[#100f12] text-[#f7f3ea]">
         <div className="mx-auto max-w-[1400px] px-4 py-10 sm:px-6 sm:py-12">
           <div className="grid gap-10 md:grid-cols-3">
             {/* Column 1 — Branding */}
             <div className="space-y-3">
-              <p className="text-[17px] font-black tracking-tight text-foreground">
+              <p className="text-[17px] font-black tracking-tight text-[#f7f3ea]">
                 Ziaul Maula
               </p>
-              <p className="text-[15px] leading-relaxed text-muted-foreground">
+              <p className="text-[15px] leading-relaxed text-[#c9c1b5]">
                 Dosen FEB UNSAM · Digital Business Consultant · Senang menulis
                 tentang bisnis digital, pemasaran digital, e-business, dan web app.
               </p>
@@ -158,13 +158,13 @@ export default async function BlogLayout({
 
             {/* Column 2 — Contact Details */}
             <div className="space-y-4">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[#8f877b]">
                 Kontak
               </p>
               <div className="space-y-3 text-[15px]">
                 <a
                   href="mailto:zmaula@unsam.ac.id"
-                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-primary"
+                  className="flex items-center gap-3 text-[#c9c1b5] transition-colors hover:text-[#62d8b1]"
                 >
                   <Mail className="h-4 w-4 shrink-0" />
                   zmaula@unsam.ac.id
@@ -173,12 +173,12 @@ export default async function BlogLayout({
                   href="https://wa.me/6285156680447"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-primary"
+                  className="flex items-center gap-3 text-[#c9c1b5] transition-colors hover:text-[#62d8b1]"
                 >
                   <Phone className="h-4 w-4 shrink-0" />
                   +62 851-5668-0447
                 </a>
-                <div className="flex items-start gap-3 text-muted-foreground">
+                <div className="flex items-start gap-3 text-[#c9c1b5]">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
                     Fakultas Ekonomi dan Bisnis<br />
@@ -190,7 +190,7 @@ export default async function BlogLayout({
 
             {/* Column 3 — Social Media */}
             <div className="space-y-4">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[#8f877b]">
                 Sosial Media
               </p>
               <div className="space-y-3 text-[15px]">
@@ -198,7 +198,7 @@ export default async function BlogLayout({
                   href="https://instagram.com/zmaula"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-primary"
+                  className="flex items-center gap-3 text-[#c9c1b5] transition-colors hover:text-[#62d8b1]"
                 >
                   <InstagramGlyph />
                   @zmaula
@@ -207,7 +207,7 @@ export default async function BlogLayout({
                   href="https://www.threads.net/@zmaula"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-primary"
+                  className="flex items-center gap-3 text-[#c9c1b5] transition-colors hover:text-[#62d8b1]"
                 >
                   <ThreadsGlyph />
                   @zmaula
@@ -216,7 +216,7 @@ export default async function BlogLayout({
                   href="https://wa.me/6285156680447"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-primary"
+                  className="flex items-center gap-3 text-[#c9c1b5] transition-colors hover:text-[#62d8b1]"
                 >
                   <WhatsAppGlyph />
                   WhatsApp
@@ -226,13 +226,13 @@ export default async function BlogLayout({
           </div>
 
           {/* Bottom bar */}
-          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border/60 pt-6 text-[14px] text-muted-foreground md:flex-row">
+          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-[14px] text-[#a9a094] md:flex-row">
             <p>© {new Date().getFullYear()} Ziaul Maula, SE, M.Si. Hak cipta dilindungi.</p>
             <a
               href="/api/public/rss"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 transition-colors hover:text-primary"
+              className="inline-flex items-center gap-2 transition-colors hover:text-[#62d8b1]"
             >
               <Rss className="h-3.5 w-3.5" />
               RSS Feed
