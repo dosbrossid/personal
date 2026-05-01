@@ -13,8 +13,15 @@ type NavigatorWithStandalone = Navigator & {
   standalone?: boolean;
 };
 
+declare global {
+  interface Window {
+    __zmaulaPwaInstallPrompt?: BeforeInstallPromptEvent | null;
+  }
+}
+
 const INSTALL_TOAST_ID = 'pwa-install-prompt';
 const INSTALL_PROMPT_SESSION_KEY = 'zmaula:pwa-install-helper-v2-shown';
+const INSTALL_AVAILABLE_EVENT = 'zmaula:pwa-install-available';
 
 function isRunningStandalone() {
   return (
@@ -161,6 +168,8 @@ export function PWAProvider() {
       nativePromptWasShown = true;
 
       const installPrompt = event as BeforeInstallPromptEvent;
+      window.__zmaulaPwaInstallPrompt = installPrompt;
+      window.dispatchEvent(new Event(INSTALL_AVAILABLE_EVENT));
 
       toast('Install Zmaula Dashboard?', {
         id: INSTALL_TOAST_ID,
@@ -172,12 +181,14 @@ export function PWAProvider() {
             toast.dismiss(INSTALL_TOAST_ID);
             await installPrompt.prompt();
             await installPrompt.userChoice.catch(() => undefined);
+            window.__zmaulaPwaInstallPrompt = null;
           },
         },
       });
     };
 
     const handleAppInstalled = () => {
+      window.__zmaulaPwaInstallPrompt = null;
       sessionStorage.setItem(INSTALL_PROMPT_SESSION_KEY, '1');
       toast.success('Zmaula Dashboard berhasil diinstall.', {
         id: INSTALL_TOAST_ID,

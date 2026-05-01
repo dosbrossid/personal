@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { Settings, User as UserIcon, Bell, HardDrive, Zap, MessageCircle, CheckCircle2, Save, Send, LogOut, MoonStar, Sun, MonitorSmartphone, Activity } from 'lucide-react';
+import { useEffect, useState, useTransition } from 'react';
+import { Settings, User as UserIcon, Bell, HardDrive, Zap, MessageCircle, CheckCircle2, Save, Send, LogOut, MoonStar, Sun, MonitorSmartphone, Activity, Download } from 'lucide-react';
 import { mutate as mutateGlobal } from 'swr';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
@@ -36,6 +36,22 @@ const DEFAULT_NOTIFICATION_PREFS: NonNullable<UserPreferences['notifications']> 
 const DEFAULT_ACTIVE_ROLES: RoleContext[] = ['dosen', 'creator', 'affiliate', 'consultant', 'general'];
 const TELEGRAM_BOT_HANDLE = '@zmaula_dashboard_bot';
 const TELEGRAM_BOT_URL = 'https://t.me/zmaula_dashboard_bot';
+const PWA_INSTALL_AVAILABLE_EVENT = 'zmaula:pwa-install-available';
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+};
+
+type NavigatorWithStandalone = Navigator & {
+  standalone?: boolean;
+};
+
+declare global {
+  interface Window {
+    __zmaulaPwaInstallPrompt?: BeforeInstallPromptEvent | null;
+  }
+}
 
 const NOTIFICATION_OPTIONS: Array<{
   key: keyof NonNullable<UserPreferences['notifications']>;
@@ -58,6 +74,14 @@ function mergeNotificationPrefs(preferences?: UserPreferences | null) {
 
 function getActiveRoles(preferences?: UserPreferences | null) {
   return preferences?.active_roles?.length ? preferences.active_roles : DEFAULT_ACTIVE_ROLES;
+}
+
+function getStandaloneStatus() {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as NavigatorWithStandalone).standalone === true
+  );
 }
 
 type MutateUser = ReturnType<typeof useUser>['mutate'];
@@ -111,6 +135,9 @@ function SettingsContent({ user, vaultItems, aiUsage, mutateUser }: SettingsCont
   const [isSaving, startSaving] = useTransition();
   const [isTelegramBusy, startTelegram] = useTransition();
   const [isTesting, startTesting] = useTransition();
+  const [pwaInstallAvailable, setPwaInstallAvailable] = useState(false);
+  const [pwaStandalone, setPwaStandalone] = useState(false);
+  const [pwaServiceWorkerReady, setPwaServiceWorkerReady] = useState(false);
 
   const totalStorage = vaultItems.reduce((sum, item) => sum + (item.file_size_bytes ?? 0), 0);
   const maxStorage = 1024 * 1024 * 1024;
@@ -126,6 +153,29 @@ function SettingsContent({ user, vaultItems, aiUsage, mutateUser }: SettingsCont
     JSON.stringify([...activeRoles].sort()) !== JSON.stringify([...currentActiveRoles].sort()) ||
     JSON.stringify(notificationPrefs) !== JSON.stringify(currentNotificationPrefs) ||
     telegramChatId !== (user.telegram_chat_id ?? '');
+
+  useEffect(() => {
+    const refreshPwaStatus = () => {
+      setPwaInstallAvailable(Boolean(window.__zmaulaPwaInstallPrompt));
+      setPwaStandalone(getStandaloneStatus());
+    };
+
+    refreshPwaStatus();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready
+        .then(() => setPwaServiceWorkerReady(true))
+        .catch(() => setPwaServiceWorkerReady(false));
+    }
+
+    window.addEventListener(PWA_INSTALL_AVAILABLE_EVENT, refreshPwaStatus);
+    window.addEventListener('appinstalled', refreshPwaStatus);
+
+    return () => {
+      window.removeEventListener(PWA_INSTALL_AVAILABLE_EVENT, refreshPwaStatus);
+      window.removeEventListener('appinstalled', refreshPwaStatus);
+    };
+  }, []);
 
   const toggleRole = (role: RoleContext) => {
     setActiveRoles((current) => {
@@ -249,6 +299,35 @@ function SettingsContent({ user, vaultItems, aiUsage, mutateUser }: SettingsCont
     }
   };
 
+  const handleInstallPwa = async () => {
+    if (pwaStandalone) {
+      toast.success('Dashboard sudah berjalan sebagai PWA.');
+      return;
+    }
+
+    const installPrompt = window.__zmaulaPwaInstallPrompt;
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice.catch(() => null);
+      window.__zmaulaPwaInstallPrompt = null;
+      setPwaInstallAvailable(false);
+
+      if (choice?.outcome === 'accepted') {
+        toast.success('Install PWA dimulai.');
+      } else {
+        toast('Install dibatalkan', {
+          description: 'Kalau mau coba lagi, buka ulang dashboard lalu masuk Settings.',
+        });
+      }
+      return;
+    }
+
+    toast('Install manual dari Chrome', {
+      description: 'Buka menu ⋮ di Chrome, lalu pilih Install app. Kalau belum ada, tunggu deploy/service worker selesai lalu refresh halaman.',
+      duration: 16000,
+    });
+  };
+
   return (
     <div className="max-w-3xl space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -356,6 +435,52 @@ function SettingsContent({ user, vaultItems, aiUsage, mutateUser }: SettingsCont
                 </button>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <div className="mb-5 flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+            <Download className="h-4 w-4 text-emerald-500" />
+          </div>
+          <h2 className="text-[14px] font-semibold text-foreground">Install PWA</h2>
+          <span className={cn('ml-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium', pwaStandalone ? 'bg-emerald-500/10 text-emerald-500' : pwaInstallAvailable ? 'bg-blue-500/10 text-blue-500' : 'bg-amber-500/10 text-amber-500')}>
+            {pwaStandalone ? 'Sudah app' : pwaInstallAvailable ? 'Siap install' : 'Manual'}
+          </span>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+          <div className="rounded-2xl border border-border/60 bg-muted/15 p-4">
+            <p className="text-[13px] font-semibold text-foreground">Status dashboard app</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {[
+                { label: 'Mode PWA', value: pwaStandalone ? 'Standalone' : 'Browser' },
+                { label: 'Install prompt', value: pwaInstallAvailable ? 'Tersedia' : 'Belum tersedia' },
+                { label: 'Service worker', value: pwaServiceWorkerReady ? 'Aktif' : 'Memuat' },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl border border-border/60 bg-background/80 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{item.label}</p>
+                  <p className="mt-1 text-[13px] font-semibold text-foreground">{item.value}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
+              Kalau kamu pernah membuat shortcut lalu menghapusnya, Android kadang menahan prompt native. Tombol ini akan memakai prompt asli kalau Chrome menyediakannya; kalau tidak, pakai menu Chrome ⋮ → Install app.
+            </p>
+          </div>
+
+          <div className="flex flex-col justify-between gap-3 rounded-2xl border border-border/60 bg-background/60 p-4">
+            <div>
+              <p className="text-[12px] font-semibold text-foreground">Aksi cepat</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Buka dari Chrome di <span className="font-medium text-foreground">app.zmaula.web.id</span>.
+              </p>
+            </div>
+            <Button onClick={handleInstallPwa} className="h-10 rounded-lg text-[12px]" disabled={pwaStandalone}>
+              <Download className="mr-2 h-3.5 w-3.5" />
+              {pwaStandalone ? 'Sudah Terinstall' : pwaInstallAvailable ? 'Install PWA' : 'Lihat Cara Install'}
+            </Button>
           </div>
         </div>
       </section>
