@@ -29,7 +29,7 @@ export default function DashboardLayout({
     <SWRProvider>
       <PWAProvider />
       <TooltipProvider>
-        <div className="flex min-h-screen overflow-x-hidden bg-background">
+        <div className="dashboard-readable flex min-h-screen overflow-x-hidden bg-background">
           <AppSidebar />
           <CommandPalette />
           <main className="relative ml-0 flex-1 overflow-x-hidden md:ml-[280px]">

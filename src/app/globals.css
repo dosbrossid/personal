@@ -163,6 +163,44 @@
   font-family: var(--app-font-display);
 }
 
+/*
+ * Dashboard readability layer.
+ * Banyak module dashboard lama memakai arbitrary tiny text (10-13px).
+ * Layer ini menaikkan skala mikro secara konsisten tanpa menyentuh public blog.
+ */
+.dashboard-readable {
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+}
+
+.dashboard-readable .text-\[10px\] {
+  font-size: 11.5px;
+  line-height: 1rem;
+}
+
+.dashboard-readable .text-\[11px\] {
+  font-size: 12.5px;
+  line-height: 1.1rem;
+}
+
+.dashboard-readable .text-\[12px\],
+.dashboard-readable .text-xs {
+  font-size: 13.5px;
+  line-height: 1.25rem;
+}
+
+.dashboard-readable .text-\[13px\] {
+  font-size: 14px;
+  line-height: 1.35rem;
+}
+
+.dashboard-readable input,
+.dashboard-readable textarea,
+.dashboard-readable select,
+.dashboard-readable button {
+  font-size-adjust: 0.52;
+}
+
 /* ─── Custom Scrollbar ─── */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;

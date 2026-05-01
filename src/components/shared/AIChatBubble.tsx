@@ -508,30 +508,40 @@ export function AIChatBubble() {
                         : 'scale-95 opacity-0 translate-y-4 pointer-events-none'
                 )}
             >
-                <div className="flex items-start gap-3 border-b border-border/60 px-4 py-4 sm:px-5">
+                <div className="flex items-center gap-3 border-b border-border/60 px-4 py-3 sm:px-5">
                     <div className="relative shrink-0">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-emerald-300/20 dark:from-primary/30 dark:to-emerald-400/20">
-                            <Sparkles className="h-4.5 w-4.5 text-primary" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-emerald-300/20 dark:from-primary/30 dark:to-emerald-400/20 sm:h-9 sm:w-9">
+                            <Sparkles className="h-4 w-4 text-primary sm:h-4.5 sm:w-4.5" />
                         </div>
                         <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
                             <span className="absolute inset-0 rounded-full bg-emerald-400 opacity-50 animate-ping" />
                         </span>
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h3 className="text-base font-semibold leading-tight text-foreground sm:text-sm">
-                            Asisten Pribadi
-                        </h3>
-                        <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground sm:text-[11px]">
-                            {isSubmitting
-                                ? 'Sedang menganalisis, berdiskusi, atau menyusun draft...'
-                                : 'Bisa diajak diskusi, analisa gambar, atau bantu task, agenda, catatan, dan link vault'}
+                        <div className="flex min-w-0 items-center gap-2">
+                            <h3 className="truncate text-[15px] font-semibold leading-tight text-foreground">
+                                Asisten Pribadi
+                            </h3>
+                            <span
+                                className={cn(
+                                    'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none',
+                                    isSubmitting
+                                        ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                                        : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                )}
+                            >
+                                {isSubmitting ? 'Mikir' : 'Online'}
+                            </span>
+                        </div>
+                        <p className="mt-0.5 truncate text-[12px] leading-tight text-muted-foreground">
+                            Chat, gambar, task, agenda, catatan.
                         </p>
                     </div>
                     <div className="flex items-center gap-1">
                         <button
                             type="button"
                             onClick={handleClearConversation}
-                            className="rounded-lg px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+                            className="hidden rounded-lg px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground sm:inline-flex"
                             aria-label="Clear conversation"
                         >
                             Reset
