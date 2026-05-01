@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Mail, MapPin, Phone, Rss } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { PublicBlogNavigationFeedback } from '@/components/modules/blog/PublicBlogNavigationFeedback';
 import { getDashboardLoginUrl } from '@/lib/app-routing';
 import { getPublicBlogBasePath, withPublicBlogBase } from '@/lib/public-blog-routing';
 
@@ -96,6 +97,7 @@ export default async function BlogLayout({
     <div className="min-h-screen bg-white text-[#242424] dark:bg-[#0f0f0f] dark:text-foreground">
       {/* ── Top gradient accent line ── */}
       <div className="gradient-accent-line h-[3px]" />
+      <PublicBlogNavigationFeedback />
 
       {/* ── Navbar ── */}
       <nav className="sticky top-0 z-50 border-b border-[#f2f2f2] bg-white/95 backdrop-blur-2xl dark:border-border/60 dark:bg-[#0f0f0f]/90">

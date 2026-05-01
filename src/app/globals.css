@@ -259,6 +259,18 @@
   }
 }
 
+@keyframes blog-route-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  55% {
+    transform: translateX(90%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
 @supports (animation-timeline: scroll()) {
   .reading-progress-bar {
     animation: reading-progress-scale linear both;
