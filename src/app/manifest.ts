@@ -2,12 +2,12 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    id: '/',
+    id: '/?pwa=dashboard-v2',
     name: 'Zmaula Personal Dashboard',
     short_name: 'Zmaula',
     description:
       'Dashboard pribadi berbasis AI untuk tugas, catatan, agenda, blog, vault, dan workflow harian.',
-    start_url: '/',
+    start_url: '/?pwa=dashboard-v2',
     scope: '/',
     display: 'standalone',
     display_override: ['standalone', 'minimal-ui', 'browser'],

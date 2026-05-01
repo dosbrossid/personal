@@ -1110,3 +1110,12 @@ _Belum ada bug tercatat. Development backend dimulai._
 **Pelajaran:** PWA install prompt tidak boleh bergantung penuh pada `beforeinstallprompt`; browser sering menahan prompt, jadi dashboard harus punya fallback edukatif yang eksplisit.
 **Status:** RESOLVED
 **Terkait:** `src/app/layout.tsx`, `src/app/(dashboard)/layout.tsx`, `src/components/providers/PWAProvider.tsx`
+
+## BUG-108 | 2026-05-01 | SEVERITY: High
+
+**Gejala:** Chrome laptop sudah menawarkan install PWA, tetapi Chrome Android tetap tidak menampilkan opsi install setelah shortcut lama dihapus.
+**Root Cause:** Android/Chrome kemungkinan masih menyimpan identity WebAPK/shortcut lama untuk manifest `id: '/'`, sehingga situs dianggap sudah pernah ditambahkan atau status installability tertahan.
+**Fix:** Ganti manifest identity dashboard ke `id: '/?pwa=dashboard-v2'` dan `start_url: '/?pwa=dashboard-v2'` agar Android melihatnya sebagai PWA candidate baru tanpa mengubah scope dashboard.
+**Pelajaran:** Untuk kasus Android WebAPK yang nyangkut, mengganti manifest `id` adalah bypass yang lebih reliable daripada hanya meminta clear cache manual.
+**Status:** RESOLVED
+**Terkait:** `src/app/manifest.ts`
