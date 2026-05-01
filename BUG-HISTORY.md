@@ -1119,3 +1119,12 @@ _Belum ada bug tercatat. Development backend dimulai._
 **Pelajaran:** Untuk kasus Android WebAPK yang nyangkut, mengganti manifest `id` adalah bypass yang lebih reliable daripada hanya meminta clear cache manual.
 **Status:** RESOLVED
 **Terkait:** `src/app/manifest.ts`
+
+## BUG-109 | 2026-05-01 | SEVERITY: High
+
+**Gejala:** Chrome Android tetap tidak menyediakan prompt install PWA di `app.zmaula.web.id`, meskipun service worker sudah aktif.
+**Root Cause:** Route PWA public asset seperti `/manifest.webmanifest` masih terkena proxy auth guard dan diarahkan ke `/login`, sehingga Chrome menerima HTML login alih-alih manifest JSON.
+**Fix:** Tambahkan daftar public PWA asset di proxy dan keluarkan `/manifest.webmanifest`, `/sw.js`, `/icon`, `/icon-192`, `/apple-icon`, serta `/offline` dari matcher auth guard.
+**Pelajaran:** Asset installability PWA harus bisa diakses publik tanpa sesi login; auth guard boleh melindungi dashboard UI/data, tapi tidak boleh mengunci manifest, icon, service worker, atau offline page.
+**Status:** RESOLVED
+**Terkait:** `src/proxy.ts`, `src/app/manifest.ts`, `public/sw.js`

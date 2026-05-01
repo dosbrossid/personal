@@ -9,10 +9,18 @@ import { buildLoginRedirectTarget } from '@/lib/auth-redirect';
 
 // Routes that don't require authentication
 const PUBLIC_ROUTES = ['/login', '/public-blog', '/api/public'];
+const PUBLIC_PWA_ASSET_ROUTES = new Set([
+  '/manifest.webmanifest',
+  '/sw.js',
+  '/icon',
+  '/icon-192',
+  '/apple-icon',
+  '/offline',
+]);
 const PUBLIC_BLOG_HOSTS = new Set(['zmaula.web.id', 'www.zmaula.web.id']);
 
 function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some(route => pathname.startsWith(route));
+  return PUBLIC_PWA_ASSET_ROUTES.has(pathname) || PUBLIC_ROUTES.some(route => pathname.startsWith(route));
 }
 
 export async function proxy(request: NextRequest) {
@@ -34,6 +42,11 @@ export async function proxy(request: NextRequest) {
 
   // ─── Public blog routes — no auth needed ───
   if (pathname.startsWith('/public-blog')) {
+    return NextResponse.next();
+  }
+
+  // ─── PWA install assets — must be public for Chrome installability checks ───
+  if (PUBLIC_PWA_ASSET_ROUTES.has(pathname)) {
     return NextResponse.next();
   }
 
@@ -80,9 +93,9 @@ export const config = {
      * Match all request paths except for the ones starting with:
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * - favicon.ico, manifest, service worker, icons, offline page
      * - public assets (svg, png, jpg, etc.)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest|sw\\.js|icon|icon-192|apple-icon|offline|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
