@@ -7,7 +7,7 @@ import { type NextRequest } from 'next/server'
 import { addDays } from 'date-fns'
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { createServiceRoleClient } from '@/lib/supabase/service'
-import { getTelegramFileAsDataUrl, sendTelegramMessage } from '@/lib/telegram'
+import { getTelegramFileAsDataUrl, sendTelegramChatAction, sendTelegramMessage } from '@/lib/telegram'
 import { analyzeImageWithVision, callLLM } from '@/lib/ai/client'
 import {
   buildAIExecutionMessage,
@@ -96,6 +96,32 @@ async function sendTelegramRichMessage(chatId: string, text: string) {
     await sendTelegramMessage(chatId, text, { parseMode: 'MarkdownV2' })
   } catch {
     await sendTelegramMessage(chatId, text.replace(/[\\*_`[\]()~>#+\-=|{}.!]/g, ''))
+  }
+}
+
+async function withTelegramTyping<T>(chatId: string, work: () => Promise<T>, action: 'typing' | 'upload_photo' = 'typing') {
+  let stopped = false
+  let pulseTimer: ReturnType<typeof setTimeout> | null = null
+
+  const pulse = async () => {
+    if (stopped) return
+    await sendTelegramChatAction(chatId, action).catch(() => undefined)
+    if (!stopped) {
+      pulseTimer = setTimeout(() => {
+        pulse().catch(() => undefined)
+      }, 4000)
+    }
+  }
+
+  await pulse()
+
+  try {
+    return await work()
+  } finally {
+    stopped = true
+    if (pulseTimer) {
+      clearTimeout(pulseTimer)
+    }
   }
 }
 
@@ -1079,7 +1105,9 @@ export async function POST(request: NextRequest) {
   let imageAttachment: TelegramImageAttachment | null = null
 
   try {
-    imageAttachment = await extractTelegramImageAttachment(message)
+    imageAttachment = message.photo?.length || message.document?.mime_type?.startsWith('image/')
+      ? await withTelegramTyping(chatId, () => extractTelegramImageAttachment(message), 'upload_photo')
+      : await extractTelegramImageAttachment(message)
   } catch (error) {
     await sendTelegramMessage(
       chatId,
@@ -1120,17 +1148,17 @@ export async function POST(request: NextRequest) {
   }
 
   if (text.startsWith('/tasks')) {
-    await sendTelegramRichMessage(chatId, await handleTasks(linkedUser))
+    await sendTelegramRichMessage(chatId, await withTelegramTyping(chatId, () => handleTasks(linkedUser)))
     return Response.json({ ok: true })
   }
 
   if (text.startsWith('/habits')) {
-    await sendTelegramRichMessage(chatId, await handleHabits(linkedUser))
+    await sendTelegramRichMessage(chatId, await withTelegramTyping(chatId, () => handleHabits(linkedUser)))
     return Response.json({ ok: true })
   }
 
   if (text.startsWith('/today')) {
-    await sendTelegramRichMessage(chatId, await handleToday(linkedUser))
+    await sendTelegramRichMessage(chatId, await withTelegramTyping(chatId, () => handleToday(linkedUser)))
     return Response.json({ ok: true })
   }
 
@@ -1139,13 +1167,13 @@ export async function POST(request: NextRequest) {
     return Response.json({ ok: true })
   }
 
-  const memoryCommandReply = await handleTelegramMemoryCommand(linkedUser, message.message_id, text)
+  const memoryCommandReply = await withTelegramTyping(chatId, () => handleTelegramMemoryCommand(linkedUser, message.message_id, text))
   if (memoryCommandReply) {
     await sendTelegramMessage(chatId, memoryCommandReply)
     return Response.json({ ok: true, memory_command: true })
   }
 
-  const calendarUpdateReply = await handleTelegramCalendarUpdate(linkedUser, text)
+  const calendarUpdateReply = await withTelegramTyping(chatId, () => handleTelegramCalendarUpdate(linkedUser, text))
   if (calendarUpdateReply) {
     await supabase.from('ai_hub_logs').insert({
       user_id: linkedUser.id,
@@ -1201,10 +1229,13 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: true, confirmed: false })
     }
 
-    const execution = await executeAIResponseItemsWithClient(
-      supabase as unknown as Parameters<typeof executeAIResponseItemsWithClient>[0],
-      linkedUser.id,
-      aiResponse.items
+    const execution = await withTelegramTyping(
+      chatId,
+      () => executeAIResponseItemsWithClient(
+        supabase as unknown as Parameters<typeof executeAIResponseItemsWithClient>[0],
+        linkedUser.id,
+        aiResponse.items
+      )
     )
 
     await supabase
@@ -1219,17 +1250,28 @@ export async function POST(request: NextRequest) {
     return Response.json({ ok: true })
   }
 
-  const visionResult = imageAttachment
-    ? await analyzeImageWithVision({
-        userPrompt: text,
-        imageDataUrl: imageAttachment.dataUrl,
-        mimeType: imageAttachment.mimeType,
-      })
-    : null
-  const mainModelInput = buildMainModelInputWithVisionAnalysis(text, visionResult?.analysis ?? null)
-  const { response, raw, tokensUsed, latencyMs } = await callLLM(
-    await buildTelegramAIContext(linkedUser, mainModelInput)
-  )
+  const {
+    visionResult,
+    response,
+    raw,
+    tokensUsed,
+    latencyMs,
+  } = await withTelegramTyping(chatId, async () => {
+    const vision = imageAttachment
+      ? await analyzeImageWithVision({
+          userPrompt: text,
+          imageDataUrl: imageAttachment.dataUrl,
+          mimeType: imageAttachment.mimeType,
+        })
+      : null
+    const mainModelInput = buildMainModelInputWithVisionAnalysis(text, vision?.analysis ?? null)
+    const llmResult = await callLLM(await buildTelegramAIContext(linkedUser, mainModelInput))
+
+    return {
+      visionResult: vision,
+      ...llmResult,
+    }
+  })
   const totalTokensUsed = (tokensUsed ?? 0) + (visionResult?.tokensUsed ?? 0) || null
   const totalLatencyMs = latencyMs + (visionResult?.latencyMs ?? 0)
   const aiResponse = response
@@ -1237,10 +1279,13 @@ export async function POST(request: NextRequest) {
     : null
 
   if (!aiResponse) {
-    const smartRecallReply = await buildTelegramSmartRecallReply(
-      supabase as unknown as Parameters<typeof buildTelegramSmartRecallReply>[0],
-      linkedUser,
-      text
+    const smartRecallReply = await withTelegramTyping(
+      chatId,
+      () => buildTelegramSmartRecallReply(
+        supabase as unknown as Parameters<typeof buildTelegramSmartRecallReply>[0],
+        linkedUser,
+        text
+      )
     )
 
     if (smartRecallReply) {

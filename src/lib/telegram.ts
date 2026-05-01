@@ -10,6 +10,11 @@ interface TelegramSendResponse {
   description?: string
 }
 
+interface TelegramActionResponse {
+  ok: boolean
+  description?: string
+}
+
 interface TelegramFileResponse {
   ok: boolean
   description?: string
@@ -24,6 +29,31 @@ const TELEGRAM_MAX_MESSAGE_LENGTH = 3900
 
 export function hasTelegramConfig() {
   return Boolean(process.env.TELEGRAM_BOT_TOKEN)
+}
+
+export async function sendTelegramChatAction(chatId: string, action: 'typing' | 'upload_photo' = 'typing') {
+  const token = process.env.TELEGRAM_BOT_TOKEN
+
+  if (!token) {
+    throw new Error('TELEGRAM_BOT_TOKEN belum dikonfigurasi')
+  }
+
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendChatAction`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      action,
+    }),
+  })
+
+  const payload = (await response.json().catch(() => null)) as TelegramActionResponse | null
+
+  if (!response.ok || !payload?.ok) {
+    throw new Error(payload?.description || `Telegram sendChatAction error (${response.status})`)
+  }
+
+  return payload
 }
 
 export async function sendTelegramMessage(
