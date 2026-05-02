@@ -6,13 +6,13 @@ Panduan ini menjelaskan cara AI coding agent harus bekerja di project ini mengik
 
 Owner sering memberi request dalam bentuk natural dan cepat. Agent harus mengklasifikasikan request sebelum bertindak:
 
-| Sinyal Owner | Kategori | File Tracking |
-|---|---|---|
-| "bug", "error", "gak jalan", screenshot perilaku salah | Bug/Hotfix | `BUG-HISTORY.md` dan `PRODUCT-INBOX.md` jika perlu |
-| "menurutku kurang nyaman", "font kecil", "warna kurang enak" | UX Polish | `PRODUCT-INBOX.md` |
-| "coba sarankan", "gimana cara sempurnakan" | Product Idea | `PRODUCT-INBOX.md` |
-| "samakan logika", "hybrid deterministic", "memory/cache" | Architecture | `PRODUCT-INBOX.md` dan dokumen terkait |
-| "push" | Git Operation | Tidak perlu file tracking baru, kecuali ada perubahan kode sebelumnya |
+| Sinyal Owner                                                 | Kategori      | File Tracking                                                         |
+| ------------------------------------------------------------ | ------------- | --------------------------------------------------------------------- |
+| "bug", "error", "gak jalan", screenshot perilaku salah       | Bug/Hotfix    | `BUG-HISTORY.md` dan `PRODUCT-INBOX.md` jika perlu                    |
+| "menurutku kurang nyaman", "font kecil", "warna kurang enak" | UX Polish     | `PRODUCT-INBOX.md`                                                    |
+| "coba sarankan", "gimana cara sempurnakan"                   | Product Idea  | `PRODUCT-INBOX.md`                                                    |
+| "samakan logika", "hybrid deterministic", "memory/cache"     | Architecture  | `PRODUCT-INBOX.md` dan dokumen terkait                                |
+| "push"                                                       | Git Operation | Tidak perlu file tracking baru, kecuali ada perubahan kode sebelumnya |
 
 ## File yang Wajib Diupdate
 
@@ -34,6 +34,7 @@ Format:
 ```
 
 Aturan:
+
 - Buat entry sebelum atau saat fix, jangan setelah lupa konteks.
 - Jika root cause belum pasti, tulis `Root Cause: Investigating`.
 - Saat fix selesai, update status ke `RESOLVED`.
@@ -41,6 +42,7 @@ Aturan:
 ### `PRODUCT-INBOX.md`
 
 Update setiap owner memberi:
+
 - Komplain UX.
 - Ide fitur.
 - Permintaan refinement.
@@ -52,6 +54,7 @@ Jangan terlalu panjang. Satu item harus cukup untuk mengingat konteks.
 ### Dokumen Modul di `docs/`
 
 Update jika perubahan mengubah arah fitur besar:
+
 - Blog/editor/public blog: update dokumen blog jika perlu.
 - AI command hub/Telegram/chat bubble: buat atau update dokumen AI terkait jika sudah ada.
 - Class management: update `docs/Class-Management-Plan.md`.
@@ -62,6 +65,7 @@ Update jika perubahan mengubah arah fitur besar:
 ### 1. Intake
 
 Saat owner mengeluh atau memberi ide:
+
 - Ringkas pemahaman dalam 1-2 kalimat.
 - Catat item di `PRODUCT-INBOX.md`.
 - Jika bug, catat juga di `BUG-HISTORY.md`.
@@ -70,6 +74,7 @@ Saat owner mengeluh atau memberi ide:
 ### 2. Exploration
 
 Agent harus:
+
 - Cari source of truth di kode.
 - Bandingkan flow create/edit/read.
 - Cek apakah bug terjadi di UI, server action, API route, Supabase query, cache SWR, atau external bot.
@@ -77,6 +82,7 @@ Agent harus:
 ### 3. Implementation
 
 Agent harus:
+
 - Fix di level paling tepat.
 - Jangan hanya tambal UI jika kontrak server juga salah.
 - Jangan menambah dependency kecuali ada izin owner atau trade-off jelas.
@@ -85,6 +91,7 @@ Agent harus:
 ### 4. Verification
 
 Minimal:
+
 - Lint file terkait.
 - Build penuh jika menyentuh Next route, dependency, editor, auth, AI, public blog, atau data model.
 - Jelaskan kalau verifikasi manual belum dilakukan.
@@ -92,6 +99,7 @@ Minimal:
 ### 5. Closeout
 
 Final response wajib singkat dan jelas:
+
 - Apa yang berubah.
 - Apa yang sudah dites.
 - Apakah ada migration/env/dependency.
@@ -101,6 +109,7 @@ Final response wajib singkat dan jelas:
 ## Escalation Rules
 
 Agent harus berhenti dan minta konfirmasi jika:
+
 - Perlu migration database yang bisa mengubah data existing.
 - Perlu dependency besar dan belum ada izin.
 - Perlu menghapus fitur yang sudah dipakai owner.
@@ -108,6 +117,7 @@ Agent harus berhenti dan minta konfirmasi jika:
 - Fix kecil ternyata butuh refactor luas.
 
 Agent boleh langsung jalan tanpa bertanya jika:
+
 - Bug jelas dan fix lokal.
 - UX polish kecil.
 - Dokumentasi/tracking update.
@@ -118,18 +128,21 @@ Agent boleh langsung jalan tanpa bertanya jika:
 ### Blog Publik
 
 Target:
+
 - Lighthouse hijau.
 - Readability nyaman di mobile.
 - Gambar WebP/compressed.
 - SSR tetap crawlable.
 
 Jangan:
+
 - Tambah script berat di public blog tanpa alasan kuat.
 - Mengorbankan readability demi efek visual.
 
 ### Blog Editor
 
 Target:
+
 - Writing flow natural.
 - Create dan edit punya behavior sama.
 - Selection tidak hilang saat toolbar dipakai.
@@ -139,7 +152,7 @@ Target:
 ### AI Command Hub
 
 Target:
+
 - Hybrid deterministic: AI boleh fleksibel, executor tetap aman.
 - Chat bubble dan Telegram memakai logika yang konsisten.
 - AI boleh mengambil konteks relevan, tapi action penting tetap structured/confirmable.
-

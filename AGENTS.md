@@ -1,7 +1,9 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+
 <!-- END:nextjs-agent-rules -->
 
 ---
@@ -16,36 +18,37 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## 1. PROJECT IDENTITY
 
-| Key | Value |
-|-----|-------|
-| **Nama** | Personal Dashboard |
-| **Owner** | Ziaul Maula, SE, M.Si (Dosen FEB UNSAM · Digital Marketer · Vibe Coder · Consultant) |
-| **Purpose** | Multi-role productivity dashboard + public blog |
-| **Domain** | `app.zmaula.web.id` (dashboard) · `zmaula.web.id` (public blog) |
-| **Status** | Frontend selesai (mock data), backend in progress |
+| Key         | Value                                                                                |
+| ----------- | ------------------------------------------------------------------------------------ |
+| **Nama**    | Personal Dashboard                                                                   |
+| **Owner**   | Ziaul Maula, SE, M.Si (Dosen FEB UNSAM · Digital Marketer · Vibe Coder · Consultant) |
+| **Purpose** | Multi-role productivity dashboard + public blog                                      |
+| **Domain**  | `app.zmaula.web.id` (dashboard) · `zmaula.web.id` (public blog)                      |
+| **Status**  | Frontend selesai (mock data), backend in progress                                    |
 
 ---
 
 ## 2. TECH STACK — WAJIB IKUTI
 
-| Layer | Technology | Version | Notes |
-|-------|-----------|---------|-------|
-| **Framework** | Next.js (App Router) | 16.2.3 | ⚠️ Baca `node_modules/next/dist/docs/` SEBELUM coding |
-| **UI** | React | 19.2.4 | Server + Client Components |
-| **Styling** | TailwindCSS | v4 | PostCSS plugin |
-| **UI Components** | shadcn/ui | v4 | base-ui based |
-| **Database** | Supabase (PostgreSQL) | — | Client only, NO ORM |
-| **Auth** | Supabase Auth | — | Email + Google OAuth |
-| **Storage** | Supabase Storage | — | Buckets: `vault`, `blog-media` |
-| **State (read)** | SWR | 2.4.1 | Semua dashboard reads via SWR hooks |
-| **State (write)** | Server Actions | — | `'use server'` + `ActionResult<T>` |
-| **Icons** | lucide-react | — | Konsisten, jangan mix icon libraries |
-| **Date** | date-fns + date-fns-tz | — | Timezone: Asia/Jakarta |
-| **Toast** | Sonner | — | Untuk feedback setelah mutations |
-| **Blog Editor** | Tiptap | — | Rich text, JSON + HTML output |
-| **Deploy** | Vercel | — | Serverless functions |
+| Layer             | Technology             | Version | Notes                                                 |
+| ----------------- | ---------------------- | ------- | ----------------------------------------------------- |
+| **Framework**     | Next.js (App Router)   | 16.2.3  | ⚠️ Baca `node_modules/next/dist/docs/` SEBELUM coding |
+| **UI**            | React                  | 19.2.4  | Server + Client Components                            |
+| **Styling**       | TailwindCSS            | v4      | PostCSS plugin                                        |
+| **UI Components** | shadcn/ui              | v4      | base-ui based                                         |
+| **Database**      | Supabase (PostgreSQL)  | —       | Client only, NO ORM                                   |
+| **Auth**          | Supabase Auth          | —       | Email + Google OAuth                                  |
+| **Storage**       | Supabase Storage       | —       | Buckets: `vault`, `blog-media`                        |
+| **State (read)**  | SWR                    | 2.4.1   | Semua dashboard reads via SWR hooks                   |
+| **State (write)** | Server Actions         | —       | `'use server'` + `ActionResult<T>`                    |
+| **Icons**         | lucide-react           | —       | Konsisten, jangan mix icon libraries                  |
+| **Date**          | date-fns + date-fns-tz | —       | Timezone: Asia/Jakarta                                |
+| **Toast**         | Sonner                 | —       | Untuk feedback setelah mutations                      |
+| **Blog Editor**   | Tiptap                 | —       | Rich text, JSON + HTML output                         |
+| **Deploy**        | Vercel                 | —       | Serverless functions                                  |
 
 ### DILARANG:
+
 - ❌ Prisma, Drizzle, atau ORM apapun
 - ❌ Framer Motion (sudah dihapus karena performance)
 - ❌ Axios (gunakan native fetch / SWR)
@@ -67,6 +70,7 @@ PUBLIC BLOG (SSR for SEO):
 ```
 
 ### Aturan Rendering:
+
 - **Semua page di `(dashboard)/`** = Client Component + SWR hooks
 - **Semua page di `public-blog/`** = Server Component (SSR)
 - **Login page** = Server Component
@@ -145,24 +149,27 @@ src/
 ## 5. CODING CONVENTIONS
 
 ### Naming:
-| Target | Convention | Contoh |
-|--------|-----------|--------|
-| Files | kebab-case | `tasks.actions.ts`, `use-tasks.ts` |
-| Functions | camelCase | `createTask`, `toggleHabitLog` |
-| Components | PascalCase | `WidgetTasks`, `BlogEditor` |
-| DB columns | snake_case | `user_id`, `created_at`, `is_deleted` |
-| Types | PascalCase | `Task`, `ActionResult<T>` |
-| Constants | UPPER_SNAKE | `MAX_FILE_SIZE`, `TASK_STATUSES` |
-| SWR hooks | use-xxx | `useTasks()`, `useBlogPosts()` |
-| Actions | verb+noun | `createTask`, `deleteNote`, `togglePinNote` |
-| API routes | REST-like | `GET /api/tasks`, `PATCH /api/tasks/[id]` |
+
+| Target     | Convention  | Contoh                                      |
+| ---------- | ----------- | ------------------------------------------- |
+| Files      | kebab-case  | `tasks.actions.ts`, `use-tasks.ts`          |
+| Functions  | camelCase   | `createTask`, `toggleHabitLog`              |
+| Components | PascalCase  | `WidgetTasks`, `BlogEditor`                 |
+| DB columns | snake_case  | `user_id`, `created_at`, `is_deleted`       |
+| Types      | PascalCase  | `Task`, `ActionResult<T>`                   |
+| Constants  | UPPER_SNAKE | `MAX_FILE_SIZE`, `TASK_STATUSES`            |
+| SWR hooks  | use-xxx     | `useTasks()`, `useBlogPosts()`              |
+| Actions    | verb+noun   | `createTask`, `deleteNote`, `togglePinNote` |
+| API routes | REST-like   | `GET /api/tasks`, `PATCH /api/tasks/[id]`   |
 
 ### TypeScript:
+
 - Selalu gunakan types dari `@/core/types`
 - Server Action return type: `ActionResult<T>` (sudah defined)
 - Jangan `any` kecuali terpaksa — prefer `unknown` lalu narrow
 
 ### Imports:
+
 - Gunakan path alias `@/` (sudah configured)
 - Urutan: external libs → internal modules → types → styles
 
@@ -233,11 +240,13 @@ if (result.error) mutate() // refetch real data
 ## 8. BUG HANDLING PROTOCOL
 
 ### Sebelum Fix:
+
 1. Catat bug di `BUG-HISTORY.md` dengan format terstruktur
 2. Identifikasi: bug baru atau recurring pattern?
 3. Kalau solusi sudah dicoba 2x gagal → MUNDUR, validasi premis
 
 ### Format Log:
+
 ```markdown
 ## BUG-XXX | YYYY-MM-DD | SEVERITY: Critical/High/Medium/Low
 **Gejala:**
@@ -248,6 +257,7 @@ if (result.error) mutate() // refetch real data
 ```
 
 ### 6 Recurring Patterns yang WAJIB Diwaspadai:
+
 1. **Fire-and-Forget** — UI update, DB gagal diam-diam → await + error handle
 2. **Stale SWR Cache** — data tidak sinkron → selalu `mutate()` after action
 3. **Client Logic Leak** — business logic di browser → pindahkan ke server
@@ -260,6 +270,7 @@ if (result.error) mutate() // refetch real data
 ## 9. DO'S AND DON'TS
 
 ### ✅ DO:
+
 - Baca `node_modules/next/dist/docs/` sebelum pakai API Next.js
 - Gunakan `ActionResult<T>` untuk return type Server Actions
 - Gunakan SWR `mutate()` setelah setiap mutation
@@ -269,6 +280,7 @@ if (result.error) mutate() // refetch real data
 - Validasi asumsi sebelum iterasi lebih dari 2x pada pendekatan yang sama
 
 ### ❌ DON'T:
+
 - JANGAN tambah dependency baru tanpa izin user
 - JANGAN buat logic bisnis di client component
 - JANGAN hard delete data apapun
@@ -282,21 +294,21 @@ if (result.error) mutate() // refetch real data
 
 ## 10. REFERENCE FILES
 
-| File | Purpose |
-|------|---------|
-| `docs/Shipping-Workflow.md` | Cara kerja owner: ship cepat, smoke test, mini sprint, dan definition of done |
-| `docs/Agent-Operating-Guide.md` | Panduan agent untuk menangani bug, ide, UX polish, dan architecture change |
-| `PRODUCT-INBOX.md` | Inbox wajib untuk setiap komplain, ide, polish, dan keputusan produk dari owner |
-| `docs/Backend-Plan-Part1-Architecture.md` | Backend plan: DB schema, API routes, auth |
-| `docs/Backend-Plan-Part2-SWR-Actions.md` | Backend plan: SWR hooks, Server Actions, blog CMS, roadmap |
-| `docs/PRD-Personal-Dashboard.md` | Product Requirements Document |
-| `docs/Architecture-Blueprint.md` | Architecture blueprint |
-| `BUG-HISTORY.md` | Bug log — catat semua bug di sini |
-| `src/core/types/index.ts` | Semua TypeScript types |
-| `src/core/constants.ts` | Enums, role colors, nav items |
-| `src/lib/mock-data.ts` | Mock data (⚠️ will be removed) |
-| `src/middleware.ts` | Auth guard + domain routing |
-| `package.json` | Dependencies — JANGAN tambah tanpa izin |
+| File                                      | Purpose                                                                         |
+| ----------------------------------------- | ------------------------------------------------------------------------------- |
+| `docs/Shipping-Workflow.md`               | Cara kerja owner: ship cepat, smoke test, mini sprint, dan definition of done   |
+| `docs/Agent-Operating-Guide.md`           | Panduan agent untuk menangani bug, ide, UX polish, dan architecture change      |
+| `PRODUCT-INBOX.md`                        | Inbox wajib untuk setiap komplain, ide, polish, dan keputusan produk dari owner |
+| `docs/Backend-Plan-Part1-Architecture.md` | Backend plan: DB schema, API routes, auth                                       |
+| `docs/Backend-Plan-Part2-SWR-Actions.md`  | Backend plan: SWR hooks, Server Actions, blog CMS, roadmap                      |
+| `docs/PRD-Personal-Dashboard.md`          | Product Requirements Document                                                   |
+| `docs/Architecture-Blueprint.md`          | Architecture blueprint                                                          |
+| `BUG-HISTORY.md`                          | Bug log — catat semua bug di sini                                               |
+| `src/core/types/index.ts`                 | Semua TypeScript types                                                          |
+| `src/core/constants.ts`                   | Enums, role colors, nav items                                                   |
+| `src/lib/mock-data.ts`                    | Mock data (⚠️ will be removed)                                                  |
+| `src/middleware.ts`                       | Auth guard + domain routing                                                     |
+| `package.json`                            | Dependencies — JANGAN tambah tanpa izin                                         |
 
 ---
 
@@ -306,6 +318,7 @@ Owner bekerja dengan pola **MVP → pakai nyata → temukan friction → improve
 Agent jangan memaksa proses heavy planning, tapi wajib memberi guardrail ringan.
 
 ### Setiap ada komplain/ide dari owner:
+
 1. Tambahkan item ringkas ke `PRODUCT-INBOX.md`.
 2. Jika itu bug/regression, tambahkan juga entry ke `BUG-HISTORY.md`.
 3. Klasifikasikan sebagai `Hotfix`, `UX Polish`, atau `Architecture Upgrade`.
@@ -313,10 +326,12 @@ Agent jangan memaksa proses heavy planning, tapi wajib memberi guardrail ringan.
 5. Jalankan verifikasi sesuai dampak.
 
 ### Agent wajib membaca:
+
 - `docs/Shipping-Workflow.md` untuk cara kerja owner.
 - `docs/Agent-Operating-Guide.md` untuk ritual update tracking, escalation, dan closeout.
 
 ### Jangan lupa:
+
 - Sebutkan di final response apakah ada migration, env baru, dependency baru, dan apakah sudah push.
 - Kalau owner hanya memberi ide dan belum minta implementasi, catat di `PRODUCT-INBOX.md` lalu beri rekomendasi prioritas.
 
