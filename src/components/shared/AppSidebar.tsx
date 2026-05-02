@@ -16,7 +16,6 @@ import {
   HelpCircle,
   LogOut,
   Search,
-  Bell,
   Sparkles,
   Menu,
   X,
@@ -261,10 +260,6 @@ export function AppSidebar() {
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <button className="relative rounded-lg p-2 transition-colors hover:bg-muted dark:hover:bg-white/[0.07]">
-              <Bell className="h-4.5 w-4.5 text-muted-foreground dark:text-slate-300" />
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]" />
-            </button>
             <ThemeToggle />
           </div>
         </div>
