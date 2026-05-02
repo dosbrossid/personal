@@ -403,7 +403,7 @@ export default async function BlogPostPage({ params }: Props) {
         )}
       </article>
       <Script id={`blog-view-${post.id}`} strategy="lazyOnload">
-        {`fetch(${JSON.stringify(viewTrackPath)}, { method: 'POST' }).catch(function () {});`}
+        {`(function(){var path=${JSON.stringify(viewTrackPath)};if(navigator.sendBeacon){navigator.sendBeacon(path);return;}fetch(path,{method:'POST',keepalive:true,cache:'no-store'}).catch(function(){});})();`}
       </Script>
     </>
   );

@@ -1128,3 +1128,12 @@ _Belum ada bug tercatat. Development backend dimulai._
 **Pelajaran:** Asset installability PWA harus bisa diakses publik tanpa sesi login; auth guard boleh melindungi dashboard UI/data, tapi tidak boleh mengunci manifest, icon, service worker, atau offline page.
 **Status:** RESOLVED
 **Terkait:** `src/proxy.ts`, `src/app/manifest.ts`, `public/sw.js`
+
+## BUG-111 | 2026-05-02 | SEVERITY: High
+
+**Gejala:** Blog view count tidak bertambah meskipun artikel publik dibuka, dan editor Catatan memindahkan kursor/selection ke atas setelah teks diblok lalu diberi formatting.
+**Root Cause:** Endpoint view counter publik memakai Supabase anon/server client sehingga fallback update terkena RLS dan gagal diam-diam ketika RPC tidak tersedia/bermasalah. Di Catatan, toolbar mengambil focus dari `contentEditable`, lalu sync editor menulis ulang `innerHTML` saat input sehingga selection browser hilang.
+**Fix:** Ubah endpoint view counter menjadi trusted service-role route yang hanya meng-increment post published/public/non-deleted, perkuat tracking script dengan `sendBeacon`/`keepalive`, simpan dan restore selection editor sebelum command formatting, cegah toolbar mencuri focus dengan `onMouseDown preventDefault`, dan hentikan rewrite `innerHTML` agresif saat user mengetik.
+**Pelajaran:** Counter publik butuh jalur server terpercaya yang tetap scoped, bukan update anon yang berharap lolos RLS. Untuk rich text ringan, menjaga selection lebih penting daripada sanitize DOM setiap keystroke.
+**Status:** RESOLVED
+**Terkait:** `src/app/api/public/blog/[id]/view/route.ts`, `src/app/public-blog/blog/[slug]/page.tsx`, `src/app/(dashboard)/notes/page.tsx`

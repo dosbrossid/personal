@@ -4,7 +4,7 @@
 // ============================================================
 
 import { type NextRequest } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service'
 
 export async function POST(
   _request: NextRequest,
@@ -16,27 +16,31 @@ export async function POST(
       return Response.json({ error: 'Missing post ID' }, { status: 400 })
     }
 
-    const supabase = await createServerClient()
+    const supabase = createServiceRoleClient()
 
-    // Attempt atomic increment via RPC
-    const { error: rpcError } = await supabase.rpc('increment_view_count', {
-      post_id: id,
-    })
+    const { data: post, error: selectError } = await supabase
+      .from('blog_posts')
+      .select('view_count')
+      .eq('id', id)
+      .eq('status', 'published')
+      .eq('visibility', 'public')
+      .eq('is_deleted', false)
+      .single()
 
-    // Fallback if RPC doesn't exist: manual fetch + update
-    if (rpcError) {
-      const { data: post } = await supabase
-        .from('blog_posts')
-        .select('view_count')
-        .eq('id', id)
-        .single()
+    if (selectError || !post) {
+      return Response.json({ error: 'Post not found' }, { status: 404 })
+    }
 
-      if (post) {
-        await supabase
-          .from('blog_posts')
-          .update({ view_count: (post.view_count || 0) + 1 })
-          .eq('id', id)
-      }
+    const { error: updateError } = await supabase
+      .from('blog_posts')
+      .update({ view_count: (post.view_count || 0) + 1 })
+      .eq('id', id)
+      .eq('status', 'published')
+      .eq('visibility', 'public')
+      .eq('is_deleted', false)
+
+    if (updateError) {
+      return Response.json({ error: 'Failed to track view' }, { status: 500 })
     }
 
     return Response.json({ success: true })

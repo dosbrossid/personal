@@ -129,6 +129,7 @@ function NoteEditorModal({
   const snippetRef = useRef<HTMLTextAreaElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const savedSelectionRef = useRef<Range | null>(null);
   const [title, setTitle] = useState(editNote?.title || '');
   const [content, setContent] = useState(
     initialType === 'snippet'
@@ -141,6 +142,43 @@ function NoteEditorModal({
   const [isPinned, setIsPinned] = useState(editNote?.is_pinned || false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const saveRichEditorSelection = () => {
+    if (noteType === 'snippet') return;
+
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    if (editor.contains(range.commonAncestorContainer)) {
+      savedSelectionRef.current = range.cloneRange();
+    }
+  };
+
+  const restoreRichEditorSelection = () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    editor.focus({ preventScroll: true });
+
+    const selection = window.getSelection();
+    const range = savedSelectionRef.current;
+    if (!selection || !range) return;
+
+    try {
+      if (!editor.contains(range.commonAncestorContainer)) return;
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } catch {
+      savedSelectionRef.current = null;
+    }
+  };
+
+  const keepRichEditorSelection = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    saveRichEditorSelection();
+  };
 
   useEffect(() => {
     if (noteType !== 'snippet' && editorRef.current && !editorRef.current.innerHTML.trim()) {
@@ -155,9 +193,6 @@ function NoteEditorModal({
 
     const nextHtml = sanitizeNoteHtml(editorRef.current.innerHTML);
     const safeHtml = nextHtml || '<p></p>';
-    if (editorRef.current.innerHTML !== safeHtml) {
-      editorRef.current.innerHTML = safeHtml;
-    }
     setContent(safeHtml);
     return safeHtml;
   };
@@ -230,9 +265,10 @@ function NoteEditorModal({
 
   const applyRichCommand = (command: 'bold' | 'italic' | 'insertUnorderedList' | 'insertOrderedList') => {
     if (noteType === 'snippet') return;
-    editorRef.current?.focus();
+    restoreRichEditorSelection();
     document.execCommand(command);
     window.setTimeout(() => {
+      saveRichEditorSelection();
       syncRichEditorContent();
     }, 0);
   };
@@ -240,13 +276,14 @@ function NoteEditorModal({
   const insertImageIntoEditor = (url: string) => {
     if (noteType === 'snippet') return;
 
-    editorRef.current?.focus();
+    restoreRichEditorSelection();
     document.execCommand(
       'insertHTML',
       false,
       `<p><img src="${url}" alt="" /></p><p><br /></p>`
     );
     window.setTimeout(() => {
+      saveRichEditorSelection();
       syncRichEditorContent();
     }, 0);
   };
@@ -310,7 +347,7 @@ function NoteEditorModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="flex max-h-[92vh] w-[calc(100vw-1rem)] flex-col overflow-hidden border-border/60 bg-card p-0 sm:w-[calc(100vw-1.5rem)] sm:max-w-5xl lg:h-[min(92vh,860px)]">
+      <DialogContent className="flex max-h-[94vh] w-[calc(100vw-1rem)] flex-col overflow-hidden border-border/60 bg-card p-0 sm:w-[calc(100vw-1.5rem)] sm:max-w-6xl xl:max-w-7xl lg:h-[min(94vh,920px)]">
         <DialogHeader className="shrink-0 border-b border-border/40 px-4 py-4 pb-3 sm:px-6 sm:py-5 sm:pb-4">
           <DialogTitle className="flex items-center gap-2.5 text-[18px]">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md shadow-violet-500/20">
@@ -321,7 +358,7 @@ function NoteEditorModal({
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-hidden px-4 py-4 sm:px-6 sm:py-5">
-          <div className="flex h-full min-h-0 flex-col gap-5 lg:grid lg:grid-cols-[minmax(300px,0.82fr)_minmax(0,1.18fr)] lg:gap-6 lg:space-y-0">
+          <div className="flex h-full min-h-0 flex-col gap-5 lg:grid lg:grid-cols-[minmax(260px,0.68fr)_minmax(0,1.32fr)] lg:gap-6 lg:space-y-0">
             <div className="space-y-4 lg:min-h-0 lg:overflow-y-auto lg:pr-1 scrollbar-thin">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Judul</label>
@@ -338,6 +375,7 @@ function NoteEditorModal({
                 <div className="grid grid-cols-2 gap-2">
                   {(Object.keys(NOTE_TYPES) as NoteType[]).map((type) => (
                     <button
+                      type="button"
                       key={type}
                       onClick={() => handleNoteTypeChange(type)}
                       className={cn(
@@ -387,6 +425,7 @@ function NoteEditorModal({
               </div>
 
               <button
+                type="button"
                 onClick={() => setIsPinned(!isPinned)}
                 className={cn(
                   'flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left text-[12px] font-medium transition-all duration-200',
@@ -435,31 +474,44 @@ function NoteEditorModal({
                   {noteType !== 'snippet' ? (
                     <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border/60 bg-muted/20 p-1">
                       <button
+                        type="button"
+                        onMouseDown={keepRichEditorSelection}
                         onClick={() => applyRichCommand('bold')}
                         className="rounded-md px-2 py-1 text-[12px] font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       >
                         B
                       </button>
                       <button
+                        type="button"
+                        onMouseDown={keepRichEditorSelection}
                         onClick={() => applyRichCommand('italic')}
                         className="rounded-md px-2 py-1 text-[12px] italic text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       >
                         I
                       </button>
                       <button
+                        type="button"
+                        onMouseDown={keepRichEditorSelection}
                         onClick={() => applyRichCommand('insertUnorderedList')}
                         className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       >
                         <List className="h-3.5 w-3.5" />
                       </button>
                       <button
+                        type="button"
+                        onMouseDown={keepRichEditorSelection}
                         onClick={() => applyRichCommand('insertOrderedList')}
                         className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       >
                         <ListOrdered className="h-3.5 w-3.5" />
                       </button>
                       <button
-                        onClick={() => imageInputRef.current?.click()}
+                        type="button"
+                        onMouseDown={keepRichEditorSelection}
+                        onClick={() => {
+                          saveRichEditorSelection();
+                          imageInputRef.current?.click();
+                        }}
                         className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         disabled={isUploadingImage}
                       >
@@ -476,7 +528,7 @@ function NoteEditorModal({
                       Uploading image...
                     </span>
                   )}
-                  <button onClick={handleAIGenerate} className="flex items-center gap-1.5 text-[11px] font-medium text-violet-500 transition-colors hover:text-violet-600">
+                  <button type="button" onClick={handleAIGenerate} className="flex items-center gap-1.5 text-[11px] font-medium text-violet-500 transition-colors hover:text-violet-600">
                     <Sparkles className="h-3 w-3" />
                     {isGeneratingSummary ? 'Generating...' : 'Generate AI'}
                   </button>
@@ -489,7 +541,7 @@ function NoteEditorModal({
                     value={content}
                     onChange={e => setContent(e.target.value)}
                     placeholder="Paste code snippet di sini..."
-                    className="min-h-[260px] rounded-xl border-border/60 bg-zinc-950 font-mono text-[12px] text-emerald-400 resize-none dark:bg-zinc-950 lg:h-full lg:min-h-[420px]"
+                    className="min-h-[420px] resize-none rounded-xl border-border/60 bg-zinc-950 font-mono text-[13px] leading-6 text-emerald-400 dark:bg-zinc-950 lg:h-full lg:min-h-[560px]"
                   />
                 ) : (
                   <div className="relative h-full">
@@ -503,17 +555,23 @@ function NoteEditorModal({
                       contentEditable
                       suppressContentEditableWarning
                       onInput={() => {
+                        saveRichEditorSelection();
                         syncRichEditorContent();
                       }}
+                      onKeyUp={saveRichEditorSelection}
+                      onMouseUp={saveRichEditorSelection}
+                      onBlur={saveRichEditorSelection}
                       onPaste={(event) => {
                         event.preventDefault();
+                        restoreRichEditorSelection();
                         const pastedText = event.clipboardData.getData('text/plain');
                         document.execCommand('insertText', false, pastedText);
                         window.setTimeout(() => {
+                          saveRichEditorSelection();
                           syncRichEditorContent();
                         }, 0);
                       }}
-                      className="h-full min-h-[260px] overflow-y-auto rounded-xl border border-border/60 bg-background px-4 py-3 text-[13px] leading-relaxed text-foreground outline-none transition-colors focus-visible:ring-1 focus-visible:ring-primary/30 lg:min-h-[420px] [&_img]:my-3 [&_img]:max-h-[360px] [&_img]:max-w-full [&_img]:rounded-xl [&_img]:border [&_img]:border-border/50 [&_img]:object-contain [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:min-h-[1.2rem] [&_p]:leading-relaxed [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
+                      className="h-full min-h-[420px] overflow-y-auto rounded-xl border border-border/60 bg-background px-4 py-4 text-[15px] leading-7 text-foreground outline-none transition-colors focus-visible:ring-1 focus-visible:ring-primary/30 lg:min-h-[560px] [&_img]:my-4 [&_img]:max-h-[420px] [&_img]:max-w-full [&_img]:rounded-xl [&_img]:border [&_img]:border-border/50 [&_img]:object-contain [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:min-h-[1.6rem] [&_p]:leading-7 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-6"
                     />
                   </div>
                 )}
