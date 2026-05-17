@@ -267,6 +267,7 @@ async function buildTelegramAIContext(
   const activeRoles = user.preferences?.active_roles?.length
     ? user.preferences.active_roles
     : ['dosen', 'creator', 'affiliate', 'consultant', 'general']
+  const agentPreferences = user.preferences?.ai_agent
 
   const systemPrompt = buildAssistantSystemPrompt({
     currentDatetimeISO: new Date().toISOString(),
@@ -290,6 +291,11 @@ async function buildTelegramAIContext(
       (historyResult.data ?? []) as TelegramMemoryLog[],
       timezone
     ),
+    agentMode: agentPreferences?.mode === 'assistant' ? 'assistant' : 'agent',
+    agentPromptNotes: agentPreferences?.system_prompt_notes?.trim() || null,
+    responseStyle: agentPreferences?.response_style?.trim() || null,
+    telegramResponseStyle: agentPreferences?.telegram_response_style?.trim() || null,
+    channel: 'telegram',
   })
 
   const userText = input.trim() || 'Analisis gambar ini dan bantu saya memahami atau mengolahnya.'
@@ -414,12 +420,44 @@ function isMemoryStatusCommand(input: string) {
 function isMemoryCompactCommand(input: string) {
   const normalized = normalizeText(input)
   return (
+    normalized === '/compact' ||
     normalized === '/compactmemory' ||
     normalized.includes('compact memory') ||
     normalized.includes('compact memori') ||
     normalized.includes('ringkas memory') ||
     normalized.includes('ringkas memori')
   )
+}
+
+function extractAgentPreferenceUpdate(input: string):
+  | { key: 'system_prompt_notes' | 'response_style' | 'telegram_response_style'; value: string }
+  | null {
+  const trimmed = input.trim()
+  const patterns: Array<{
+    key: 'system_prompt_notes' | 'response_style' | 'telegram_response_style'
+    pattern: RegExp
+  }> = [
+    { key: 'system_prompt_notes', pattern: /^\/agentprompt\s+(.+)/i },
+    { key: 'response_style', pattern: /^\/agentstyle\s+(.+)/i },
+    { key: 'telegram_response_style', pattern: /^\/telegramstyle\s+(.+)/i },
+    { key: 'telegram_response_style', pattern: /^(?:ubah|ganti|atur)\s+(?:gaya\s+)?(?:respon|response|jawaban)\s+telegram\s+(?:jadi|ke|:)?\s*(.+)/i },
+    { key: 'response_style', pattern: /^(?:ubah|ganti|atur)\s+(?:gaya\s+)?(?:respon|response|jawaban)\s+(?:ai|assistant|kamu)\s+(?:jadi|ke|:)?\s*(.+)/i },
+    { key: 'system_prompt_notes', pattern: /^(?:ubah|ganti|atur)\s+(?:struktur\s+)?prompt\s+(?:kamu|ai|assistant)?\s*(?:jadi|ke|:)?\s*(.+)/i },
+  ]
+
+  for (const item of patterns) {
+    const match = trimmed.match(item.pattern)
+    if (match?.[1]?.trim()) {
+      return { key: item.key, value: match[1].trim() }
+    }
+  }
+
+  return null
+}
+
+function isAgentPreferenceStatusCommand(input: string) {
+  const normalized = normalizeText(input)
+  return normalized === '/agent' || normalized === '/agentmode' || normalized.includes('setting agent')
 }
 
 function extractManualMemoryNote(input: string) {
@@ -462,6 +500,31 @@ async function updateTelegramMemory(user: LinkedUser, memory: NonNullable<UserPr
   user.preferences = preferences
 }
 
+async function updateTelegramAgentPreferences(
+  user: LinkedUser,
+  patch: NonNullable<UserPreferences['ai_agent']>
+) {
+  const supabase = createServiceRoleClient()
+  const currentPreferences = getMemoryPreferences(user)
+  const preferences = {
+    ...currentPreferences,
+    ai_agent: {
+      mode: 'agent' as const,
+      ...(currentPreferences.ai_agent ?? {}),
+      ...patch,
+      updated_at: new Date().toISOString(),
+    },
+  }
+
+  const { error } = await supabase
+    .from('users')
+    .update({ preferences })
+    .eq('id', user.id)
+
+  if (error) throw error
+  user.preferences = preferences
+}
+
 async function logMemoryCommand(user: LinkedUser, telegramMessageId: number, rawInput: string, reply: string) {
   const supabase = createServiceRoleClient()
   await supabase.from('ai_hub_logs').insert({
@@ -482,6 +545,33 @@ async function logMemoryCommand(user: LinkedUser, telegramMessageId: number, raw
 
 async function handleTelegramMemoryCommand(user: LinkedUser, telegramMessageId: number, input: string) {
   const currentMemory = user.preferences?.ai_memory ?? {}
+  const agentUpdate = extractAgentPreferenceUpdate(input)
+
+  if (agentUpdate) {
+    await updateTelegramAgentPreferences(user, { [agentUpdate.key]: agentUpdate.value })
+    const label =
+      agentUpdate.key === 'telegram_response_style'
+        ? 'gaya respon Telegram'
+        : agentUpdate.key === 'response_style'
+          ? 'gaya respon AI'
+          : 'catatan prompt agent'
+    const reply = `Siap. Saya simpan ${label}: ${agentUpdate.value}`
+    await logMemoryCommand(user, telegramMessageId, input, reply)
+    return reply
+  }
+
+  if (isAgentPreferenceStatusCommand(input)) {
+    const agent = user.preferences?.ai_agent
+    const reply = [
+      'Agent mode aktif.',
+      `Prompt notes: ${agent?.system_prompt_notes?.trim() || 'belum ada'}`,
+      `Response style: ${agent?.response_style?.trim() || 'default natural Indonesia'}`,
+      `Telegram style: ${agent?.telegram_response_style?.trim() || 'default rapi singkat'}`,
+      'Gunakan /agentprompt, /agentstyle, atau /telegramstyle untuk mengubahnya.',
+    ].join('\n')
+    await logMemoryCommand(user, telegramMessageId, input, reply)
+    return reply
+  }
 
   if (isMemoryClearCommand(input)) {
     const reply = 'Memory Telegram sudah saya kosongkan. Chat log lama tetap ada untuk audit, tapi tidak saya pakai sebagai long-term memory.'
@@ -1040,8 +1130,12 @@ function buildTelegramHelpMessage() {
     '/habits - lihat habit aktif',
     '/memory - lihat memory aktif',
     '/remember teks - simpan hal penting ke memory',
-    '/compactmemory - ringkas chat terakhir ke memory',
+    '/compact atau /compactmemory - ringkas chat terakhir ke memory',
     '/forgetmemory - kosongkan long-term memory',
+    '/agent - lihat setting agent mode',
+    '/agentstyle teks - ubah gaya respon AI',
+    '/telegramstyle teks - ubah gaya respon Telegram',
+    '/agentprompt teks - tambah aturan prompt agent',
     '/confirm - simpan draft terakhir',
     '/cancel - batalkan draft terakhir',
     '',

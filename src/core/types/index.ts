@@ -34,6 +34,13 @@ export interface UserPreferences {
     pinned?: string[];
     updated_at?: string | null;
   };
+  ai_agent?: {
+    mode?: 'assistant' | 'agent';
+    system_prompt_notes?: string | null;
+    response_style?: string | null;
+    telegram_response_style?: string | null;
+    updated_at?: string | null;
+  };
   notifications?: {
     task_deadline: boolean;
     habit_daily: boolean;

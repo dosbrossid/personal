@@ -15,14 +15,21 @@ const OPENCODE_API_KEY = process.env.OPENCODE_API_KEY
 const OPENCODE_MODEL = process.env.OPENCODE_MODEL || 'minimax-m2.5'
 const OPENCODE_VISION_API_URL = process.env.OPENCODE_VISION_API_URL || OPENCODE_API_URL
 const OPENCODE_VISION_MODEL = process.env.OPENCODE_VISION_MODEL || 'kimi-k2.6'
+const OPENCODE_SEARCH_API_URL = process.env.OPENCODE_SEARCH_API_URL || OPENCODE_API_URL
+const OPENCODE_IMAGE_API_URL = process.env.OPENCODE_IMAGE_API_URL || OPENCODE_API_URL
+const OPENCODE_WEB_FETCH_API_URL = process.env.OPENCODE_WEB_FETCH_API_URL || OPENCODE_API_URL
 
-function resolveChatCompletionsUrl(url: string) {
+function resolveEndpointUrl(url: string, endpoint: string) {
   const normalizedUrl = url.replace(/\/+$/, '')
-  if (normalizedUrl.endsWith('/chat/completions')) {
+  if (normalizedUrl.endsWith(endpoint)) {
     return normalizedUrl
   }
 
-  return `${normalizedUrl}/chat/completions`
+  return `${normalizedUrl}/${endpoint.replace(/^\/+/, '')}`
+}
+
+function resolveChatCompletionsUrl(url: string) {
+  return resolveEndpointUrl(url, 'chat/completions')
 }
 
 interface ChatMessage {
@@ -178,6 +185,90 @@ export async function analyzeImageWithVision(params: {
     tokensUsed: data.usage?.total_tokens ?? null,
     latencyMs,
   }
+}
+
+export async function searchWithAgent(params: {
+  query: string
+  limit?: number
+}): Promise<unknown> {
+  if (!OPENCODE_SEARCH_API_URL || !OPENCODE_API_KEY) {
+    throw new Error('Missing OPENCODE_SEARCH_API_URL or OPENCODE_API_KEY')
+  }
+
+  const response = await fetch(resolveEndpointUrl(OPENCODE_SEARCH_API_URL, 'search'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENCODE_API_KEY}`,
+    },
+    body: JSON.stringify({
+      query: params.query,
+      limit: params.limit ?? 5,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => 'Unknown error')
+    throw new Error(`OpenCode Search API error (${response.status}): ${errorBody}`)
+  }
+
+  return response.json()
+}
+
+export async function generateImageWithAgent(params: {
+  prompt: string
+  size?: string
+  model?: string
+}): Promise<unknown> {
+  if (!OPENCODE_IMAGE_API_URL || !OPENCODE_API_KEY) {
+    throw new Error('Missing OPENCODE_IMAGE_API_URL or OPENCODE_API_KEY')
+  }
+
+  const response = await fetch(resolveEndpointUrl(OPENCODE_IMAGE_API_URL, 'images/generations'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENCODE_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: params.model ?? OPENCODE_MODEL,
+      prompt: params.prompt,
+      size: params.size ?? '1024x1024',
+    }),
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => 'Unknown error')
+    throw new Error(`OpenCode Image API error (${response.status}): ${errorBody}`)
+  }
+
+  return response.json()
+}
+
+export async function fetchWebWithAgent(params: {
+  url: string
+}): Promise<unknown> {
+  if (!OPENCODE_WEB_FETCH_API_URL || !OPENCODE_API_KEY) {
+    throw new Error('Missing OPENCODE_WEB_FETCH_API_URL or OPENCODE_API_KEY')
+  }
+
+  const response = await fetch(resolveEndpointUrl(OPENCODE_WEB_FETCH_API_URL, 'web/fetch'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENCODE_API_KEY}`,
+    },
+    body: JSON.stringify({
+      url: params.url,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => 'Unknown error')
+    throw new Error(`OpenCode Web Fetch API error (${response.status}): ${errorBody}`)
+  }
+
+  return response.json()
 }
 
 /**

@@ -46,6 +46,10 @@ interface PromptContextData {
   activeRoles: RoleContext[]
   dashboardContext: string | null
   memoryContext: string | null
+  agentMode: 'assistant' | 'agent'
+  agentPromptNotes: string | null
+  responseStyle: string | null
+  telegramResponseStyle: string | null
 }
 
 interface AIHubMemoryLog {
@@ -58,7 +62,17 @@ export async function buildAICommandMessages(
   userId: string,
   input: string
 ): Promise<CommandHubMessage[]> {
-  const { userCategories, timezone, activeRoles, dashboardContext, memoryContext } =
+  const {
+    userCategories,
+    timezone,
+    activeRoles,
+    dashboardContext,
+    memoryContext,
+    agentMode,
+    agentPromptNotes,
+    responseStyle,
+    telegramResponseStyle,
+  } =
     await getPromptContext(userId)
 
   const systemPrompt = buildSystemPrompt({
@@ -69,6 +83,11 @@ export async function buildAICommandMessages(
     userActiveRoles: activeRoles,
     dashboardContext,
     memoryContext,
+    agentMode,
+    agentPromptNotes,
+    responseStyle,
+    telegramResponseStyle,
+    channel: 'in_app',
   })
 
   return [
@@ -81,7 +100,17 @@ export async function buildAIAssistantMessages(
   userId: string,
   options: AssistantMessageOptions
 ): Promise<CommandHubMessage[]> {
-  const { userCategories, timezone, activeRoles, dashboardContext, memoryContext } =
+  const {
+    userCategories,
+    timezone,
+    activeRoles,
+    dashboardContext,
+    memoryContext,
+    agentMode,
+    agentPromptNotes,
+    responseStyle,
+    telegramResponseStyle,
+  } =
     await getPromptContext(userId)
 
   const systemPrompt = buildAssistantSystemPrompt({
@@ -92,6 +121,11 @@ export async function buildAIAssistantMessages(
     userActiveRoles: activeRoles,
     dashboardContext,
     memoryContext,
+    agentMode,
+    agentPromptNotes,
+    responseStyle,
+    telegramResponseStyle,
+    channel: 'in_app',
   })
 
   const history = (options.conversation ?? [])
@@ -389,6 +423,10 @@ async function getPromptContext(userId: string): Promise<PromptContextData> {
 
   let timezone = 'Asia/Jakarta'
   let activeRoles: RoleContext[] = ['dosen', 'creator', 'affiliate', 'consultant', 'general']
+  let agentMode: 'assistant' | 'agent' = 'agent'
+  let agentPromptNotes: string | null = null
+  let responseStyle: string | null = null
+  let telegramResponseStyle: string | null = null
 
   if (userDataResult.status === 'fulfilled' && !userDataResult.value.error) {
     const preferences = userDataResult.value.data?.preferences
@@ -399,6 +437,12 @@ async function getPromptContext(userId: string): Promise<PromptContextData> {
       }
       if (Array.isArray(userPreferences.active_roles) && userPreferences.active_roles.length > 0) {
         activeRoles = userPreferences.active_roles as RoleContext[]
+      }
+      if (userPreferences.ai_agent && typeof userPreferences.ai_agent === 'object') {
+        agentMode = userPreferences.ai_agent.mode === 'assistant' ? 'assistant' : 'agent'
+        agentPromptNotes = userPreferences.ai_agent.system_prompt_notes?.trim() || null
+        responseStyle = userPreferences.ai_agent.response_style?.trim() || null
+        telegramResponseStyle = userPreferences.ai_agent.telegram_response_style?.trim() || null
       }
     }
   }
@@ -419,7 +463,17 @@ async function getPromptContext(userId: string): Promise<PromptContextData> {
     timezone
   )
 
-  return { userCategories, timezone, activeRoles, dashboardContext, memoryContext }
+  return {
+    userCategories,
+    timezone,
+    activeRoles,
+    dashboardContext,
+    memoryContext,
+    agentMode,
+    agentPromptNotes,
+    responseStyle,
+    telegramResponseStyle,
+  }
 }
 
 function cleanSnippet(value: string | null | undefined, maxLength = 110) {
