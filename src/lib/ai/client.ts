@@ -16,6 +16,15 @@ const OPENCODE_MODEL = process.env.OPENCODE_MODEL || 'minimax-m2.5'
 const OPENCODE_VISION_API_URL = process.env.OPENCODE_VISION_API_URL || OPENCODE_API_URL
 const OPENCODE_VISION_MODEL = process.env.OPENCODE_VISION_MODEL || 'kimi-k2.6'
 
+function resolveChatCompletionsUrl(url: string) {
+  const normalizedUrl = url.replace(/\/+$/, '')
+  if (normalizedUrl.endsWith('/chat/completions')) {
+    return normalizedUrl
+  }
+
+  return `${normalizedUrl}/chat/completions`
+}
+
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
   content:
@@ -68,7 +77,7 @@ export async function callLLM(
 
   const startTime = Date.now()
 
-  const res = await fetch(OPENCODE_API_URL, {
+  const res = await fetch(resolveChatCompletionsUrl(OPENCODE_API_URL), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -116,7 +125,7 @@ export async function analyzeImageWithVision(params: {
 
   const startTime = Date.now()
 
-  const res = await fetch(OPENCODE_VISION_API_URL, {
+  const res = await fetch(resolveChatCompletionsUrl(OPENCODE_VISION_API_URL), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -187,7 +196,7 @@ export async function callLLMStream(
   }
 
   try {
-    const res = await fetch(OPENCODE_API_URL, {
+    const res = await fetch(resolveChatCompletionsUrl(OPENCODE_API_URL), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
