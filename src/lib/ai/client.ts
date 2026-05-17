@@ -62,6 +62,24 @@ interface OpenCodeResponse {
   }
 }
 
+export interface AgentSearchResult {
+  title: string
+  url?: string
+  snippet?: string
+}
+
+export interface AgentWebFetchResult {
+  title?: string
+  url?: string
+  content: string
+}
+
+export interface AgentImageResult {
+  url?: string
+  b64Json?: string
+  mimeType?: string
+}
+
 interface StreamCallbacks {
   onToken: (token: string) => void
   onComplete: (content: string, tokensUsed: number | null) => Promise<void>
@@ -187,10 +205,73 @@ export async function analyzeImageWithVision(params: {
   }
 }
 
+function readString(value: unknown) {
+  return typeof value === 'string' ? value : null
+}
+
+function normalizeSearchResults(payload: unknown): AgentSearchResult[] {
+  const source = payload as {
+    results?: unknown
+    data?: unknown
+    items?: unknown
+  }
+  const list = Array.isArray(source.results)
+    ? source.results
+    : Array.isArray(source.data)
+      ? source.data
+      : Array.isArray(source.items)
+        ? source.items
+        : []
+
+  const normalized: AgentSearchResult[] = []
+  for (const item of list) {
+    if (!item || typeof item !== 'object') continue
+    const value = item as Record<string, unknown>
+    const title = readString(value.title) ?? readString(value.name) ?? readString(value.text) ?? 'Untitled'
+    const url = readString(value.url) ?? readString(value.link)
+    const snippet = readString(value.snippet) ?? readString(value.description) ?? readString(value.content)
+    normalized.push({
+      title,
+      ...(url ? { url } : {}),
+      ...(snippet ? { snippet } : {}),
+    })
+  }
+
+  return normalized
+}
+
+function normalizeWebFetchResult(payload: unknown): AgentWebFetchResult {
+  const value = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {}
+  const title = readString(value.title) ?? undefined
+  const url = readString(value.url) ?? undefined
+  const content =
+    readString(value.content) ??
+    readString(value.text) ??
+    readString(value.markdown) ??
+    readString(value.html) ??
+    JSON.stringify(payload).slice(0, 12000)
+
+  return { title, url, content }
+}
+
+function normalizeImageResult(payload: unknown): AgentImageResult | null {
+  const value = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {}
+  const data = Array.isArray(value.data) ? value.data[0] : value
+  if (!data || typeof data !== 'object') return null
+
+  const image = data as Record<string, unknown>
+  const url = readString(image.url)
+  const b64Json = readString(image.b64_json) ?? readString(image.b64Json) ?? readString(image.base64)
+  const mimeType = readString(image.mime_type) ?? readString(image.mimeType) ?? 'image/png'
+
+  if (!url && !b64Json) return null
+  return { url: url ?? undefined, b64Json: b64Json ?? undefined, mimeType }
+}
+
 export async function searchWithAgent(params: {
   query: string
   limit?: number
-}): Promise<unknown> {
+}): Promise<AgentSearchResult[]> {
   if (!OPENCODE_SEARCH_API_URL || !OPENCODE_API_KEY) {
     throw new Error('Missing OPENCODE_SEARCH_API_URL or OPENCODE_API_KEY')
   }
@@ -212,14 +293,14 @@ export async function searchWithAgent(params: {
     throw new Error(`OpenCode Search API error (${response.status}): ${errorBody}`)
   }
 
-  return response.json()
+  return normalizeSearchResults(await response.json())
 }
 
 export async function generateImageWithAgent(params: {
   prompt: string
   size?: string
   model?: string
-}): Promise<unknown> {
+}): Promise<AgentImageResult> {
   if (!OPENCODE_IMAGE_API_URL || !OPENCODE_API_KEY) {
     throw new Error('Missing OPENCODE_IMAGE_API_URL or OPENCODE_API_KEY')
   }
@@ -242,12 +323,16 @@ export async function generateImageWithAgent(params: {
     throw new Error(`OpenCode Image API error (${response.status}): ${errorBody}`)
   }
 
-  return response.json()
+  const image = normalizeImageResult(await response.json())
+  if (!image) {
+    throw new Error('OpenCode Image API returned no usable image URL/base64')
+  }
+  return image
 }
 
 export async function fetchWebWithAgent(params: {
   url: string
-}): Promise<unknown> {
+}): Promise<AgentWebFetchResult> {
   if (!OPENCODE_WEB_FETCH_API_URL || !OPENCODE_API_KEY) {
     throw new Error('Missing OPENCODE_WEB_FETCH_API_URL or OPENCODE_API_KEY')
   }
@@ -268,7 +353,7 @@ export async function fetchWebWithAgent(params: {
     throw new Error(`OpenCode Web Fetch API error (${response.status}): ${errorBody}`)
   }
 
-  return response.json()
+  return normalizeWebFetchResult(await response.json())
 }
 
 /**

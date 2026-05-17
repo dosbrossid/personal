@@ -87,6 +87,70 @@ export async function sendTelegramMessage(
   return payload
 }
 
+export async function sendTelegramPhoto(
+  chatId: string,
+  photo: string,
+  options?: { caption?: string; parseMode?: 'MarkdownV2' }
+) {
+  const token = process.env.TELEGRAM_BOT_TOKEN
+
+  if (!token) {
+    throw new Error('TELEGRAM_BOT_TOKEN belum dikonfigurasi')
+  }
+
+  if (photo.startsWith('data:')) {
+    const match = photo.match(/^data:(.+?);base64,(.+)$/)
+    if (!match) {
+      throw new Error('Format gambar base64 tidak valid untuk Telegram')
+    }
+
+    const [, mimeType, base64] = match
+    const bytes = Buffer.from(base64, 'base64')
+    const formData = new FormData()
+
+    formData.append('chat_id', chatId)
+    formData.append('photo', new Blob([new Uint8Array(bytes)], { type: mimeType }), 'generated-image.png')
+    if (options?.caption) {
+      formData.append('caption', options.caption.slice(0, 1024))
+    }
+    if (options?.parseMode) {
+      formData.append('parse_mode', options.parseMode)
+    }
+
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+      method: 'POST',
+      body: formData,
+    })
+
+    const payload = (await response.json().catch(() => null)) as TelegramSendResponse | null
+
+    if (!response.ok || !payload?.ok) {
+      throw new Error(payload?.description || `Telegram sendPhoto error (${response.status})`)
+    }
+
+    return payload
+  }
+
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      photo,
+      ...(options?.caption ? { caption: options.caption.slice(0, 1024) } : {}),
+      ...(options?.parseMode ? { parse_mode: options.parseMode } : {}),
+    }),
+  })
+
+  const payload = (await response.json().catch(() => null)) as TelegramSendResponse | null
+
+  if (!response.ok || !payload?.ok) {
+    throw new Error(payload?.description || `Telegram sendPhoto error (${response.status})`)
+  }
+
+  return payload
+}
+
 export async function getTelegramFileAsDataUrl(fileId: string, mimeType = 'image/jpeg') {
   const token = process.env.TELEGRAM_BOT_TOKEN
 

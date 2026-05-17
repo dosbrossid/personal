@@ -7,8 +7,14 @@ import { type NextRequest } from 'next/server'
 import { addDays } from 'date-fns'
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { createServiceRoleClient } from '@/lib/supabase/service'
-import { getTelegramFileAsDataUrl, sendTelegramChatAction, sendTelegramMessage } from '@/lib/telegram'
-import { analyzeImageWithVision, callLLM } from '@/lib/ai/client'
+import { getTelegramFileAsDataUrl, sendTelegramChatAction, sendTelegramMessage, sendTelegramPhoto } from '@/lib/telegram'
+import {
+  analyzeImageWithVision,
+  callLLM,
+  fetchWebWithAgent,
+  generateImageWithAgent,
+  searchWithAgent,
+} from '@/lib/ai/client'
 import {
   buildAIExecutionMessage,
   buildMainModelInputWithVisionAnalysis,
@@ -91,12 +97,242 @@ function md(value: string | number | null | undefined) {
   return String(value ?? '').replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, '\\$&')
 }
 
+function mdRich(value: string | number | null | undefined) {
+  const placeholders = new Map<string, string>()
+  let index = 0
+  const token = (content: string) => {
+    const key = `@@MD${index++}@@`
+    placeholders.set(key, content)
+    return key
+  }
+
+  const prepared = String(value ?? '')
+    .replace(/\*\*([^*\n][\s\S]*?[^*\n])\*\*/g, (_, content: string) => token(`*${md(content)}*`))
+    .replace(/__([^_\n][\s\S]*?[^_\n])__/g, (_, content: string) => token(`*${md(content)}*`))
+    .replace(/(?<!\*)\*([^*\n][^*\n]*?[^*\n])\*(?!\*)/g, (_, content: string) => token(`_${md(content)}_`))
+    .replace(/_([^_\n][^_\n]*?[^_\n])_/g, (_, content: string) => token(`_${md(content)}_`))
+
+  let escaped = md(prepared)
+    .replace(/^\\-\s/gm, '• ')
+    .replace(/^(\d+)\\\.\s/gm, '$1\\. ')
+    .replace(/^\\>\s/gm, '> ')
+
+  for (const [key, content] of placeholders) {
+    escaped = escaped.replaceAll(md(key), content)
+  }
+
+  return escaped
+}
+
+function extractFirstUrl(input: string) {
+  const match = input.match(/https?:\/\/[^\s)>\]]+/i)
+  return match?.[0] ?? null
+}
+
+function stripCommandPrefix(input: string, prefixes: RegExp[]) {
+  let output = input.trim()
+  for (const pattern of prefixes) {
+    output = output.replace(pattern, '').trim()
+  }
+  return output
+}
+
+function getImageGenerationPrompt(input: string) {
+  const normalized = normalizeText(input)
+  const isCommand = normalized.startsWith('/gambar') || normalized.startsWith('/image') || normalized.startsWith('/generateimage')
+  const hasIntent = /\b(buat|bikin|generate|gambar|ilustrasi|poster|cover|avatar|thumbnail)\b/i.test(input)
+  const hasImageCue = /\b(gambar|image|ilustrasi|poster|cover|avatar|thumbnail|visual)\b/i.test(input)
+  if (!isCommand && !(hasIntent && hasImageCue)) return null
+
+  const prompt = stripCommandPrefix(input, [
+    /^\/gambar\s*/i,
+    /^\/image\s*/i,
+    /^\/generateimage\s*/i,
+    /^(?:tolong\s+)?(?:buatkan|buat|bikin|generate)\s+(?:gambar|image|ilustrasi|poster|cover|avatar|thumbnail|visual)?\s*/i,
+  ])
+
+  return prompt.length >= 8 ? prompt : null
+}
+
+function getWebSearchQuery(input: string) {
+  const normalized = normalizeText(input)
+  const isCommand = normalized.startsWith('/search') || normalized.startsWith('/cariweb') || normalized.startsWith('/websearch')
+  const hasIntent = /\b(search|cari|googling|riset|telusuri)\b/i.test(input)
+  const hasWebCue = /\b(web|internet|online|berita|artikel|sumber)\b/i.test(input)
+  if (!isCommand && !(hasIntent && hasWebCue)) return null
+
+  const query = stripCommandPrefix(input, [
+    /^\/search\s*/i,
+    /^\/cariweb\s*/i,
+    /^\/websearch\s*/i,
+    /^(?:tolong\s+)?(?:search|cari|googling|riset|telusuri)\s+(?:di\s+)?(?:web|internet|online)?\s*/i,
+  ])
+
+  return query.length >= 3 ? query : null
+}
+
+function getWebFetchUrl(input: string) {
+  const url = extractFirstUrl(input)
+  if (!url) return null
+
+  const normalized = normalizeText(input)
+  const wantsFetch = normalized.startsWith('/fetch') ||
+    normalized.startsWith('/ringkaslink') ||
+    /\b(fetch|baca|ringkas|rangkum|analisa|cek)\b/i.test(input)
+
+  return wantsFetch ? url : null
+}
+
 async function sendTelegramRichMessage(chatId: string, text: string) {
   try {
     await sendTelegramMessage(chatId, text, { parseMode: 'MarkdownV2' })
   } catch {
     await sendTelegramMessage(chatId, text.replace(/[\\*_`[\]()~>#+\-=|{}.!]/g, ''))
   }
+}
+
+async function summarizeToolResultForTelegram(params: {
+  instruction: string
+  toolLabel: string
+  toolResult: string
+}) {
+  const { raw } = await callLLM([
+    {
+      role: 'system',
+      content: [
+        'Kamu adalah assistant Telegram Indonesia yang terasa hidup, rapi, dan enak dibaca.',
+        'Ringkas hasil tool secara praktis, jujur, dan mudah discan.',
+        'Jangan mengarang di luar TOOL RESULT.',
+        'Gunakan gaya Markdown Telegram: emoji seperlunya, bullet/numbering, bold untuk poin penting, italic untuk penekanan ringan, dan quote pendek jika cocok.',
+        'Jangan terlalu kaku. Variasikan struktur respons sesuai isi.',
+        'Maksimal 1100 karakter.',
+      ].join('\n'),
+    },
+    {
+      role: 'user',
+      content: [
+        `INSTRUKSI USER: ${params.instruction}`,
+        `TOOL: ${params.toolLabel}`,
+        'TOOL RESULT:',
+        params.toolResult.slice(0, 9000),
+      ].join('\n'),
+    },
+  ], { temperature: 0.2 })
+
+  return raw.trim().slice(0, 1200)
+}
+
+async function handleTelegramImageGeneration(chatId: string, user: LinkedUser, messageId: number, input: string) {
+  const prompt = getImageGenerationPrompt(input)
+  if (!prompt) return false
+
+  const supabase = createServiceRoleClient()
+  const startTime = Date.now()
+  const image = await withTelegramTyping(chatId, () => generateImageWithAgent({ prompt }), 'upload_photo')
+  const photo = image.url ?? `data:${image.mimeType ?? 'image/png'};base64,${image.b64Json}`
+  const caption = `🖼️ *Gambar dibuat*\n${md(prompt.slice(0, 220))}`
+
+  await sendTelegramPhoto(chatId, photo, { caption, parseMode: 'MarkdownV2' })
+  await supabase.from('ai_hub_logs').insert({
+    user_id: user.id,
+    source: 'telegram',
+    telegram_message_id: messageId,
+    raw_input: input,
+    ai_response: {
+      items: [],
+      ai_message: `Gambar dibuat: ${prompt}`,
+    },
+    status: 'confirmed',
+    error_message: null,
+    tokens_used: null,
+    latency_ms: Date.now() - startTime,
+  })
+
+  return true
+}
+
+async function handleTelegramWebSearch(chatId: string, user: LinkedUser, messageId: number, input: string) {
+  const query = getWebSearchQuery(input)
+  if (!query) return false
+
+  const supabase = createServiceRoleClient()
+  const startTime = Date.now()
+  const results = await withTelegramTyping(chatId, () => searchWithAgent({ query, limit: 5 }))
+  const rawResult = results
+    .map((item, index) => `${index + 1}. ${item.title}\n${item.url ?? ''}\n${item.snippet ?? ''}`)
+    .join('\n\n')
+  const summary = await withTelegramTyping(
+    chatId,
+    () => summarizeToolResultForTelegram({
+      instruction: input,
+      toolLabel: 'web search',
+      toolResult: rawResult || 'No search results.',
+    })
+  )
+
+  const links = results
+    .slice(0, 5)
+    .map((item, index) => `${index + 1}. ${item.title}${item.url ? `\n${item.url}` : ''}`)
+    .join('\n')
+  const reply = `🔎 *Hasil web search*\n${mdRich(summary)}${links ? `\n\n${md(links)}` : ''}`
+
+  await sendTelegramRichMessage(chatId, reply)
+  await supabase.from('ai_hub_logs').insert({
+    user_id: user.id,
+    source: 'telegram',
+    telegram_message_id: messageId,
+    raw_input: input,
+    ai_response: {
+      items: [],
+      ai_message: summary,
+    },
+    status: 'confirmed',
+    error_message: null,
+    tokens_used: null,
+    latency_ms: Date.now() - startTime,
+  })
+
+  return true
+}
+
+async function handleTelegramWebFetch(chatId: string, user: LinkedUser, messageId: number, input: string) {
+  const url = getWebFetchUrl(input)
+  if (!url) return false
+
+  const supabase = createServiceRoleClient()
+  const startTime = Date.now()
+  const page = await withTelegramTyping(chatId, () => fetchWebWithAgent({ url }))
+  const summary = await withTelegramTyping(
+    chatId,
+    () => summarizeToolResultForTelegram({
+      instruction: input,
+      toolLabel: 'web fetch',
+      toolResult: [
+        page.title ? `TITLE: ${page.title}` : '',
+        page.url ? `URL: ${page.url}` : `URL: ${url}`,
+        '',
+        page.content,
+      ].join('\n'),
+    })
+  )
+
+  await sendTelegramRichMessage(chatId, `🌐 *Ringkasan web*\n${mdRich(summary)}\n\n${md(page.url ?? url)}`)
+  await supabase.from('ai_hub_logs').insert({
+    user_id: user.id,
+    source: 'telegram',
+    telegram_message_id: messageId,
+    raw_input: input,
+    ai_response: {
+      items: [],
+      ai_message: summary,
+    },
+    status: 'confirmed',
+    error_message: null,
+    tokens_used: null,
+    latency_ms: Date.now() - startTime,
+  })
+
+  return true
 }
 
 async function withTelegramTyping<T>(chatId: string, work: () => Promise<T>, action: 'typing' | 'upload_photo' = 'typing') {
@@ -126,7 +362,7 @@ async function withTelegramTyping<T>(chatId: string, work: () => Promise<T>, act
 }
 
 function formatDraft(items: AIResponseItem[], message: string, timezone = 'Asia/Jakarta') {
-  if (items.length === 0) return `💬 *Jawaban*\n${md(message)}`
+  if (items.length === 0) return `💬 *Jawaban*\n${mdRich(message)}`
 
   const itemLines = items
     .map((item, index) => `${index + 1}\\. *${md(item.action)}* — ${md(item.data.title)}\n   ${md(mapTelegramDraftDetail(item, timezone))}`)
@@ -134,7 +370,7 @@ function formatDraft(items: AIResponseItem[], message: string, timezone = 'Asia/
 
   return [
     `🧠 *Draft siap direview*`,
-    md(message),
+    mdRich(message),
     '',
     itemLines,
     '',
@@ -1136,6 +1372,9 @@ function buildTelegramHelpMessage() {
     '/agentstyle teks - ubah gaya respon AI',
     '/telegramstyle teks - ubah gaya respon Telegram',
     '/agentprompt teks - tambah aturan prompt agent',
+    '/gambar prompt - generate gambar lalu kirim ke Telegram',
+    '/search query - cari web lalu ringkas hasilnya',
+    '/fetch url - baca/ringkas halaman web',
     '/confirm - simpan draft terakhir',
     '/cancel - batalkan draft terakhir',
     '',
@@ -1259,6 +1498,18 @@ export async function POST(request: NextRequest) {
   if (text.startsWith('/help')) {
     await sendTelegramMessage(chatId, buildTelegramHelpMessage())
     return Response.json({ ok: true })
+  }
+
+  if (await handleTelegramImageGeneration(chatId, linkedUser, message.message_id, text)) {
+    return Response.json({ ok: true, image_generated: true })
+  }
+
+  if (await handleTelegramWebFetch(chatId, linkedUser, message.message_id, text)) {
+    return Response.json({ ok: true, web_fetched: true })
+  }
+
+  if (await handleTelegramWebSearch(chatId, linkedUser, message.message_id, text)) {
+    return Response.json({ ok: true, web_searched: true })
   }
 
   const memoryCommandReply = await withTelegramTyping(chatId, () => handleTelegramMemoryCommand(linkedUser, message.message_id, text))
