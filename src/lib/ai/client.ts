@@ -18,6 +18,8 @@ const OPENCODE_VISION_MODEL = process.env.OPENCODE_VISION_MODEL || 'kimi-k2.6'
 const OPENCODE_SEARCH_API_URL = process.env.OPENCODE_SEARCH_API_URL || OPENCODE_API_URL
 const OPENCODE_IMAGE_API_URL = process.env.OPENCODE_IMAGE_API_URL || OPENCODE_API_URL
 const OPENCODE_WEB_FETCH_API_URL = process.env.OPENCODE_WEB_FETCH_API_URL || OPENCODE_API_URL
+const AI_TOOL_TIMEOUT_MS = 45_000
+const AI_IMAGE_TIMEOUT_MS = 60_000
 
 function resolveEndpointUrl(url: string, endpoint: string) {
   const normalizedUrl = url.replace(/\/+$/, '')
@@ -30,6 +32,36 @@ function resolveEndpointUrl(url: string, endpoint: string) {
 
 function resolveChatCompletionsUrl(url: string) {
   return resolveEndpointUrl(url, 'chat/completions')
+}
+
+function createTimeoutSignal(timeoutMs: number, label: string) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => {
+    controller.abort(new Error(`${label} timeout setelah ${Math.round(timeoutMs / 1000)} detik`))
+  }, timeoutMs)
+
+  return {
+    signal: controller.signal,
+    cleanup: () => clearTimeout(timeout),
+  }
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number, label: string) {
+  const { signal, cleanup } = createTimeoutSignal(timeoutMs, label)
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal,
+    })
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`${label} timeout setelah ${Math.round(timeoutMs / 1000)} detik`)
+    }
+    throw error
+  } finally {
+    cleanup()
+  }
 }
 
 interface ChatMessage {
@@ -276,7 +308,7 @@ export async function searchWithAgent(params: {
     throw new Error('Missing OPENCODE_SEARCH_API_URL or OPENCODE_API_KEY')
   }
 
-  const response = await fetch(resolveEndpointUrl(OPENCODE_SEARCH_API_URL, 'search'), {
+  const response = await fetchWithTimeout(resolveEndpointUrl(OPENCODE_SEARCH_API_URL, 'search'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -286,7 +318,7 @@ export async function searchWithAgent(params: {
       query: params.query,
       limit: params.limit ?? 5,
     }),
-  })
+  }, AI_TOOL_TIMEOUT_MS, 'OpenCode Search API')
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => 'Unknown error')
@@ -305,7 +337,7 @@ export async function generateImageWithAgent(params: {
     throw new Error('Missing OPENCODE_IMAGE_API_URL or OPENCODE_API_KEY')
   }
 
-  const response = await fetch(resolveEndpointUrl(OPENCODE_IMAGE_API_URL, 'images/generations'), {
+  const response = await fetchWithTimeout(resolveEndpointUrl(OPENCODE_IMAGE_API_URL, 'images/generations'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -316,7 +348,7 @@ export async function generateImageWithAgent(params: {
       prompt: params.prompt,
       size: params.size ?? '1024x1024',
     }),
-  })
+  }, AI_IMAGE_TIMEOUT_MS, 'OpenCode Image API')
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => 'Unknown error')
@@ -337,7 +369,7 @@ export async function fetchWebWithAgent(params: {
     throw new Error('Missing OPENCODE_WEB_FETCH_API_URL or OPENCODE_API_KEY')
   }
 
-  const response = await fetch(resolveEndpointUrl(OPENCODE_WEB_FETCH_API_URL, 'web/fetch'), {
+  const response = await fetchWithTimeout(resolveEndpointUrl(OPENCODE_WEB_FETCH_API_URL, 'web/fetch'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -346,7 +378,7 @@ export async function fetchWebWithAgent(params: {
     body: JSON.stringify({
       url: params.url,
     }),
-  })
+  }, AI_TOOL_TIMEOUT_MS, 'OpenCode Web Fetch API')
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => 'Unknown error')

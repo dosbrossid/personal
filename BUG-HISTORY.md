@@ -1137,3 +1137,12 @@ _Belum ada bug tercatat. Development backend dimulai._
 **Pelajaran:** Counter publik butuh jalur server terpercaya yang tetap scoped, bukan update anon yang berharap lolos RLS. Untuk rich text ringan, menjaga selection lebih penting daripada sanitize DOM setiap keystroke.
 **Status:** RESOLVED
 **Terkait:** `src/app/api/public/blog/[id]/view/route.ts`, `src/app/public-blog/blog/[slug]/page.tsx`, `src/app/(dashboard)/notes/page.tsx`
+
+## BUG-112 | 2026-05-18 | SEVERITY: High
+
+**Gejala:** Saat user meminta generate image via Telegram, bot terus menampilkan status `sending photo/upload_photo` sampai beberapa menit dan tidak memberi hasil atau error.
+**Root Cause:** Endpoint image generation eksternal dipanggil tanpa timeout/abort dan handler Telegram tool tidak menangkap error per-tool, sehingga proses bisa menggantung sampai runtime mati tanpa feedback ke user.
+**Fix:** Tambahkan timeout eksplisit untuk image generation, web search, dan web fetch; bungkus tiap handler tool Telegram dengan fail-fast error handling, log status `failed`, dan kirim pesan gagal yang jelas ke chat.
+**Pelajaran:** Semua tool eksternal di chat agent wajib punya timeout, error boundary, dan fallback message. Chat UX tidak boleh menggantung diam-diam karena user menganggap bot/app rusak.
+**Status:** RESOLVED
+**Terkait:** `src/lib/ai/client.ts`, `src/app/api/webhook/telegram/route.ts`

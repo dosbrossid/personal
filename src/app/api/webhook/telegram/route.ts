@@ -228,25 +228,47 @@ async function handleTelegramImageGeneration(chatId: string, user: LinkedUser, m
 
   const supabase = createServiceRoleClient()
   const startTime = Date.now()
-  const image = await withTelegramTyping(chatId, () => generateImageWithAgent({ prompt }), 'upload_photo')
-  const photo = image.url ?? `data:${image.mimeType ?? 'image/png'};base64,${image.b64Json}`
-  const caption = `🖼️ *Gambar dibuat*\n${md(prompt.slice(0, 220))}`
+  try {
+    const image = await withTelegramTyping(chatId, () => generateImageWithAgent({ prompt }), 'upload_photo')
+    const photo = image.url ?? `data:${image.mimeType ?? 'image/png'};base64,${image.b64Json}`
+    const caption = `🖼️ *Gambar dibuat*\n${md(prompt.slice(0, 220))}`
 
-  await sendTelegramPhoto(chatId, photo, { caption, parseMode: 'MarkdownV2' })
-  await supabase.from('ai_hub_logs').insert({
-    user_id: user.id,
-    source: 'telegram',
-    telegram_message_id: messageId,
-    raw_input: input,
-    ai_response: {
-      items: [],
-      ai_message: `Gambar dibuat: ${prompt}`,
-    },
-    status: 'confirmed',
-    error_message: null,
-    tokens_used: null,
-    latency_ms: Date.now() - startTime,
-  })
+    await sendTelegramPhoto(chatId, photo, { caption, parseMode: 'MarkdownV2' })
+    await supabase.from('ai_hub_logs').insert({
+      user_id: user.id,
+      source: 'telegram',
+      telegram_message_id: messageId,
+      raw_input: input,
+      ai_response: {
+        items: [],
+        ai_message: `Gambar dibuat: ${prompt}`,
+      },
+      status: 'confirmed',
+      error_message: null,
+      tokens_used: null,
+      latency_ms: Date.now() - startTime,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Image generation gagal tanpa pesan error.'
+    await supabase.from('ai_hub_logs').insert({
+      user_id: user.id,
+      source: 'telegram',
+      telegram_message_id: messageId,
+      raw_input: input,
+      ai_response: {
+        items: [],
+        ai_message: 'Image generation failed',
+      },
+      status: 'failed',
+      error_message: message,
+      tokens_used: null,
+      latency_ms: Date.now() - startTime,
+    })
+    await sendTelegramRichMessage(
+      chatId,
+      `⚠️ *Gambar belum berhasil dibuat*\n${md(message)}\n\nCoba prompt yang lebih pendek, atau coba lagi nanti kalau endpoint image sedang lambat\\.`
+    )
+  }
 
   return true
 }
@@ -257,40 +279,59 @@ async function handleTelegramWebSearch(chatId: string, user: LinkedUser, message
 
   const supabase = createServiceRoleClient()
   const startTime = Date.now()
-  const results = await withTelegramTyping(chatId, () => searchWithAgent({ query, limit: 5 }))
-  const rawResult = results
-    .map((item, index) => `${index + 1}. ${item.title}\n${item.url ?? ''}\n${item.snippet ?? ''}`)
-    .join('\n\n')
-  const summary = await withTelegramTyping(
-    chatId,
-    () => summarizeToolResultForTelegram({
-      instruction: input,
-      toolLabel: 'web search',
-      toolResult: rawResult || 'No search results.',
+  try {
+    const results = await withTelegramTyping(chatId, () => searchWithAgent({ query, limit: 5 }))
+    const rawResult = results
+      .map((item, index) => `${index + 1}. ${item.title}\n${item.url ?? ''}\n${item.snippet ?? ''}`)
+      .join('\n\n')
+    const summary = await withTelegramTyping(
+      chatId,
+      () => summarizeToolResultForTelegram({
+        instruction: input,
+        toolLabel: 'web search',
+        toolResult: rawResult || 'No search results.',
+      })
+    )
+
+    const links = results
+      .slice(0, 5)
+      .map((item, index) => `${index + 1}. ${item.title}${item.url ? `\n${item.url}` : ''}`)
+      .join('\n')
+    const reply = `🔎 *Hasil web search*\n${mdRich(summary)}${links ? `\n\n${md(links)}` : ''}`
+
+    await sendTelegramRichMessage(chatId, reply)
+    await supabase.from('ai_hub_logs').insert({
+      user_id: user.id,
+      source: 'telegram',
+      telegram_message_id: messageId,
+      raw_input: input,
+      ai_response: {
+        items: [],
+        ai_message: summary,
+      },
+      status: 'confirmed',
+      error_message: null,
+      tokens_used: null,
+      latency_ms: Date.now() - startTime,
     })
-  )
-
-  const links = results
-    .slice(0, 5)
-    .map((item, index) => `${index + 1}. ${item.title}${item.url ? `\n${item.url}` : ''}`)
-    .join('\n')
-  const reply = `🔎 *Hasil web search*\n${mdRich(summary)}${links ? `\n\n${md(links)}` : ''}`
-
-  await sendTelegramRichMessage(chatId, reply)
-  await supabase.from('ai_hub_logs').insert({
-    user_id: user.id,
-    source: 'telegram',
-    telegram_message_id: messageId,
-    raw_input: input,
-    ai_response: {
-      items: [],
-      ai_message: summary,
-    },
-    status: 'confirmed',
-    error_message: null,
-    tokens_used: null,
-    latency_ms: Date.now() - startTime,
-  })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Web search gagal tanpa pesan error.'
+    await supabase.from('ai_hub_logs').insert({
+      user_id: user.id,
+      source: 'telegram',
+      telegram_message_id: messageId,
+      raw_input: input,
+      ai_response: {
+        items: [],
+        ai_message: 'Web search failed',
+      },
+      status: 'failed',
+      error_message: message,
+      tokens_used: null,
+      latency_ms: Date.now() - startTime,
+    })
+    await sendTelegramRichMessage(chatId, `⚠️ *Web search gagal*\n${md(message)}`)
+  }
 
   return true
 }
@@ -301,36 +342,55 @@ async function handleTelegramWebFetch(chatId: string, user: LinkedUser, messageI
 
   const supabase = createServiceRoleClient()
   const startTime = Date.now()
-  const page = await withTelegramTyping(chatId, () => fetchWebWithAgent({ url }))
-  const summary = await withTelegramTyping(
-    chatId,
-    () => summarizeToolResultForTelegram({
-      instruction: input,
-      toolLabel: 'web fetch',
-      toolResult: [
-        page.title ? `TITLE: ${page.title}` : '',
-        page.url ? `URL: ${page.url}` : `URL: ${url}`,
-        '',
-        page.content,
-      ].join('\n'),
-    })
-  )
+  try {
+    const page = await withTelegramTyping(chatId, () => fetchWebWithAgent({ url }))
+    const summary = await withTelegramTyping(
+      chatId,
+      () => summarizeToolResultForTelegram({
+        instruction: input,
+        toolLabel: 'web fetch',
+        toolResult: [
+          page.title ? `TITLE: ${page.title}` : '',
+          page.url ? `URL: ${page.url}` : `URL: ${url}`,
+          '',
+          page.content,
+        ].join('\n'),
+      })
+    )
 
-  await sendTelegramRichMessage(chatId, `🌐 *Ringkasan web*\n${mdRich(summary)}\n\n${md(page.url ?? url)}`)
-  await supabase.from('ai_hub_logs').insert({
-    user_id: user.id,
-    source: 'telegram',
-    telegram_message_id: messageId,
-    raw_input: input,
-    ai_response: {
-      items: [],
-      ai_message: summary,
-    },
-    status: 'confirmed',
-    error_message: null,
-    tokens_used: null,
-    latency_ms: Date.now() - startTime,
-  })
+    await sendTelegramRichMessage(chatId, `🌐 *Ringkasan web*\n${mdRich(summary)}\n\n${md(page.url ?? url)}`)
+    await supabase.from('ai_hub_logs').insert({
+      user_id: user.id,
+      source: 'telegram',
+      telegram_message_id: messageId,
+      raw_input: input,
+      ai_response: {
+        items: [],
+        ai_message: summary,
+      },
+      status: 'confirmed',
+      error_message: null,
+      tokens_used: null,
+      latency_ms: Date.now() - startTime,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Web fetch gagal tanpa pesan error.'
+    await supabase.from('ai_hub_logs').insert({
+      user_id: user.id,
+      source: 'telegram',
+      telegram_message_id: messageId,
+      raw_input: input,
+      ai_response: {
+        items: [],
+        ai_message: 'Web fetch failed',
+      },
+      status: 'failed',
+      error_message: message,
+      tokens_used: null,
+      latency_ms: Date.now() - startTime,
+    })
+    await sendTelegramRichMessage(chatId, `⚠️ *Web fetch gagal*\n${md(message)}`)
+  }
 
   return true
 }
