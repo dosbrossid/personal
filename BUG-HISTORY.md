@@ -1182,3 +1182,12 @@ _Belum ada bug tercatat. Development backend dimulai._
 **Pelajaran:** Tool output bukan jawaban user. Search agent harus mengubah hasil mentah menjadi jawaban praktis: nilai utama dulu, sumber ringkas belakangan.
 **Status:** RESOLVED
 **Terkait:** `src/lib/ai/client.ts`, `src/app/api/webhook/telegram/route.ts`, `src/app/api/ai/command/route.ts`
+
+## BUG-117 | 2026-05-18 | SEVERITY: High
+
+**Gejala:** Search/fetch masih terasa seperti wrapper tool biasa: search bisa menyerah saat snippet lemah, fetch memotong konten mentah, dan Telegram/chat bubble punya logic terpisah sehingga kualitas jawaban tidak konsisten.
+**Root Cause:** Belum ada lapisan web-agent yang mengorkestrasi `search-combo`, `fetch-combo`, deterministic extraction, dan synthesis jawaban. Setiap channel mengolah tool result sendiri-sendiri.
+**Fix:** Tambahkan `src/lib/ai/web-agent.ts` sebagai pipeline shared: normalize query, search dengan `search-combo`, auto-fetch sumber teratas dengan `fetch-combo` saat perlu, parse angka deterministic untuk kurs, lalu synthesis jawaban lewat model utama dengan larangan dump URL mentah.
+**Pelajaran:** Search/fetch agent harus punya loop observasi dan verifikasi sendiri. Model/tool yang bagus tetap perlu orkestrasi agar jawaban user bukan output mesin.
+**Status:** RESOLVED
+**Terkait:** `src/lib/ai/web-agent.ts`, `src/lib/ai/search-format.ts`, `src/app/api/webhook/telegram/route.ts`, `src/app/api/ai/command/route.ts`

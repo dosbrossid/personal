@@ -11,9 +11,7 @@ import { getTelegramFileAsDataUrl, sendTelegramChatAction, sendTelegramMessage, 
 import {
   analyzeImageWithVision,
   callLLM,
-  fetchWebWithAgent,
   generateImageWithAgent,
-  searchWithAgent,
 } from '@/lib/ai/client'
 import {
   buildAIExecutionMessage,
@@ -25,11 +23,9 @@ import { buildAssistantSystemPrompt } from '@/lib/ai/prompts'
 import { buildTelegramSmartRecallReply } from '@/lib/telegram-recall'
 import { queueCalendarReminderNotifications } from '@/lib/notification-queue'
 import {
-  formatCurrencyAnswerFromSearch,
-  formatSearchResultBlock,
   formatSearchSources,
-  getEffectiveSearchQuery,
 } from '@/lib/ai/search-format'
+import { answerFetchWithAgent, answerSearchWithAgent } from '@/lib/ai/web-agent'
 import type { AIResponse, AIResponseItem, CalendarReminderRule, UserPreferences } from '@/core/types'
 import type { RoleContext } from '@/core/constants'
 import { getHabitCadenceLabel } from '@/lib/habits'
@@ -205,40 +201,6 @@ async function sendTelegramRichMessage(chatId: string, text: string) {
   }
 }
 
-async function summarizeToolResultForTelegram(params: {
-  instruction: string
-  toolLabel: string
-  toolResult: string
-}) {
-  const { raw } = await callLLM([
-    {
-      role: 'system',
-      content: [
-        'Kamu adalah assistant Telegram Indonesia yang terasa hidup, rapi, dan enak dibaca.',
-        'Jawab pertanyaan user dari TOOL RESULT secara praktis, jujur, dan mudah discan.',
-        'Jika TOOL RESULT memuat angka, nominal, kurs, harga, tanggal, atau status terbaru, WAJIB angkat data itu di awal jawaban.',
-        'Jangan jawab hanya daftar sumber jika snippet sudah memuat informasi inti.',
-        'Jangan tampilkan URL mentah atau link redirect panjang; cukup sebut nama sumber/domain.',
-        'Jangan mengarang di luar TOOL RESULT.',
-        'Gunakan gaya Markdown Telegram: emoji seperlunya, bullet/numbering, bold untuk poin penting, italic untuk penekanan ringan, dan quote pendek jika cocok.',
-        'Jangan terlalu kaku. Variasikan struktur respons sesuai isi.',
-        'Maksimal 1100 karakter.',
-      ].join('\n'),
-    },
-    {
-      role: 'user',
-      content: [
-        `INSTRUKSI USER: ${params.instruction}`,
-        `TOOL: ${params.toolLabel}`,
-        'TOOL RESULT:',
-        params.toolResult.slice(0, 9000),
-      ].join('\n'),
-    },
-  ], { temperature: 0.2 })
-
-  return raw.trim().slice(0, 1200)
-}
-
 async function handleTelegramImageGeneration(chatId: string, user: LinkedUser, messageId: number, input: string) {
   const prompt = getImageGenerationPrompt(input)
   if (!prompt) return false
@@ -297,20 +259,14 @@ async function handleTelegramWebSearch(chatId: string, user: LinkedUser, message
   const supabase = createServiceRoleClient()
   const startTime = Date.now()
   try {
-    const effectiveQuery = getEffectiveSearchQuery(query)
-    const results = await withTelegramTyping(chatId, () => searchWithAgent({ query: effectiveQuery, limit: 5 }))
-    const deterministicAnswer = formatCurrencyAnswerFromSearch(effectiveQuery, results)
-    const rawResult = results.map(formatSearchResultBlock).join('\n\n')
-    const summary = deterministicAnswer ?? await withTelegramTyping(
-      chatId,
-      () => summarizeToolResultForTelegram({
-        instruction: input,
-        toolLabel: 'web search',
-        toolResult: rawResult || 'No search results.',
-      })
-    )
+    const result = await withTelegramTyping(chatId, () => answerSearchWithAgent({
+      query,
+      instruction: input,
+      maxChars: 1400,
+    }))
+    const summary = result.answer
 
-    const reply = `🔎 *Hasil pencarian: ${md(query)}*\n${mdRich(summary)}${formatTelegramSearchSources(results)}`
+    const reply = `🔎 *Hasil pencarian: ${md(query)}*\n${mdRich(summary)}${formatTelegramSearchSources(result.sources)}`
 
     await sendTelegramRichMessage(chatId, reply)
     await supabase.from('ai_hub_logs').insert({
@@ -356,22 +312,15 @@ async function handleTelegramWebFetch(chatId: string, user: LinkedUser, messageI
   const supabase = createServiceRoleClient()
   const startTime = Date.now()
   try {
-    const page = await withTelegramTyping(chatId, () => fetchWebWithAgent({ url }))
-    const summary = await withTelegramTyping(
-      chatId,
-      () => summarizeToolResultForTelegram({
-        instruction: input,
-        toolLabel: 'web fetch',
-        toolResult: [
-          page.title ? `TITLE: ${page.title}` : '',
-          page.url ? `URL: ${page.url}` : `URL: ${url}`,
-          '',
-          page.content,
-        ].join('\n'),
-      })
-    )
+    const result = await withTelegramTyping(chatId, () => answerFetchWithAgent({
+      url,
+      instruction: input,
+      maxChars: 1400,
+    }))
+    const summary = result.answer
+    const page = result.page
 
-    await sendTelegramRichMessage(chatId, `🌐 *Ringkasan web*\n${mdRich(summary)}\n\n${md(page.url ?? url)}`)
+    await sendTelegramRichMessage(chatId, `🌐 *Ringkasan web*\n${mdRich(summary)}\n\nSumber: ${md(page.title ?? page.url ?? url)}`)
     await supabase.from('ai_hub_logs').insert({
       user_id: user.id,
       source: 'telegram',

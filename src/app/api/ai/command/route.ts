@@ -10,9 +10,7 @@ import {
   analyzeImageWithVision,
   callLLM,
   callLLMStream,
-  fetchWebWithAgent,
   logAIInteraction,
-  searchWithAgent,
 } from '@/lib/ai/client'
 import {
   buildAICommandMessages,
@@ -24,10 +22,9 @@ import {
 } from '@/lib/ai/command-hub'
 import { parseAIResponse, mapDraftDetail } from '@/lib/ai/parser'
 import {
-  formatCurrencyAnswerFromSearch,
-  formatSearchResultBlock,
-  getEffectiveSearchQuery,
-} from '@/lib/ai/search-format'
+  answerFetchWithAgent,
+  answerSearchWithAgent,
+} from '@/lib/ai/web-agent'
 import type { AIResponseItem } from '@/core/types'
 
 interface ConversationMessagePayload {
@@ -380,15 +377,16 @@ async function handleInAppAgentTool(userId: string, input: string) {
   if (fetchUrl) {
     const started = Date.now()
     try {
-      const page = await fetchWebWithAgent({ url: fetchUrl })
-      const content = page.content.trim()
+      const result = await answerFetchWithAgent({
+        url: fetchUrl,
+        instruction: input,
+        maxChars: 1800,
+      })
       const aiMessage = [
-        `Web fetch selesai untuk ${page.url ?? fetchUrl}.`,
-        page.title ? `Judul: ${page.title}` : null,
-        content
-          ? `Ringkasan konten:\n${content.slice(0, 1800)}${content.length > 1800 ? '...' : ''}`
-          : 'Konten halaman kosong atau tidak bisa diekstrak oleh provider fetch.',
-      ].filter(Boolean).join('\n\n')
+        result.answer,
+        '',
+        `Sumber: ${result.page.title ?? result.page.url ?? fetchUrl}`,
+      ].join('\n')
 
       await logAIInteraction({
         userId,
@@ -421,13 +419,15 @@ async function handleInAppAgentTool(userId: string, input: string) {
   if (searchQuery) {
     const started = Date.now()
     try {
-      const effectiveQuery = getEffectiveSearchQuery(searchQuery)
-      const results = await searchWithAgent({ query: effectiveQuery, limit: 5 })
-      const deterministicAnswer = formatCurrencyAnswerFromSearch(effectiveQuery, results)
-      const aiMessage = results.length
-        ? deterministicAnswer ?? [
+      const result = await answerSearchWithAgent({
+        query: searchQuery,
+        instruction: input,
+        maxChars: 1800,
+      })
+      const aiMessage = result.sources.length
+        ? [
             `Hasil pencarian untuk "${searchQuery}":`,
-            ...results.slice(0, 5).map(formatSearchResultBlock),
+            result.answer,
           ].join('\n\n')
         : `Saya belum menemukan hasil web search untuk "${searchQuery}".`
 
