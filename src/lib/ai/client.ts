@@ -18,6 +18,8 @@ const OPENCODE_VISION_MODEL = process.env.OPENCODE_VISION_MODEL || 'kimi-k2.6'
 const OPENCODE_SEARCH_API_URL = process.env.OPENCODE_SEARCH_API_URL || OPENCODE_API_URL
 const OPENCODE_IMAGE_API_URL = process.env.OPENCODE_IMAGE_API_URL || OPENCODE_API_URL
 const OPENCODE_WEB_FETCH_API_URL = process.env.OPENCODE_WEB_FETCH_API_URL || OPENCODE_API_URL
+const OPENCODE_SEARCH_PROVIDER = process.env.OPENCODE_SEARCH_PROVIDER || 'exa'
+const OPENCODE_WEB_FETCH_PROVIDER = process.env.OPENCODE_WEB_FETCH_PROVIDER || OPENCODE_SEARCH_PROVIDER
 const AI_CHAT_TIMEOUT_MS = 60_000
 const AI_VISION_TIMEOUT_MS = 45_000
 const AI_TOOL_TIMEOUT_MS = 45_000
@@ -280,10 +282,14 @@ function normalizeSearchResults(payload: unknown): AgentSearchResult[] {
 
 function normalizeWebFetchResult(payload: unknown): AgentWebFetchResult {
   const value = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {}
+  const contentValue = value.content && typeof value.content === 'object' ? (value.content as Record<string, unknown>) : null
   const title = readString(value.title) ?? undefined
   const url = readString(value.url) ?? undefined
   const content =
     readString(value.content) ??
+    readString(contentValue?.text) ??
+    readString(contentValue?.markdown) ??
+    readString(contentValue?.html) ??
     readString(value.text) ??
     readString(value.markdown) ??
     readString(value.html) ??
@@ -321,6 +327,8 @@ export async function searchWithAgent(params: {
       'Authorization': `Bearer ${OPENCODE_API_KEY}`,
     },
     body: JSON.stringify({
+      provider: OPENCODE_SEARCH_PROVIDER,
+      model: OPENCODE_MODEL,
       query: params.query,
       limit: params.limit ?? 5,
     }),
@@ -382,6 +390,8 @@ export async function fetchWebWithAgent(params: {
       'Authorization': `Bearer ${OPENCODE_API_KEY}`,
     },
     body: JSON.stringify({
+      provider: OPENCODE_WEB_FETCH_PROVIDER,
+      model: OPENCODE_MODEL,
       url: params.url,
     }),
   }, AI_TOOL_TIMEOUT_MS, 'OpenCode Web Fetch API')

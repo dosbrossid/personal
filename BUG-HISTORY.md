@@ -1164,3 +1164,12 @@ _Belum ada bug tercatat. Development backend dimulai._
 **Pelajaran:** Agent mode tetap butuh deterministic rails untuk aksi/lookup harian. AI boleh memperkaya, tapi query data utama tidak boleh bergantung penuh pada provider LLM.
 **Status:** RESOLVED
 **Terkait:** `src/app/api/webhook/telegram/route.ts`, `src/lib/ai/client.ts`
+
+## BUG-115 | 2026-05-18 | SEVERITY: High
+
+**Gejala:** Telegram `/search` dan `/fetch` gagal walaupun endpoint `/v1/search` dan `/v1/web/fetch` tersedia.
+**Root Cause:** Endpoint tool membutuhkan field `provider` atau `model`; tanpa provider server fallback ke provider default `cx/gpt-5.5` yang tidak dikenali untuk tool search/fetch. Provider yang aktif untuk endpoint ini adalah `exa`.
+**Fix:** Kirim `provider: exa` untuk search dan web fetch, tambahkan env `OPENCODE_SEARCH_PROVIDER` serta `OPENCODE_WEB_FETCH_PROVIDER`, dan perbaiki normalizer agar membaca response `content.text` dari Exa fetch.
+**Pelajaran:** Chat model dan tool provider tidak selalu sama. Tooling agent harus punya konfigurasi provider sendiri, bukan menebak dari model utama.
+**Status:** RESOLVED
+**Terkait:** `src/lib/ai/client.ts`, `.env.example`
