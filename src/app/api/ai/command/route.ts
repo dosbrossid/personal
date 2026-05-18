@@ -315,15 +315,17 @@ function stripToolCommandPrefix(input: string, prefixes: RegExp[]) {
 function getInAppWebSearchQuery(input: string) {
   const normalized = normalizeToolText(input)
   const isCommand = normalized.startsWith('/search') || normalized.startsWith('/cariweb') || normalized.startsWith('/websearch')
-  const hasIntent = /\b(search|cari|googling|riset|telusuri)\b/i.test(input)
-  const hasWebCue = /\b(web|internet|online|berita|artikel|sumber)\b/i.test(input)
-  if (!isCommand && !(hasIntent && hasWebCue)) return null
+  const hasSearchIntent = /\b(search|cari|googling|riset|telusuri|cek|lihat|update|trend|trending|berita|news|referensi|sumber|artikel|review|bandingkan|compare|harga)\b/i.test(input)
+  const hasFreshnessCue = /\b(terbaru|terkini|hari ini|sekarang|2026|rilis|launch|viral|pasar|kompetitor)\b/i.test(input)
+  const hasWebCue = /\b(web|internet|online|berita|news|artikel|sumber|referensi|google)\b/i.test(input)
+  const isLocalDashboardIntent = /\b(agenda|jadwal|calendar|kalender|tugas|task|habit|catatan|note|kelas|vault|reminder)\b/i.test(input)
+  if ((!isCommand && !(hasSearchIntent && (hasWebCue || hasFreshnessCue))) || (!isCommand && isLocalDashboardIntent)) return null
 
   const query = stripToolCommandPrefix(input, [
     /^\/search\s*/i,
     /^\/cariweb\s*/i,
     /^\/websearch\s*/i,
-    /^(?:tolong\s+)?(?:search|cari|googling|riset|telusuri)\s+(?:di\s+)?(?:web|internet|online)?\s*/i,
+    /^(?:tolong\s+)?(?:search|cari|googling|riset|telusuri|cek|lihat|update|review|bandingkan|compare)\s+(?:di\s+)?(?:web|internet|online|google)?\s*/i,
   ])
 
   return query.length >= 3 ? query : null
@@ -336,7 +338,8 @@ function getInAppWebFetchUrl(input: string) {
   const normalized = normalizeToolText(input)
   const wantsFetch = normalized.startsWith('/fetch') ||
     normalized.startsWith('/ringkaslink') ||
-    /\b(fetch|baca|ringkas|rangkum|analisa|cek)\b/i.test(input)
+    /\b(fetch|baca|ringkas|rangkum|analisa|analisis|cek|lihat)\b/i.test(input) ||
+    !/\b(simpan|save|tambah|add|masukkan|catat)\b/i.test(input)
 
   return wantsFetch ? url : null
 }
