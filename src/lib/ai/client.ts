@@ -60,6 +60,10 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error(`${label} timeout setelah ${Math.round(timeoutMs / 1000)} detik`)
     }
+    if (error instanceof Error) {
+      const cause = error.cause instanceof Error ? `: ${error.cause.message}` : ''
+      throw new Error(`${label} network error${cause || `: ${error.message}`}`)
+    }
     throw error
   } finally {
     cleanup()

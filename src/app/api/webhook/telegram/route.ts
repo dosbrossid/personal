@@ -1376,8 +1376,9 @@ async function handleHabits(user: LinkedUser) {
 async function handleToday(user: LinkedUser) {
   const supabase = createServiceRoleClient()
   const today = getTodayDateInJakarta()
-  const startAt = `${today}T00:00:00+07:00`
-  const endAt = `${today}T23:59:59+07:00`
+  const timezone = user.preferences?.timezone || 'Asia/Jakarta'
+  const startAt = fromZonedTime(`${today}T00:00:00`, timezone).toISOString()
+  const endAt = fromZonedTime(`${today}T23:59:59`, timezone).toISOString()
 
   const [tasksResult, eventsResult, habitsResult] = await Promise.all([
     supabase
@@ -1413,9 +1414,41 @@ async function handleToday(user: LinkedUser) {
   return [
     `🗓️ *Ringkasan hari ini* \\(${md(today)}\\)`,
     `📌 *Task:* ${tasks.length ? md(tasks.map((task) => task.title).join(', ')) : 'kosong'}`,
-    `🕒 *Agenda:* ${events.length ? md(events.map((event) => event.title).join(', ')) : 'kosong'}`,
+    `🕒 *Agenda:* ${events.length ? md(events.map((event) => `${formatInTimeZone(new Date(event.start_at), timezone, 'HH.mm')} ${event.title}`).join(', ')) : 'kosong'}`,
     `🌱 *Habit:* ${habits.length ? md(habits.map((habit) => habit.name).join(', ')) : 'kosong'}`,
   ].join('\n')
+}
+
+function hasTodayLookupIntent(input: string) {
+  const normalized = normalizeText(input)
+  const hasDateCue = ['hari ini', 'sekarang', 'today'].some((word) => normalized.includes(word))
+  const hasLookupCue = ['apa', 'ada', 'lihat', 'cek', 'ringkas', 'jadwal', 'agenda', 'tugas', 'task', 'habit'].some((word) =>
+    normalized.includes(word)
+  )
+  const hasDomainCue = ['jadwal', 'agenda', 'acara', 'kalender', 'calendar', 'tugas', 'task', 'habit', 'hari ini'].some((word) =>
+    normalized.includes(word)
+  )
+
+  return hasDateCue && hasLookupCue && hasDomainCue
+}
+
+function hasTaskLookupIntent(input: string) {
+  const normalized = normalizeText(input)
+  return ['task', 'tasks', 'tugas', 'deadline', 'to do', 'todo'].some((word) => normalized.includes(word)) &&
+    ['apa', 'ada', 'lihat', 'cek', 'list', 'daftar'].some((word) => normalized.includes(word))
+}
+
+function hasHabitLookupIntent(input: string) {
+  const normalized = normalizeText(input)
+  return normalized.includes('habit') &&
+    ['apa', 'ada', 'lihat', 'cek', 'list', 'daftar'].some((word) => normalized.includes(word))
+}
+
+async function handleTelegramDeterministicLookup(user: LinkedUser, input: string) {
+  if (hasTodayLookupIntent(input)) return handleToday(user)
+  if (hasTaskLookupIntent(input)) return handleTasks(user)
+  if (hasHabitLookupIntent(input)) return handleHabits(user)
+  return null
 }
 
 function buildTelegramHelpMessage() {
@@ -1558,6 +1591,26 @@ export async function POST(request: NextRequest) {
   if (text.startsWith('/help')) {
     await sendTelegramMessage(chatId, buildTelegramHelpMessage())
     return Response.json({ ok: true })
+  }
+
+  const deterministicLookupReply = await withTelegramTyping(chatId, () => handleTelegramDeterministicLookup(linkedUser, text))
+  if (deterministicLookupReply) {
+    await supabase.from('ai_hub_logs').insert({
+      user_id: linkedUser.id,
+      source: 'telegram',
+      telegram_message_id: message.message_id,
+      raw_input: text,
+      ai_response: {
+        items: [],
+        ai_message: deterministicLookupReply.replace(/[\\*_`[\]()~>#+\-=|{}.!]/g, ''),
+      },
+      status: 'confirmed',
+      error_message: null,
+      tokens_used: 0,
+      latency_ms: null,
+    })
+    await sendTelegramRichMessage(chatId, deterministicLookupReply)
+    return Response.json({ ok: true, deterministic_lookup: true })
   }
 
   if (await handleTelegramImageGeneration(chatId, linkedUser, message.message_id, text)) {

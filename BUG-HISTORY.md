@@ -1155,3 +1155,12 @@ _Belum ada bug tercatat. Development backend dimulai._
 **Pelajaran:** Timeout harus konsisten di semua jalur AI, bukan hanya tool baru. Satu endpoint lambat tidak boleh membuat chat channel terasa mati.
 **Status:** RESOLVED
 **Terkait:** `src/lib/ai/client.ts`, `src/app/api/webhook/telegram/route.ts`
+
+## BUG-114 | 2026-05-18 | SEVERITY: High
+
+**Gejala:** Pertanyaan natural seperti `Agenda hari ini` gagal karena tetap dilempar ke model utama, padahal data agenda tersedia langsung di database.
+**Root Cause:** Telegram hanya punya shortcut deterministic untuk command slash (`/today`, `/tasks`, `/habits`), sementara bahasa natural lookup harian masuk ke LLM. Saat endpoint model `combo1` menolak koneksi (`ECONNREFUSED`), query praktis ikut gagal.
+**Fix:** Tambahkan deterministic natural lookup sebelum jalur AI untuk intent hari ini, task/tugas, dan habit; perbaiki format agenda hari ini dengan jam lokal; perjelas error network dari `fetch failed` menjadi penyebab koneksi.
+**Pelajaran:** Agent mode tetap butuh deterministic rails untuk aksi/lookup harian. AI boleh memperkaya, tapi query data utama tidak boleh bergantung penuh pada provider LLM.
+**Status:** RESOLVED
+**Terkait:** `src/app/api/webhook/telegram/route.ts`, `src/lib/ai/client.ts`
