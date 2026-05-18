@@ -124,6 +124,25 @@ function mdRich(value: string | number | null | undefined) {
   return escaped
 }
 
+function getSearchSourceLabel(item: { title: string; url?: string; displayUrl?: string }) {
+  if (item.displayUrl) return item.displayUrl.replace(/^https?:\/\//i, '').replace(/\/$/, '')
+  if (!item.url) return item.title
+  try {
+    return new URL(item.url).hostname.replace(/^www\./, '')
+  } catch {
+    return item.title
+  }
+}
+
+function formatTelegramSearchSources(results: { title: string; url?: string; displayUrl?: string }[]) {
+  const sources = results
+    .slice(0, 4)
+    .map((item, index) => `${index + 1}. ${item.title} (${getSearchSourceLabel(item)})`)
+    .join('\n')
+
+  return sources ? `\n\n📚 *Sumber:*\n${md(sources)}` : ''
+}
+
 function extractFirstUrl(input: string) {
   const match = input.match(/https?:\/\/[^\s)>\]]+/i)
   return match?.[0] ?? null
@@ -204,7 +223,10 @@ async function summarizeToolResultForTelegram(params: {
       role: 'system',
       content: [
         'Kamu adalah assistant Telegram Indonesia yang terasa hidup, rapi, dan enak dibaca.',
-        'Ringkas hasil tool secara praktis, jujur, dan mudah discan.',
+        'Jawab pertanyaan user dari TOOL RESULT secara praktis, jujur, dan mudah discan.',
+        'Jika TOOL RESULT memuat angka, nominal, kurs, harga, tanggal, atau status terbaru, WAJIB angkat data itu di awal jawaban.',
+        'Jangan jawab hanya daftar sumber jika snippet sudah memuat informasi inti.',
+        'Jangan tampilkan URL mentah atau link redirect panjang; cukup sebut nama sumber/domain.',
         'Jangan mengarang di luar TOOL RESULT.',
         'Gunakan gaya Markdown Telegram: emoji seperlunya, bullet/numbering, bold untuk poin penting, italic untuk penekanan ringan, dan quote pendek jika cocok.',
         'Jangan terlalu kaku. Variasikan struktur respons sesuai isi.',
@@ -285,7 +307,11 @@ async function handleTelegramWebSearch(chatId: string, user: LinkedUser, message
   try {
     const results = await withTelegramTyping(chatId, () => searchWithAgent({ query, limit: 5 }))
     const rawResult = results
-      .map((item, index) => `${index + 1}. ${item.title}\n${item.url ?? ''}\n${item.snippet ?? ''}`)
+      .map((item, index) => [
+        `${index + 1}. ${item.title}`,
+        `Source: ${getSearchSourceLabel(item)}`,
+        item.snippet ? `Snippet: ${item.snippet}` : '',
+      ].filter(Boolean).join('\n'))
       .join('\n\n')
     const summary = await withTelegramTyping(
       chatId,
@@ -296,11 +322,7 @@ async function handleTelegramWebSearch(chatId: string, user: LinkedUser, message
       })
     )
 
-    const links = results
-      .slice(0, 5)
-      .map((item, index) => `${index + 1}. ${item.title}${item.url ? `\n${item.url}` : ''}`)
-      .join('\n')
-    const reply = `🔎 *Hasil web search*\n${mdRich(summary)}${links ? `\n\n${md(links)}` : ''}`
+    const reply = `🔎 *Hasil pencarian: ${md(query)}*\n${mdRich(summary)}${formatTelegramSearchSources(results)}`
 
     await sendTelegramRichMessage(chatId, reply)
     await supabase.from('ai_hub_logs').insert({

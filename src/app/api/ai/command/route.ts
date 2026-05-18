@@ -344,6 +344,24 @@ function getInAppWebFetchUrl(input: string) {
   return wantsFetch ? url : null
 }
 
+function getSearchSourceLabel(item: { title: string; url?: string; displayUrl?: string }) {
+  if (item.displayUrl) return item.displayUrl.replace(/^https?:\/\//i, '').replace(/\/$/, '')
+  if (!item.url) return item.title
+  try {
+    return new URL(item.url).hostname.replace(/^www\./, '')
+  } catch {
+    return item.title
+  }
+}
+
+function formatInAppSearchResult(item: { title: string; url?: string; displayUrl?: string; snippet?: string }, index: number) {
+  return [
+    `${index + 1}. ${item.title}`,
+    item.snippet ? item.snippet : null,
+    `Sumber: ${getSearchSourceLabel(item)}`,
+  ].filter(Boolean).join('\n')
+}
+
 function createCompleteStream(aiMessage: string) {
   const encoder = new TextEncoder()
   const response = {
@@ -419,13 +437,8 @@ async function handleInAppAgentTool(userId: string, input: string) {
       const results = await searchWithAgent({ query: searchQuery, limit: 5 })
       const aiMessage = results.length
         ? [
-            `Hasil web search untuk "${searchQuery}":`,
-            ...results.map((item, index) => {
-              const parts = [`${index + 1}. ${item.title}`]
-              if (item.url) parts.push(item.url)
-              if (item.snippet) parts.push(item.snippet)
-              return parts.join('\n')
-            }),
+            `Hasil pencarian untuk "${searchQuery}":`,
+            ...results.slice(0, 5).map(formatInAppSearchResult),
           ].join('\n\n')
         : `Saya belum menemukan hasil web search untuk "${searchQuery}".`
 

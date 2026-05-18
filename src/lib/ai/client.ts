@@ -105,6 +105,7 @@ interface OpenCodeResponse {
 export interface AgentSearchResult {
   title: string
   url?: string
+  displayUrl?: string
   snippet?: string
 }
 
@@ -249,6 +250,16 @@ function readString(value: unknown) {
   return typeof value === 'string' ? value : null
 }
 
+function stripHtml(value: string) {
+  return value
+    .replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function normalizeSearchResults(payload: unknown): AgentSearchResult[] {
   const source = payload as {
     results?: unknown
@@ -269,11 +280,13 @@ function normalizeSearchResults(payload: unknown): AgentSearchResult[] {
     const value = item as Record<string, unknown>
     const title = readString(value.title) ?? readString(value.name) ?? readString(value.text) ?? 'Untitled'
     const url = readString(value.url) ?? readString(value.link)
+    const displayUrl = readString(value.display_url) ?? readString(value.displayUrl)
     const snippet = readString(value.snippet) ?? readString(value.description) ?? readString(value.content)
     normalized.push({
-      title,
+      title: stripHtml(title),
       ...(url ? { url } : {}),
-      ...(snippet ? { snippet } : {}),
+      ...(displayUrl ? { displayUrl: stripHtml(displayUrl) } : {}),
+      ...(snippet ? { snippet: stripHtml(snippet) } : {}),
     })
   }
 
