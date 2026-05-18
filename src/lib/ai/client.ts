@@ -19,7 +19,7 @@ const OPENCODE_SEARCH_API_URL = process.env.OPENCODE_SEARCH_API_URL || OPENCODE_
 const OPENCODE_IMAGE_API_URL = process.env.OPENCODE_IMAGE_API_URL || OPENCODE_API_URL
 const OPENCODE_WEB_FETCH_API_URL = process.env.OPENCODE_WEB_FETCH_API_URL || OPENCODE_API_URL
 const OPENCODE_SEARCH_PROVIDER = process.env.OPENCODE_SEARCH_PROVIDER || 'exa'
-const OPENCODE_WEB_FETCH_PROVIDER = process.env.OPENCODE_WEB_FETCH_PROVIDER || OPENCODE_SEARCH_PROVIDER
+const OPENCODE_WEB_FETCH_MODEL = 'search-combo'
 const AI_CHAT_TIMEOUT_MS = 60_000
 const AI_VISION_TIMEOUT_MS = 45_000
 const AI_TOOL_TIMEOUT_MS = 45_000
@@ -390,8 +390,7 @@ export async function fetchWebWithAgent(params: {
       'Authorization': `Bearer ${OPENCODE_API_KEY}`,
     },
     body: JSON.stringify({
-      provider: OPENCODE_WEB_FETCH_PROVIDER,
-      model: OPENCODE_MODEL,
+      model: OPENCODE_WEB_FETCH_MODEL,
       url: params.url,
     }),
   }, AI_TOOL_TIMEOUT_MS, 'OpenCode Web Fetch API')
