@@ -6,7 +6,14 @@
 
 import { type NextRequest } from 'next/server'
 import { requireAuth } from '@/lib/auth'
-import { analyzeImageWithVision, callLLM, callLLMStream, logAIInteraction } from '@/lib/ai/client'
+import {
+  analyzeImageWithVision,
+  callLLM,
+  callLLMStream,
+  fetchWebWithAgent,
+  logAIInteraction,
+  searchWithAgent,
+} from '@/lib/ai/client'
 import {
   buildAICommandMessages,
   buildAIAssistantMessages,
@@ -137,6 +144,11 @@ export async function POST(request: NextRequest) {
 
     if (!input.trim() && !attachment) {
       return Response.json({ error: 'Input tidak boleh kosong' }, { status: 400 })
+    }
+
+    const toolResponse = await handleInAppAgentTool(user.id, input.trim())
+    if (toolResponse) {
+      return toolResponse
     }
 
     const visionResult = attachment
@@ -281,6 +293,167 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function extractFirstUrl(input: string) {
+  const match = input.match(/https?:\/\/[^\s)>\]]+/i)
+  return match?.[0] ?? null
+}
+
+function normalizeToolText(value: string) {
+  return value.toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+function stripToolCommandPrefix(input: string, prefixes: RegExp[]) {
+  let output = input.trim()
+  for (const pattern of prefixes) {
+    output = output.replace(pattern, '').trim()
+  }
+  return output
+}
+
+function getInAppWebSearchQuery(input: string) {
+  const normalized = normalizeToolText(input)
+  const isCommand = normalized.startsWith('/search') || normalized.startsWith('/cariweb') || normalized.startsWith('/websearch')
+  const hasIntent = /\b(search|cari|googling|riset|telusuri)\b/i.test(input)
+  const hasWebCue = /\b(web|internet|online|berita|artikel|sumber)\b/i.test(input)
+  if (!isCommand && !(hasIntent && hasWebCue)) return null
+
+  const query = stripToolCommandPrefix(input, [
+    /^\/search\s*/i,
+    /^\/cariweb\s*/i,
+    /^\/websearch\s*/i,
+    /^(?:tolong\s+)?(?:search|cari|googling|riset|telusuri)\s+(?:di\s+)?(?:web|internet|online)?\s*/i,
+  ])
+
+  return query.length >= 3 ? query : null
+}
+
+function getInAppWebFetchUrl(input: string) {
+  const url = extractFirstUrl(input)
+  if (!url) return null
+
+  const normalized = normalizeToolText(input)
+  const wantsFetch = normalized.startsWith('/fetch') ||
+    normalized.startsWith('/ringkaslink') ||
+    /\b(fetch|baca|ringkas|rangkum|analisa|cek)\b/i.test(input)
+
+  return wantsFetch ? url : null
+}
+
+function createCompleteStream(aiMessage: string) {
+  const encoder = new TextEncoder()
+  const response = {
+    items: [],
+    ai_message: aiMessage,
+  }
+
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'complete', response, items: [] })}\n\n`))
+      controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+      controller.close()
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  })
+}
+
+async function handleInAppAgentTool(userId: string, input: string) {
+  if (!input) return null
+
+  const fetchUrl = getInAppWebFetchUrl(input)
+  if (fetchUrl) {
+    const started = Date.now()
+    try {
+      const page = await fetchWebWithAgent({ url: fetchUrl })
+      const content = page.content.trim()
+      const aiMessage = [
+        `Web fetch selesai untuk ${page.url ?? fetchUrl}.`,
+        page.title ? `Judul: ${page.title}` : null,
+        content
+          ? `Ringkasan konten:\n${content.slice(0, 1800)}${content.length > 1800 ? '...' : ''}`
+          : 'Konten halaman kosong atau tidak bisa diekstrak oleh provider fetch.',
+      ].filter(Boolean).join('\n\n')
+
+      await logAIInteraction({
+        userId,
+        rawInput: input,
+        aiResponse: { items: [], ai_message: aiMessage },
+        status: 'confirmed',
+        tokensUsed: null,
+        latencyMs: Date.now() - started,
+        source: 'in_app',
+      })
+
+      return createCompleteStream(aiMessage)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Web fetch gagal tanpa pesan error.'
+      await logAIInteraction({
+        userId,
+        rawInput: input,
+        aiResponse: { items: [], ai_message: 'Web fetch failed' },
+        status: 'failed',
+        errorMessage: message,
+        tokensUsed: null,
+        latencyMs: Date.now() - started,
+        source: 'in_app',
+      })
+      return createCompleteStream(`Web fetch gagal: ${message}`)
+    }
+  }
+
+  const searchQuery = getInAppWebSearchQuery(input)
+  if (searchQuery) {
+    const started = Date.now()
+    try {
+      const results = await searchWithAgent({ query: searchQuery, limit: 5 })
+      const aiMessage = results.length
+        ? [
+            `Hasil web search untuk "${searchQuery}":`,
+            ...results.map((item, index) => {
+              const parts = [`${index + 1}. ${item.title}`]
+              if (item.url) parts.push(item.url)
+              if (item.snippet) parts.push(item.snippet)
+              return parts.join('\n')
+            }),
+          ].join('\n\n')
+        : `Saya belum menemukan hasil web search untuk "${searchQuery}".`
+
+      await logAIInteraction({
+        userId,
+        rawInput: input,
+        aiResponse: { items: [], ai_message: aiMessage },
+        status: 'confirmed',
+        tokensUsed: null,
+        latencyMs: Date.now() - started,
+        source: 'in_app',
+      })
+
+      return createCompleteStream(aiMessage)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Web search gagal tanpa pesan error.'
+      await logAIInteraction({
+        userId,
+        rawInput: input,
+        aiResponse: { items: [], ai_message: 'Web search failed' },
+        status: 'failed',
+        errorMessage: message,
+        tokensUsed: null,
+        latencyMs: Date.now() - started,
+        source: 'in_app',
+      })
+      return createCompleteStream(`Web search gagal: ${message}`)
+    }
+  }
+
+  return null
 }
 
 function isConversationMessage(value: unknown): value is ConversationMessagePayload {
