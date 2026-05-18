@@ -1178,7 +1178,7 @@ _Belum ada bug tercatat. Development backend dimulai._
 
 **Gejala:** User bertanya nilai aktual seperti `kurs dollar hari ini`, tetapi Telegram membalas daftar link/source mentah, bahkan menduplikasi link redirect panjang, bukan angka kurs.
 **Root Cause:** Formatter search Telegram mengirim hasil search ke model plus menempel daftar URL mentah lagi di bawah jawaban. Prompt summarizer juga tidak memaksa model mengambil angka dari snippet, sehingga data kurs yang sudah ada di snippet dianggap hanya daftar sumber.
-**Fix:** Bersihkan HTML snippet search, simpan `display_url`, hilangkan duplikasi URL mentah dari balasan Telegram, tampilkan sumber sebagai nama/domain pendek, dan perkuat prompt agar angka/kurs/harga di snippet wajib diangkat di awal jawaban.
+**Fix:** Bersihkan HTML snippet search, simpan `display_url`, hilangkan duplikasi URL mentah dari balasan Telegram, tampilkan sumber sebagai nama/domain pendek, normalisasi query USD/IDR ke `kurs dollar hari ini`, dan tambahkan parser deterministic agar angka kurs di snippet diangkat langsung tanpa bergantung pada ringkasan LLM.
 **Pelajaran:** Tool output bukan jawaban user. Search agent harus mengubah hasil mentah menjadi jawaban praktis: nilai utama dulu, sumber ringkas belakangan.
 **Status:** RESOLVED
 **Terkait:** `src/lib/ai/client.ts`, `src/app/api/webhook/telegram/route.ts`, `src/app/api/ai/command/route.ts`

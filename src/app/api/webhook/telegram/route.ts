@@ -24,6 +24,12 @@ import {
 import { buildAssistantSystemPrompt } from '@/lib/ai/prompts'
 import { buildTelegramSmartRecallReply } from '@/lib/telegram-recall'
 import { queueCalendarReminderNotifications } from '@/lib/notification-queue'
+import {
+  formatCurrencyAnswerFromSearch,
+  formatSearchResultBlock,
+  formatSearchSources,
+  getEffectiveSearchQuery,
+} from '@/lib/ai/search-format'
 import type { AIResponse, AIResponseItem, CalendarReminderRule, UserPreferences } from '@/core/types'
 import type { RoleContext } from '@/core/constants'
 import { getHabitCadenceLabel } from '@/lib/habits'
@@ -124,22 +130,8 @@ function mdRich(value: string | number | null | undefined) {
   return escaped
 }
 
-function getSearchSourceLabel(item: { title: string; url?: string; displayUrl?: string }) {
-  if (item.displayUrl) return item.displayUrl.replace(/^https?:\/\//i, '').replace(/\/$/, '')
-  if (!item.url) return item.title
-  try {
-    return new URL(item.url).hostname.replace(/^www\./, '')
-  } catch {
-    return item.title
-  }
-}
-
 function formatTelegramSearchSources(results: { title: string; url?: string; displayUrl?: string }[]) {
-  const sources = results
-    .slice(0, 4)
-    .map((item, index) => `${index + 1}. ${item.title} (${getSearchSourceLabel(item)})`)
-    .join('\n')
-
+  const sources = formatSearchSources(results)
   return sources ? `\n\n📚 *Sumber:*\n${md(sources)}` : ''
 }
 
@@ -305,15 +297,11 @@ async function handleTelegramWebSearch(chatId: string, user: LinkedUser, message
   const supabase = createServiceRoleClient()
   const startTime = Date.now()
   try {
-    const results = await withTelegramTyping(chatId, () => searchWithAgent({ query, limit: 5 }))
-    const rawResult = results
-      .map((item, index) => [
-        `${index + 1}. ${item.title}`,
-        `Source: ${getSearchSourceLabel(item)}`,
-        item.snippet ? `Snippet: ${item.snippet}` : '',
-      ].filter(Boolean).join('\n'))
-      .join('\n\n')
-    const summary = await withTelegramTyping(
+    const effectiveQuery = getEffectiveSearchQuery(query)
+    const results = await withTelegramTyping(chatId, () => searchWithAgent({ query: effectiveQuery, limit: 5 }))
+    const deterministicAnswer = formatCurrencyAnswerFromSearch(effectiveQuery, results)
+    const rawResult = results.map(formatSearchResultBlock).join('\n\n')
+    const summary = deterministicAnswer ?? await withTelegramTyping(
       chatId,
       () => summarizeToolResultForTelegram({
         instruction: input,

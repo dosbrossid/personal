@@ -23,6 +23,11 @@ import {
   normalizeAIResponseForCommand,
 } from '@/lib/ai/command-hub'
 import { parseAIResponse, mapDraftDetail } from '@/lib/ai/parser'
+import {
+  formatCurrencyAnswerFromSearch,
+  formatSearchResultBlock,
+  getEffectiveSearchQuery,
+} from '@/lib/ai/search-format'
 import type { AIResponseItem } from '@/core/types'
 
 interface ConversationMessagePayload {
@@ -344,24 +349,6 @@ function getInAppWebFetchUrl(input: string) {
   return wantsFetch ? url : null
 }
 
-function getSearchSourceLabel(item: { title: string; url?: string; displayUrl?: string }) {
-  if (item.displayUrl) return item.displayUrl.replace(/^https?:\/\//i, '').replace(/\/$/, '')
-  if (!item.url) return item.title
-  try {
-    return new URL(item.url).hostname.replace(/^www\./, '')
-  } catch {
-    return item.title
-  }
-}
-
-function formatInAppSearchResult(item: { title: string; url?: string; displayUrl?: string; snippet?: string }, index: number) {
-  return [
-    `${index + 1}. ${item.title}`,
-    item.snippet ? item.snippet : null,
-    `Sumber: ${getSearchSourceLabel(item)}`,
-  ].filter(Boolean).join('\n')
-}
-
 function createCompleteStream(aiMessage: string) {
   const encoder = new TextEncoder()
   const response = {
@@ -434,11 +421,13 @@ async function handleInAppAgentTool(userId: string, input: string) {
   if (searchQuery) {
     const started = Date.now()
     try {
-      const results = await searchWithAgent({ query: searchQuery, limit: 5 })
+      const effectiveQuery = getEffectiveSearchQuery(searchQuery)
+      const results = await searchWithAgent({ query: effectiveQuery, limit: 5 })
+      const deterministicAnswer = formatCurrencyAnswerFromSearch(effectiveQuery, results)
       const aiMessage = results.length
-        ? [
+        ? deterministicAnswer ?? [
             `Hasil pencarian untuk "${searchQuery}":`,
-            ...results.slice(0, 5).map(formatInAppSearchResult),
+            ...results.slice(0, 5).map(formatSearchResultBlock),
           ].join('\n\n')
         : `Saya belum menemukan hasil web search untuk "${searchQuery}".`
 
