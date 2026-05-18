@@ -1655,28 +1655,57 @@ export async function POST(request: NextRequest) {
     return Response.json({ ok: true })
   }
 
+  let telegramAIResult: Awaited<ReturnType<typeof callLLM>> & {
+    visionResult: Awaited<ReturnType<typeof analyzeImageWithVision>> | null
+  }
+
+  try {
+    telegramAIResult = await withTelegramTyping(chatId, async () => {
+      const vision = imageAttachment
+        ? await analyzeImageWithVision({
+            userPrompt: text,
+            imageDataUrl: imageAttachment.dataUrl,
+            mimeType: imageAttachment.mimeType,
+          })
+        : null
+      const mainModelInput = buildMainModelInputWithVisionAnalysis(text, vision?.analysis ?? null)
+      const llmResult = await callLLM(await buildTelegramAIContext(linkedUser, mainModelInput))
+
+      return {
+        visionResult: vision,
+        ...llmResult,
+      }
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'AI utama gagal tanpa pesan error.'
+    await supabase.from('ai_hub_logs').insert({
+      user_id: linkedUser.id,
+      source: 'telegram',
+      telegram_message_id: message.message_id,
+      raw_input: buildLoggedTelegramInput(text, imageAttachment),
+      ai_response: {
+        items: [],
+        ai_message: 'Telegram AI main response failed',
+      },
+      status: 'failed',
+      error_message: errorMessage,
+      tokens_used: null,
+      latency_ms: null,
+    })
+    await sendTelegramRichMessage(
+      chatId,
+      `⚠️ *AI lagi gagal merespons*\n${md(errorMessage)}\n\nCoba ulang sebentar lagi\\. Kalau ini sering terjadi, kemungkinan endpoint model sedang lambat/down\\.`
+    )
+    return Response.json({ ok: true, ai_failed: true })
+  }
+
   const {
     visionResult,
     response,
     raw,
     tokensUsed,
     latencyMs,
-  } = await withTelegramTyping(chatId, async () => {
-    const vision = imageAttachment
-      ? await analyzeImageWithVision({
-          userPrompt: text,
-          imageDataUrl: imageAttachment.dataUrl,
-          mimeType: imageAttachment.mimeType,
-        })
-      : null
-    const mainModelInput = buildMainModelInputWithVisionAnalysis(text, vision?.analysis ?? null)
-    const llmResult = await callLLM(await buildTelegramAIContext(linkedUser, mainModelInput))
-
-    return {
-      visionResult: vision,
-      ...llmResult,
-    }
-  })
+  } = telegramAIResult
   const totalTokensUsed = (tokensUsed ?? 0) + (visionResult?.tokensUsed ?? 0) || null
   const totalLatencyMs = latencyMs + (visionResult?.latencyMs ?? 0)
   const aiResponse = response

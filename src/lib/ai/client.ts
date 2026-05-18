@@ -18,6 +18,8 @@ const OPENCODE_VISION_MODEL = process.env.OPENCODE_VISION_MODEL || 'kimi-k2.6'
 const OPENCODE_SEARCH_API_URL = process.env.OPENCODE_SEARCH_API_URL || OPENCODE_API_URL
 const OPENCODE_IMAGE_API_URL = process.env.OPENCODE_IMAGE_API_URL || OPENCODE_API_URL
 const OPENCODE_WEB_FETCH_API_URL = process.env.OPENCODE_WEB_FETCH_API_URL || OPENCODE_API_URL
+const AI_CHAT_TIMEOUT_MS = 60_000
+const AI_VISION_TIMEOUT_MS = 45_000
 const AI_TOOL_TIMEOUT_MS = 45_000
 const AI_IMAGE_TIMEOUT_MS = 60_000
 
@@ -134,7 +136,7 @@ export async function callLLM(
 
   const startTime = Date.now()
 
-  const res = await fetch(resolveChatCompletionsUrl(OPENCODE_API_URL), {
+  const res = await fetchWithTimeout(resolveChatCompletionsUrl(OPENCODE_API_URL), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -145,7 +147,7 @@ export async function callLLM(
       messages,
       temperature: options?.temperature ?? 0.3,
     }),
-  })
+  }, AI_CHAT_TIMEOUT_MS, 'OpenCode Chat API')
 
   const latencyMs = Date.now() - startTime
 
@@ -182,7 +184,7 @@ export async function analyzeImageWithVision(params: {
 
   const startTime = Date.now()
 
-  const res = await fetch(resolveChatCompletionsUrl(OPENCODE_VISION_API_URL), {
+  const res = await fetchWithTimeout(resolveChatCompletionsUrl(OPENCODE_VISION_API_URL), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -220,7 +222,7 @@ export async function analyzeImageWithVision(params: {
       ],
       temperature: 0.2,
     }),
-  })
+  }, AI_VISION_TIMEOUT_MS, 'OpenCode Vision API')
 
   const latencyMs = Date.now() - startTime
 

@@ -1146,3 +1146,12 @@ _Belum ada bug tercatat. Development backend dimulai._
 **Pelajaran:** Semua tool eksternal di chat agent wajib punya timeout, error boundary, dan fallback message. Chat UX tidak boleh menggantung diam-diam karena user menganggap bot/app rusak.
 **Status:** RESOLVED
 **Terkait:** `src/lib/ai/client.ts`, `src/app/api/webhook/telegram/route.ts`
+
+## BUG-113 | 2026-05-18 | SEVERITY: High
+
+**Gejala:** Setelah image generation macet, chat Telegram biasa seperti pertanyaan agenda hari ini ikut terlihat `typing` terus dan tidak pernah memberi respons.
+**Root Cause:** Jalur model utama (`callLLM`) dan vision masih memakai request tanpa timeout, dan webhook Telegram tidak membungkus jalur chat normal dengan error boundary yang mengirim fallback reply.
+**Fix:** Tambahkan timeout untuk `callLLM` dan vision extraction, serta bungkus jalur chat normal Telegram dengan catch yang mencatat `ai_hub_logs` status `failed` dan mengirim pesan gagal yang manusiawi.
+**Pelajaran:** Timeout harus konsisten di semua jalur AI, bukan hanya tool baru. Satu endpoint lambat tidak boleh membuat chat channel terasa mati.
+**Status:** RESOLVED
+**Terkait:** `src/lib/ai/client.ts`, `src/app/api/webhook/telegram/route.ts`
