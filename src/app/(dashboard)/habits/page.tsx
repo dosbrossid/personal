@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Filter,
   Flame,
-  Loader2,
   MoreHorizontal,
   Plus,
   Target,
@@ -20,6 +19,8 @@ import { format, subDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { StatCard } from '@/components/shared/StatCard';
+import { PageSkeleton } from '@/components/shared/PageSkeleton';
 import { useHabits } from '@/hooks/use-habits';
 import { createHabit, deleteHabit as deleteHabitAction, toggleHabitLog } from '@/actions/habits.actions';
 import { HABIT_CADENCE_MODES, ROLES, type HabitCadenceMode, type RoleContext } from '@/core/constants';
@@ -174,14 +175,7 @@ export default function HabitsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Memuat habits...</p>
-        </div>
-      </div>
-    );
+    return <PageSkeleton statCount={4} contentRows={5} />;
   }
 
   return (
@@ -208,24 +202,16 @@ export default function HabitsPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {statCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <div
-                key={card.label}
-                className={`${card.gradient} ${card.glow} group relative cursor-default overflow-hidden rounded-2xl p-4 text-white shadow-lg transition-transform duration-200 hover:-translate-y-0.5`}
-              >
-                <div className="pointer-events-none absolute inset-0 animate-shimmer opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-[12px] font-medium text-white/70">{card.label}</p>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 backdrop-blur-sm">
-                    <Icon className="h-4 w-4 text-white" strokeWidth={2} />
-                  </div>
-                </div>
-                <p className="ts-h1 leading-none">{card.value}</p>
-              </div>
-            );
-          })}
+          {statCards.map((card) => (
+            <StatCard
+              key={card.label}
+              label={card.label}
+              value={card.value}
+              icon={card.icon}
+              gradient={card.gradient}
+              glow={card.glow}
+            />
+          ))}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

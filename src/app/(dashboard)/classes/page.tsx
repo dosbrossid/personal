@@ -31,6 +31,7 @@ import {
   SEMESTERS,
 } from '@/core/constants';
 import type { ClassCourseStatus, RoleContext } from '@/core/constants';
+import { StatCard } from '@/components/shared/StatCard';
 import type { ClassCourse, ClassSession } from '@/core/types';
 import { cn } from '@/lib/utils';
 import { useClass, useClasses, useClassSessions } from '@/hooks/use-classes';
@@ -907,26 +908,15 @@ export default function ClassesPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          {statCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <div
-                key={card.label}
-                className={cn(
-                  'rounded-2xl p-4 text-white shadow-lg',
-                  `bg-gradient-to-br ${card.gradient}`
-                )}
-              >
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-[12px] font-medium text-white/70">{card.label}</p>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                </div>
-                <p className="ts-h1 leading-none">{card.value}</p>
-              </div>
-            );
-          })}
+          {statCards.map((card) => (
+            <StatCard
+              key={card.label}
+              label={card.label}
+              value={card.value}
+              icon={card.icon}
+              gradient={`bg-gradient-to-br ${card.gradient}`}
+            />
+          ))}
         </div>
 
         <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">

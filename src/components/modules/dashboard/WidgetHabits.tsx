@@ -8,6 +8,7 @@ import { useHabits } from '@/hooks/use-habits';
 import { ROLES } from '@/core/constants';
 import { getHabitCadenceLabel, getHabitProgressSnapshot, isHabitCompletedOnDate, isHabitExpectedOnDate, isScheduledHabit } from '@/lib/habits';
 import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
+import { EmptyState } from '@/components/shared/EmptyState';
 
 const dayLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
@@ -69,10 +70,10 @@ export function WidgetHabits() {
 
       <div className="space-y-5">
         {activeHabits.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center">
-            <p className="text-[13px] font-medium text-foreground">Belum ada kebiasaan aktif</p>
-            <p className="mt-1 text-[12px] text-muted-foreground">Buat habit pertamamu untuk mulai melihat ritmenya di dashboard.</p>
-          </div>
+          <EmptyState
+            title="Belum ada kebiasaan aktif"
+            description="Buat habit pertamamu untuk mulai melihat ritmenya di dashboard."
+          />
         ) : activeHabits.map((habit) => {
           const last7Days = Array.from({ length: 7 }, (_, index) => subDays(new Date(), 6 - index));
           const snapshot = getHabitProgressSnapshot(habit, new Date());

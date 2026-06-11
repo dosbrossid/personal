@@ -12,6 +12,7 @@ import { createTask, updateTask } from '@/actions/tasks.actions';
 import { PRIORITIES, ROLES } from '@/core/constants';
 import type { Task } from '@/core/types';
 import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
+import { EmptyState } from '@/components/shared/EmptyState';
 import Link from 'next/link';
 
 const statusIcons = {
@@ -152,7 +153,7 @@ export function WidgetTasks() {
               }
             }}
             placeholder="Tambah task cepat..."
-            className="h-9 flex-1 rounded-lg border border-border/60 bg-background px-3 text-[13px] text-foreground outline-none focus:ring-2 focus:ring-primary/10"
+            className="h-9 flex-1 rounded-lg border border-border/60 bg-background px-3 text-[13px] text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
           />
           <button
             onClick={() => void handleQuickCreate()}
@@ -167,17 +168,19 @@ export function WidgetTasks() {
 
       <div className="space-y-1.5">
         {spotlightTasks.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center">
-            <p className="text-[13px] font-medium text-foreground">Belum ada tugas aktif</p>
-            <p className="mt-1 text-[12px] text-muted-foreground">Mulai dari task kecil dulu. Begitu task pertama dibuat, ritme dashboard langsung terasa.</p>
-            <button
-              onClick={() => setTitle('Task pertamaku')}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-2 text-[12px] font-medium text-primary transition-colors hover:bg-primary/15"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Isi contoh cepat
-            </button>
-          </div>
+          <EmptyState
+            title="Belum ada tugas aktif"
+            description="Mulai dari task kecil dulu. Begitu task pertama dibuat, ritme dashboard langsung terasa."
+            action={
+              <button
+                onClick={() => setTitle('Task pertamaku')}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-2 text-[12px] font-medium text-primary transition-colors hover:bg-primary/15"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Isi contoh cepat
+              </button>
+            }
+          />
         ) : spotlightTasks.map((task) => {
           const StatusIcon = statusIcons[task.status];
           const priority = PRIORITIES[task.priority];
@@ -191,6 +194,7 @@ export function WidgetTasks() {
               <button
                 onClick={() => void handleToggleTask(task)}
                 disabled={togglingId === task.id}
+                aria-label={task.status === 'done' ? `Tandai "${task.title}" belum selesai` : `Tandai "${task.title}" selesai`}
                 className="mt-0.5 shrink-0"
               >
                 {togglingId === task.id ? (

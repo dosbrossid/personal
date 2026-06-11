@@ -8,6 +8,8 @@ import { WidgetHabits } from '@/components/modules/dashboard/WidgetHabits';
 import { WidgetNotes } from '@/components/modules/dashboard/WidgetNotes';
 import { WidgetNotifications } from '@/components/modules/dashboard/WidgetNotifications';
 import { WidgetActivityFeed } from '@/components/modules/dashboard/WidgetActivityFeed';
+import { StatCard } from '@/components/shared/StatCard';
+import { PageSkeleton } from '@/components/shared/PageSkeleton';
 import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 import { useUser } from '@/hooks/use-user';
 import { toast } from 'sonner';
@@ -106,14 +108,7 @@ export default function DashboardPage() {
   }
 
   if (isLoading || isUserLoading) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ts-sm text-muted-foreground">Memuat dashboard...</p>
-        </div>
-      </div>
-    );
+    return <PageSkeleton statCount={4} contentRows={5} />;
   }
 
   return (
@@ -166,24 +161,17 @@ export default function DashboardPage() {
 
       {/* ─── Stat Summary Cards ─── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div
-              key={card.label}
-              className={`${card.gradient} rounded-2xl p-4 text-white shadow-lg ${card.glow} cursor-default relative overflow-hidden group hover:-translate-y-0.5 transition-transform duration-200`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <p className="ts-label font-medium text-white/70">{card.label}</p>
-                <div className="h-8 w-8 rounded-lg bg-white/15 flex items-center justify-center backdrop-blur-sm">
-                  <Icon className="h-4 w-4 text-white" strokeWidth={2} />
-                </div>
-              </div>
-              <p className="ts-h1 leading-none text-white">{card.value}</p>
-              <p className="ts-micro text-white/70 mt-1 font-medium">{card.sub}</p>
-            </div>
-          );
-        })}
+        {statCards.map((card) => (
+          <StatCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            sub={card.sub}
+            icon={card.icon}
+            gradient={card.gradient}
+            glow={card.glow}
+          />
+        ))}
       </div>
 
       {/* ─── Bento Grid ─── */}

@@ -11,6 +11,7 @@ import { ROLES, NOTE_TYPES } from '@/core/constants';
 import { formatRelativeTime } from '@/lib/utils';
 import { stripNoteContent } from '@/lib/notes';
 import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
+import { EmptyState } from '@/components/shared/EmptyState';
 import Link from 'next/link';
 
 const noteTypeColors: Record<string, string> = {
@@ -141,7 +142,7 @@ export function WidgetNotes() {
                 }
               }}
               placeholder="Catatan cepat..."
-              className="h-9 flex-1 rounded-lg border border-border/60 bg-background px-3 text-[13px] text-foreground outline-none focus:ring-2 focus:ring-primary/10"
+              className="h-9 flex-1 rounded-lg border border-border/60 bg-background px-3 text-[13px] text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
             />
             <button
               onClick={() => setIsPinnedDraft((current) => !current)}
@@ -192,14 +193,15 @@ export function WidgetNotes() {
             <p className="text-[12px] font-semibold text-foreground">Terbaru</p>
           )}
           {notes.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center">
-              <p className="text-[13px] font-medium text-foreground">Belum ada catatan</p>
-              <p className="mt-1 text-[12px] text-muted-foreground">Catatan terbaru akan muncul di sini begitu kamu mulai menyimpan ide.</p>
-            </div>
+            <EmptyState
+              title="Belum ada catatan"
+              description="Catatan terbaru akan muncul di sini begitu kamu mulai menyimpan ide."
+            />
           ) : recentNotes.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-4 text-center">
-              <p className="text-[12px] text-muted-foreground">Semua catatan teratas sedang dipin.</p>
-            </div>
+            <EmptyState
+              title="Semua catatan teratas sedang dipin."
+              compact
+            />
           ) : recentNotes.map((note) => (
             <NoteRow
               key={note.id}
@@ -276,6 +278,7 @@ function NoteRow({
             <button
               onClick={() => void onTogglePin(note.id, note.is_pinned, note.title)}
               disabled={pinningId === note.id}
+              aria-label={note.is_pinned ? `Lepas pin "${note.title}"` : `Pin "${note.title}"`}
               className={cn(
                 'inline-flex h-7 w-7 items-center justify-center rounded-lg transition-colors',
                 note.is_pinned

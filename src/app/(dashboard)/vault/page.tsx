@@ -10,6 +10,8 @@ import {
   AlertTriangle, Loader2,
 } from 'lucide-react';
 import { cn, formatFileSize, formatRelativeTime } from '@/lib/utils';
+import { StatCard } from '@/components/shared/StatCard';
+import { PageSkeleton } from '@/components/shared/PageSkeleton';
 import { useVaultItems } from '@/hooks/use-vault';
 import {
   createVaultItem,
@@ -777,14 +779,7 @@ export default function VaultPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Memuat vault...</p>
-        </div>
-      </div>
-    );
+    return <PageSkeleton statCount={4} contentRows={5} />;
   }
 
   return (
@@ -828,24 +823,16 @@ export default function VaultPage() {
 
         {/* ─── Stat Cards ─── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {statCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <div
-                key={card.label}
-                className={`${card.gradient} rounded-2xl p-4 text-white shadow-lg ${card.glow} cursor-default relative overflow-hidden group hover:-translate-y-0.5 transition-transform duration-200`}
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-shimmer pointer-events-none" />
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[12px] font-medium text-white/70">{card.label}</p>
-                  <div className="h-8 w-8 rounded-lg bg-white/15 flex items-center justify-center backdrop-blur-sm">
-                    <Icon className="h-4 w-4 text-white" strokeWidth={2} />
-                  </div>
-                </div>
-                <p className="ts-h1 leading-none">{card.value}</p>
-              </div>
-            );
-          })}
+          {statCards.map((card) => (
+            <StatCard
+              key={card.label}
+              label={card.label}
+              value={card.value}
+              icon={card.icon}
+              gradient={card.gradient}
+              glow={card.glow}
+            />
+          ))}
         </div>
 
         {/* ─── Search ─── */}

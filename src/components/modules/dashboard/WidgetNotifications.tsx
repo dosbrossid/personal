@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/use-notifications';
 import { formatRelativeTime } from '@/lib/utils';
 import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
+import { EmptyState } from '@/components/shared/EmptyState';
+import Link from 'next/link';
 
 
 export function WidgetNotifications() {
@@ -74,10 +76,10 @@ export function WidgetNotifications() {
       {/* ─── Notifications List ─── */}
       <div className="space-y-2">
         {notifications.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center">
-            <p className="text-[13px] font-medium text-foreground">Belum ada notifikasi</p>
-            <p className="mt-1 text-[12px] text-muted-foreground">Notifikasi baru akan muncul di sini.</p>
-          </div>
+          <EmptyState
+            title="Belum ada notifikasi"
+            description="Notifikasi baru akan muncul di sini."
+          />
         ) : notifications.map((notif) => (
           <div
             key={notif.id}
@@ -142,10 +144,13 @@ export function WidgetNotifications() {
       </div>
 
       {/* ─── Footer ─── */}
-      <button className="flex items-center justify-center gap-1.5 w-full mt-4 py-2.5 rounded-xl border border-border/60 bg-muted/30 text-[13px] font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 hover:border-primary/30 transition-all duration-200 group">
-        Lihat Semua Notifikasi
+      <Link
+        href="/settings"
+        className="flex items-center justify-center gap-1.5 w-full mt-4 py-2.5 rounded-xl border border-border/60 bg-muted/30 text-[13px] font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 hover:border-primary/30 transition-all duration-200 group"
+      >
+        Kelola Notifikasi
         <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-      </button>
+      </Link>
     </div>
   );
 }

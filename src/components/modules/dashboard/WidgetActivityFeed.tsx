@@ -5,6 +5,7 @@ import { Activity, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDashboardActivity } from '@/hooks/use-dashboard-activity';
 import { formatRelativeTime } from '@/lib/utils';
 import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
+import { EmptyState } from '@/components/shared/EmptyState';
 
 export function WidgetActivityFeed() {
   const [page, setPage] = useState(1);
@@ -33,10 +34,10 @@ export function WidgetActivityFeed() {
 
       <div className="space-y-2">
         {items.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center">
-            <p className="text-[13px] font-medium text-foreground">Belum ada aktivitas tercatat</p>
-            <p className="mt-1 text-[12px] text-muted-foreground">Begitu kamu membuat atau mengubah data, jejaknya akan muncul di sini.</p>
-          </div>
+          <EmptyState
+            title="Belum ada aktivitas tercatat"
+            description="Begitu kamu membuat atau mengubah data, jejaknya akan muncul di sini."
+          />
         ) : items.map((item) => (
           <div key={item.id} className="flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-muted/40">
             <div className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.35)]" />

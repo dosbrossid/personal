@@ -7,6 +7,7 @@ import { useCalendarEvents } from '@/hooks/use-calendar';
 import { useUser } from '@/hooks/use-user';
 import { ROLES } from '@/core/constants';
 import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
+import { EmptyState } from '@/components/shared/EmptyState';
 import Link from 'next/link';
 const roleColors: Record<string, string> = {
   dosen: 'border-l-blue-500',
@@ -123,10 +124,10 @@ export function WidgetCalendar() {
       {/* ─── Events List ─── */}
       <div className="space-y-2">
         {upcomingEvents.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center">
-            <p className="text-[13px] font-medium text-foreground">Belum ada upcoming event</p>
-            <p className="mt-1 text-[12px] text-muted-foreground">Event terdekatmu akan muncul di sini begitu jadwal baru dibuat.</p>
-          </div>
+          <EmptyState
+            title="Belum ada upcoming event"
+            description="Event terdekatmu akan muncul di sini begitu jadwal baru dibuat."
+          />
         ) : upcomingEvents.map((event, index) => {
           const isOngoing =
             new Date(event.start_at).getTime() <= now.getTime() &&

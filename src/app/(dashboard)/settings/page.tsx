@@ -13,6 +13,7 @@ import {
   updateProfileSettings,
 } from '@/actions/settings.actions';
 import { cn, formatFileSize } from '@/lib/utils';
+import { PageSkeleton } from '@/components/shared/PageSkeleton';
 import { useUser } from '@/hooks/use-user';
 import { useVaultItems } from '@/hooks/use-vault';
 import { useAIUsage } from '@/hooks/use-ai-usage';
@@ -101,14 +102,7 @@ export default function SettingsPage() {
   const isLoading = isUserLoading || isVaultLoading || isAIUsageLoading;
 
   if (isLoading || !user) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Memuat pengaturan...</p>
-        </div>
-      </div>
-    );
+    return <PageSkeleton showStats={false} contentRows={6} />;
   }
 
   return (
