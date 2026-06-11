@@ -349,7 +349,7 @@ function NoteEditorModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="flex max-h-[94vh] w-[calc(100vw-1rem)] flex-col overflow-hidden border-border/60 bg-card p-0 sm:w-[calc(100vw-1.5rem)] sm:max-w-6xl xl:max-w-7xl lg:h-[min(94vh,920px)]">
         <DialogHeader className="shrink-0 border-b border-border/40 px-4 py-4 pb-3 sm:px-6 sm:py-5 sm:pb-4">
-          <DialogTitle className="flex items-center gap-2.5 text-[18px]">
+          <DialogTitle className="flex items-center gap-2.5 ts-h2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md shadow-violet-500/20">
               {isEdit ? <Edit3 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             </div>
@@ -653,7 +653,7 @@ function NoteDetailModal({
               {noteTypeIcons[note.note_type]}
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="text-[17px] leading-snug">{note.title}</DialogTitle>
+              <DialogTitle className="ts-title leading-snug">{note.title}</DialogTitle>
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 <span
                   className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
@@ -800,7 +800,7 @@ function DeleteConfirmModal({
     <Dialog open={!!note} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md border-border/60 bg-card">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2.5 text-[16px]">
+          <DialogTitle className="flex items-center gap-2.5 ts-title">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 text-red-500">
               <AlertTriangle className="h-4.5 w-4.5" />
             </div>
@@ -965,7 +965,7 @@ export default function NotesPage() {
         {/* ─── Header ─── */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <h1 className="flex items-center gap-2.5 text-[24px] font-bold tracking-tight text-foreground sm:text-[28px]">
+            <h1 className="flex items-center gap-2.5 ts-display text-foreground">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/20">
                 <Brain className="h-5 w-5" />
               </div>
@@ -999,7 +999,7 @@ export default function NotesPage() {
                     <Icon className="h-4 w-4 text-white" strokeWidth={2} />
                   </div>
                 </div>
-                <p className="text-[26px] font-bold leading-none">{card.value}</p>
+                <p className="ts-h1 leading-none">{card.value}</p>
               </div>
             );
           })}
@@ -1041,15 +1041,15 @@ export default function NotesPage() {
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:min-w-[280px]">
               <div className="rounded-xl border border-border/40 bg-muted/20 px-3 py-3">
                 <p className="text-[11px] text-muted-foreground">Pinned</p>
-                <p className="mt-1 text-[18px] font-semibold text-foreground">{pinnedCount}</p>
+                <p className="mt-1 ts-h2 text-foreground">{pinnedCount}</p>
               </div>
               <div className="rounded-xl border border-border/40 bg-muted/20 px-3 py-3">
                 <p className="text-[11px] text-muted-foreground">Ide</p>
-                <p className="mt-1 text-[18px] font-semibold text-foreground">{notes.filter(n => n.note_type === 'idea').length}</p>
+                <p className="mt-1 ts-h2 text-foreground">{notes.filter(n => n.note_type === 'idea').length}</p>
               </div>
               <div className="rounded-xl border border-border/40 bg-muted/20 px-3 py-3">
                 <p className="text-[11px] text-muted-foreground">Draft</p>
-                <p className="mt-1 text-[18px] font-semibold text-foreground">{notes.filter(n => !stripNoteContent(n.content_body).trim()).length}</p>
+                <p className="mt-1 ts-h2 text-foreground">{notes.filter(n => !stripNoteContent(n.content_body).trim()).length}</p>
               </div>
             </div>
           </div>

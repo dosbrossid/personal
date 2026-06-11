@@ -203,7 +203,7 @@ function ClassCourseModal({
     }}>
       <DialogContent className="flex max-h-[88vh] flex-col overflow-hidden border-border/60 bg-card p-0 sm:max-w-2xl">
         <DialogHeader className="shrink-0 border-b border-border/40 px-6 pt-6 pb-4">
-          <DialogTitle className="flex items-center gap-2.5 text-[18px]">
+          <DialogTitle className="flex items-center gap-2.5 ts-h2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 text-white shadow-md shadow-emerald-500/20">
               {isEdit ? <Edit3 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             </div>
@@ -456,7 +456,7 @@ function SessionModal({
     }}>
       <DialogContent className="flex max-h-[88vh] flex-col overflow-hidden border-border/60 bg-card p-0 sm:max-w-2xl">
         <DialogHeader className="shrink-0 border-b border-border/40 px-6 pt-6 pb-4">
-          <DialogTitle className="flex items-center gap-2.5 text-[18px]">
+          <DialogTitle className="flex items-center gap-2.5 ts-h2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-md shadow-blue-500/20">
               {isEdit ? <Edit3 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             </div>
@@ -584,7 +584,7 @@ function ConfirmDeleteModal({
     }}>
       <DialogContent className="border-border/60 bg-card sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2.5 text-[16px]">
+          <DialogTitle className="flex items-center gap-2.5 ts-title">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 text-red-500">
               <AlertTriangle className="h-4.5 w-4.5" />
             </div>
@@ -875,7 +875,7 @@ export default function ClassesPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="flex items-center gap-2.5 text-[28px] font-bold tracking-tight text-foreground">
+              <h1 className="flex items-center gap-2.5 ts-display text-foreground">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 text-white shadow-lg shadow-emerald-500/20">
                 <BookOpenCheck className="h-5 w-5" />
               </div>
@@ -923,7 +923,7 @@ export default function ClassesPage() {
                     <Icon className="h-4 w-4" />
                   </div>
                 </div>
-                <p className="text-[26px] font-bold leading-none">{card.value}</p>
+                <p className="ts-h1 leading-none">{card.value}</p>
               </div>
             );
           })}
@@ -971,7 +971,7 @@ export default function ClassesPage() {
         <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
           <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
             <div className="border-b border-border/60 px-5 py-4">
-              <h2 className="text-[16px] font-semibold text-foreground">Daftar Kelas</h2>
+              <h2 className="ts-title text-foreground">Daftar Kelas</h2>
               <p className="mt-0.5 text-[12px] text-muted-foreground">
                 {classes.length} kelas ditemukan
               </p>
@@ -1091,7 +1091,7 @@ export default function ClassesPage() {
                   <div className="flex flex-col gap-4 border-b border-border/60 px-5 py-5 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-[22px] font-bold tracking-tight text-foreground">{selectedCourse.name}</h2>
+                        <h2 className="ts-h2 text-foreground">{selectedCourse.name}</h2>
                         {selectedCourse.course_code && (
                           <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
                             {selectedCourse.course_code}
@@ -1149,7 +1149,7 @@ export default function ClassesPage() {
                   <div className="grid gap-4 px-5 py-5 md:grid-cols-2 xl:grid-cols-4">
                     <div className="rounded-2xl bg-muted/35 p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Progress</p>
-                      <p className="mt-1 text-[22px] font-bold text-foreground">{selectedCourse.completed_meeting_count}/{selectedCourse.meeting_target}</p>
+                      <p className="mt-1 ts-h2 text-foreground">{selectedCourse.completed_meeting_count}/{selectedCourse.meeting_target}</p>
                       <div className="mt-3 h-2 overflow-hidden rounded-full bg-background">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500"
@@ -1159,17 +1159,17 @@ export default function ClassesPage() {
                     </div>
                     <div className="rounded-2xl bg-muted/35 p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Mahasiswa</p>
-                      <p className="mt-1 text-[22px] font-bold text-foreground">{selectedCourse.student_count}</p>
+                      <p className="mt-1 ts-h2 text-foreground">{selectedCourse.student_count}</p>
                       <p className="mt-2 text-[12px] text-muted-foreground">Terpantau untuk kelas ini</p>
                     </div>
                     <div className="rounded-2xl bg-muted/35 p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tugas</p>
-                      <p className="mt-1 text-[22px] font-bold text-foreground">{selectedCourse.assignment_count}</p>
+                      <p className="mt-1 ts-h2 text-foreground">{selectedCourse.assignment_count}</p>
                       <p className="mt-2 text-[12px] text-muted-foreground">Pertemuan yang memberi tugas</p>
                     </div>
                     <div className="rounded-2xl bg-muted/35 p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</p>
-                      <p className="mt-1 text-[18px] font-bold text-foreground">{CLASS_COURSE_STATUSES[selectedCourse.status].label}</p>
+                      <p className="mt-1 ts-title text-foreground">{CLASS_COURSE_STATUSES[selectedCourse.status].label}</p>
                       {selectedCourse.next_session ? (
                         <p className="mt-2 text-[12px] text-muted-foreground">
                           Next: {getUpcomingLabel(selectedCourse.next_session.start_at)} • {format(new Date(selectedCourse.next_session.start_at), 'HH:mm')}
@@ -1185,7 +1185,7 @@ export default function ClassesPage() {
                   <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
                     <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
                       <div>
-                        <h3 className="text-[16px] font-semibold text-foreground">Timeline Pertemuan</h3>
+                        <h3 className="ts-title text-foreground">Timeline Pertemuan</h3>
                         <p className="mt-0.5 text-[12px] text-muted-foreground">Lihat progres nyata kelas per pertemuan.</p>
                       </div>
                       <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
@@ -1320,7 +1320,7 @@ export default function ClassesPage() {
 
                   <div className="space-y-5">
                     <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-                      <h3 className="text-[16px] font-semibold text-foreground">Catatan Kelas</h3>
+                      <h3 className="ts-title text-foreground">Catatan Kelas</h3>
                       <p className="mt-1 text-[12px] text-muted-foreground">
                         Tempat menyimpan konteks singkat kelas ini tanpa ribet seperti LMS.
                       </p>
@@ -1332,13 +1332,13 @@ export default function ClassesPage() {
                     </div>
 
                     <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-                      <h3 className="text-[16px] font-semibold text-foreground">Agenda Berikutnya</h3>
+                      <h3 className="ts-title text-foreground">Agenda Berikutnya</h3>
                       {selectedCourse.next_session ? (
                         <div className="mt-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 p-4">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
                             {getUpcomingLabel(selectedCourse.next_session.start_at)}
                           </p>
-                          <p className="mt-1 text-[16px] font-semibold text-foreground">
+                          <p className="mt-1 ts-title text-foreground">
                             Pertemuan {selectedCourse.next_session.meeting_number}
                           </p>
                           <p className="mt-1 text-[13px] text-muted-foreground">

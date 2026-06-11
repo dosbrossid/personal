@@ -67,7 +67,7 @@ function TaskEditorModal({ open, onClose, onSave, editTask }: {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg border-border/60 bg-card">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2.5 text-[18px]">
+          <DialogTitle className="flex items-center gap-2.5 ts-h2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-md shadow-blue-500/20">
               {isEdit ? <Edit3 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             </div>
@@ -140,7 +140,7 @@ function DeleteModal({ task, onClose, onConfirm }: { task: Task | null; onClose:
     <Dialog open={!!task} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md border-border/60 bg-card">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2.5 text-[16px]">
+          <DialogTitle className="flex items-center gap-2.5 ts-title">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 text-red-500"><AlertTriangle className="h-4.5 w-4.5" /></div>
             Hapus Task?
           </DialogTitle>
@@ -174,7 +174,7 @@ function TaskPreviewModal({ task, onClose, onEdit }: { task: Task | null; onClos
               <CheckSquare className="h-4.5 w-4.5" />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="text-[17px] leading-snug">{task.title}</DialogTitle>
+              <DialogTitle className="ts-title leading-snug">{task.title}</DialogTitle>
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${pri.color}15`, color: pri.color }}>{pri.icon} {pri.label}</span>
                 <span className={cn('text-[11px] px-2 py-0.5 rounded-full font-medium', roleData.bgClass)}>{roleData.icon} {roleData.label}</span>
@@ -515,13 +515,13 @@ export default function TasksPage() {
         {/* ─── Header ─── */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-[28px] font-bold text-foreground tracking-tight flex items-center gap-2.5">
+            <h1 className="ts-display text-foreground flex items-center gap-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/20">
                 <CheckSquare className="h-5 w-5" />
               </div>
               Task Management
             </h1>
-            <p className="text-[14px] text-muted-foreground mt-1">Todo list dengan prioritas dan role context</p>
+            <p className="ts-sm text-muted-foreground mt-1">Todo list dengan prioritas dan role context</p>
             <div className="flex items-center gap-3 mt-2.5">
               <div className="h-1.5 w-32 rounded-full bg-muted overflow-hidden">
                 <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-700" style={{ width: `${completionPct}%` }} />
@@ -547,7 +547,7 @@ export default function TasksPage() {
                     <Icon className="h-4 w-4 text-white" strokeWidth={2} />
                   </div>
                 </div>
-                <p className="text-[26px] font-bold leading-none">{card.value}</p>
+                <p className="ts-h1 leading-none">{card.value}</p>
               </div>
             );
           })}

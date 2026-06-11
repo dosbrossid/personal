@@ -189,7 +189,7 @@ export default function HabitsPage() {
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="flex items-center gap-2.5 text-[28px] font-bold tracking-tight text-foreground">
+            <h1 className="flex items-center gap-2.5 ts-display text-foreground">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-500/20">
                 <Flame className="h-5 w-5" />
               </div>
@@ -222,7 +222,7 @@ export default function HabitsPage() {
                     <Icon className="h-4 w-4 text-white" strokeWidth={2} />
                   </div>
                 </div>
-                <p className="text-[26px] font-bold leading-none">{card.value}</p>
+                <p className="ts-h1 leading-none">{card.value}</p>
               </div>
             );
           })}
@@ -304,7 +304,7 @@ export default function HabitsPage() {
         <Dialog open={!!deletingHabit} onOpenChange={() => setDeleteHabit(null)}>
           <DialogContent className="border-border/60 bg-card sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2.5 text-[16px]">
+              <DialogTitle className="flex items-center gap-2.5 ts-title">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 text-red-500">
                   <AlertTriangle className="h-4.5 w-4.5" />
                 </div>
@@ -656,7 +656,7 @@ function HabitCreateModal({
       <DialogContent className="max-h-[88vh] overflow-hidden border-border/60 bg-card p-0 sm:max-w-3xl">
         <div className="flex max-h-[88vh] flex-col">
           <DialogHeader className="shrink-0 border-b border-border/40 px-6 py-5 pb-4">
-            <DialogTitle className="flex items-center gap-2.5 text-[18px]">
+            <DialogTitle className="flex items-center gap-2.5 ts-h2">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 text-white shadow-md shadow-orange-500/20">
                 <Plus className="h-4 w-4" />
               </div>
@@ -694,7 +694,7 @@ function HabitCreateModal({
 
                 <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Preview Ritme</p>
-                  <p className="mt-2 text-[16px] font-semibold text-foreground">
+                  <p className="mt-2 ts-title text-foreground">
                     {HABIT_CADENCE_MODES[cadenceMode]}
                   </p>
                   <p className="mt-1 text-[13px] text-muted-foreground">

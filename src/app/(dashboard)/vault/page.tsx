@@ -188,7 +188,7 @@ function UploadModal({ open, onClose, onUploaded }: { open: boolean; onClose: ()
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="w-[calc(100vw-1rem)] border-border/60 bg-card sm:w-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2.5 text-[18px]">
+          <DialogTitle className="flex items-center gap-2.5 ts-h2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/20">
               <Upload className="h-4.5 w-4.5" />
             </div>
@@ -477,7 +477,7 @@ function FilePreviewModal({
         return (
           <div className="space-y-4 text-[13px] text-muted-foreground">
             <div className="rounded-xl bg-gradient-to-br from-amber-500/5 to-orange-500/5 border border-amber-500/10 p-5">
-              <p className="text-[18px] font-bold text-foreground mb-1">{item.title}</p>
+              <p className="ts-h2 text-foreground mb-1">{item.title}</p>
               <p className="text-[12px] text-muted-foreground">{item.mata_kuliah} · {item.semester}</p>
             </div>
             <div className="space-y-3">
@@ -543,7 +543,7 @@ function FilePreviewModal({
                 <span className="text-xl">{docIcon.icon}</span>
               </div>
               <div>
-                <DialogTitle className="text-[17px]">{item.title}</DialogTitle>
+                <DialogTitle className="ts-title">{item.title}</DialogTitle>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span
                     className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
@@ -615,7 +615,7 @@ function DeleteConfirmModal({
     <Dialog open={!!item} onOpenChange={onClose}>
       <DialogContent className="w-[calc(100vw-1rem)] border-border/60 bg-card sm:w-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2.5 text-[16px]">
+          <DialogTitle className="flex items-center gap-2.5 ts-title">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 text-red-500">
               <AlertTriangle className="h-4.5 w-4.5" />
             </div>
@@ -793,7 +793,7 @@ export default function VaultPage() {
         {/* ─── Header ─── */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <h1 className="flex items-center gap-2.5 text-[24px] font-bold tracking-tight text-foreground sm:text-[28px]">
+            <h1 className="flex items-center gap-2.5 ts-display text-foreground">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20">
                 <GraduationCap className="h-5 w-5" />
               </div>
@@ -842,7 +842,7 @@ export default function VaultPage() {
                     <Icon className="h-4 w-4 text-white" strokeWidth={2} />
                   </div>
                 </div>
-                <p className="text-[26px] font-bold leading-none">{card.value}</p>
+                <p className="ts-h1 leading-none">{card.value}</p>
               </div>
             );
           })}
