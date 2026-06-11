@@ -11,6 +11,7 @@ import { useUser } from '@/hooks/use-user';
 import { createTask, updateTask } from '@/actions/tasks.actions';
 import { PRIORITIES, ROLES } from '@/core/constants';
 import type { Task } from '@/core/types';
+import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
 import Link from 'next/link';
 
 const statusIcons = {
@@ -100,14 +101,7 @@ export function WidgetTasks() {
   }
 
   if (isLoading) {
-    return (
-      <div className="widget-card rounded-2xl border border-border/60 bg-card p-5 shadow-sm h-full flex items-center justify-center min-h-[300px]">
-        <div className="animate-pulse flex flex-col items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-muted"></div>
-          <div className="h-4 w-24 bg-muted rounded"></div>
-        </div>
-      </div>
-    );
+    return <WidgetSkeleton rows={3} showStats showInput />;
   }
 
   return (
@@ -118,7 +112,7 @@ export function WidgetTasks() {
             <CheckSquare className="h-5 w-5" strokeWidth={2} />
           </div>
           <div>
-            <h2 className="text-[16px] font-semibold text-foreground">Tugas</h2>
+            <h2 className="ts-title text-foreground">Tugas</h2>
             <p className="text-[12px] text-muted-foreground">
               {activeTasks.length} aktif, {dueTodayTasks.length} due hari ini
             </p>

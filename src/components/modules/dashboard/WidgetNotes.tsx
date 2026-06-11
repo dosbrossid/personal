@@ -10,6 +10,7 @@ import { createNote, togglePinNote } from '@/actions/notes.actions';
 import { ROLES, NOTE_TYPES } from '@/core/constants';
 import { formatRelativeTime } from '@/lib/utils';
 import { stripNoteContent } from '@/lib/notes';
+import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
 import Link from 'next/link';
 
 const noteTypeColors: Record<string, string> = {
@@ -86,14 +87,7 @@ export function WidgetNotes() {
   }
 
   if (isLoading) {
-    return (
-      <div className="widget-card rounded-2xl border border-border/60 bg-card p-5 shadow-sm h-full flex items-center justify-center min-h-[300px]">
-        <div className="animate-pulse flex flex-col items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-muted"></div>
-          <div className="h-4 w-24 bg-muted rounded"></div>
-        </div>
-      </div>
-    );
+    return <WidgetSkeleton rows={3} showStats />;
   }
 
   return (
@@ -104,7 +98,7 @@ export function WidgetNotes() {
             <Brain className="h-5 w-5" strokeWidth={2} />
           </div>
           <div>
-            <h2 className="text-[16px] font-semibold text-foreground">Catatan</h2>
+            <h2 className="ts-title text-foreground">Catatan</h2>
             <p className="text-[12px] text-muted-foreground">{notes.length} total, {pinnedCount} pinned</p>
           </div>
         </div>

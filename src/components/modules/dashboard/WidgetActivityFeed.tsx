@@ -4,20 +4,14 @@ import { useState } from 'react';
 import { Activity, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDashboardActivity } from '@/hooks/use-dashboard-activity';
 import { formatRelativeTime } from '@/lib/utils';
+import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
 
 export function WidgetActivityFeed() {
   const [page, setPage] = useState(1);
   const { items, isLoading, hasMore } = useDashboardActivity({ page, limit: 5 });
 
   if (isLoading) {
-    return (
-      <div className="widget-card rounded-2xl border border-border/60 bg-card p-5 shadow-sm h-full flex items-center justify-center min-h-[220px]">
-        <div className="animate-pulse flex flex-col items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-muted"></div>
-          <div className="h-4 w-28 bg-muted rounded"></div>
-        </div>
-      </div>
-    );
+    return <WidgetSkeleton rows={5} showStats={false} />;
   }
 
   return (
@@ -28,7 +22,7 @@ export function WidgetActivityFeed() {
             <Activity className="h-5 w-5" strokeWidth={2} />
           </div>
           <div>
-            <h2 className="text-[16px] font-semibold text-foreground">Aktivitas Terbaru</h2>
+            <h2 className="ts-title text-foreground">Aktivitas Terbaru</h2>
             <p className="text-[12px] text-muted-foreground">{items.length} item per halaman</p>
           </div>
         </div>

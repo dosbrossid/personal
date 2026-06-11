@@ -7,6 +7,7 @@ import { markAllNotificationsSent } from '@/actions/notifications.actions';
 import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/use-notifications';
 import { formatRelativeTime } from '@/lib/utils';
+import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
 
 
 export function WidgetNotifications() {
@@ -34,14 +35,7 @@ export function WidgetNotifications() {
   };
 
   if (isLoading) {
-    return (
-      <div className="widget-card rounded-2xl border border-border/60 bg-card p-5 shadow-sm h-full flex items-center justify-center min-h-[300px]">
-        <div className="animate-pulse flex flex-col items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-muted"></div>
-          <div className="h-4 w-24 bg-muted rounded"></div>
-        </div>
-      </div>
-    );
+    return <WidgetSkeleton rows={4} showStats={false} />;
   }
 
   return (
@@ -58,7 +52,7 @@ export function WidgetNotifications() {
             )}
           </div>
           <div>
-            <h2 className="text-[16px] font-semibold text-foreground">Notifikasi</h2>
+            <h2 className="ts-title text-foreground">Notifikasi</h2>
             <p className="text-[12px] text-muted-foreground">{notifications.length} notifikasi terbaru</p>
           </div>
         </div>

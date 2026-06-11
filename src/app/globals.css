@@ -164,41 +164,119 @@
 }
 
 /*
- * Dashboard readability layer.
- * Banyak module dashboard lama memakai arbitrary tiny text (10-13px).
- * Layer ini menaikkan skala mikro secara konsisten tanpa menyentuh public blog.
+ * ─── Type Scale (semantic) ──────────────────────────────────────────────
+ * Single source of truth untuk tipografi dashboard.
+ * Pakai class `.ts-*` ini menggantikan arbitrary `text-[NNpx]` yang tersebar.
+ * Setiap level sudah memasangkan font-size + line-height + tracking yang harmonis.
+ *
+ * display → hero/greeting halaman
+ * h1/h2   → judul section besar & angka statistik
+ * title   → judul widget/card
+ * body    → teks utama (default 15px)
+ * sm      → teks sekunder
+ * caption → meta/keterangan
+ * label   → label form & section heading kecil
+ * micro   → badge & tag
+ */
+:root {
+  --ts-display: 1.875rem;
+  --ts-display-lh: 1.15;
+  --ts-h1: 1.5rem;
+  --ts-h1-lh: 1.2;
+  --ts-h2: 1.25rem;
+  --ts-h2-lh: 1.3;
+  --ts-title: 1rem;
+  --ts-title-lh: 1.4;
+  --ts-body: 0.9375rem;
+  --ts-body-lh: 1.6;
+  --ts-sm: 0.875rem;
+  --ts-sm-lh: 1.5;
+  --ts-caption: 0.8125rem;
+  --ts-caption-lh: 1.45;
+  --ts-label: 0.75rem;
+  --ts-label-lh: 1.35;
+  --ts-micro: 0.6875rem;
+  --ts-micro-lh: 1.3;
+}
+
+.ts-display {
+  font-size: var(--ts-display);
+  line-height: var(--ts-display-lh);
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+.ts-h1 {
+  font-size: var(--ts-h1);
+  line-height: var(--ts-h1-lh);
+  letter-spacing: -0.015em;
+  font-weight: 700;
+}
+.ts-h2 {
+  font-size: var(--ts-h2);
+  line-height: var(--ts-h2-lh);
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+.ts-title {
+  font-size: var(--ts-title);
+  line-height: var(--ts-title-lh);
+  letter-spacing: -0.005em;
+  font-weight: 600;
+}
+.ts-body {
+  font-size: var(--ts-body);
+  line-height: var(--ts-body-lh);
+}
+.ts-sm {
+  font-size: var(--ts-sm);
+  line-height: var(--ts-sm-lh);
+}
+.ts-caption {
+  font-size: var(--ts-caption);
+  line-height: var(--ts-caption-lh);
+}
+.ts-label {
+  font-size: var(--ts-label);
+  line-height: var(--ts-label-lh);
+  letter-spacing: 0.01em;
+}
+.ts-micro {
+  font-size: var(--ts-micro);
+  line-height: var(--ts-micro-lh);
+  letter-spacing: 0.01em;
+}
+
+/*
+ * Dashboard readability layer (jembatan/bridge).
+ * Banyak module dashboard lama masih memakai arbitrary tiny text (10-13px).
+ * Layer ini menaikkan skala mikro agar terbaca, SELARAS dengan type scale di atas,
+ * sampai semua surface dimigrasikan ke class `.ts-*`. Hapus saat migrasi selesai.
  */
 .dashboard-readable {
-  font-size: 15px;
+  font-size: var(--ts-body);
   text-rendering: optimizeLegibility;
 }
 
+.dashboard-readable .text-\[9px\],
 .dashboard-readable .text-\[10px\] {
-  font-size: 11.5px;
-  line-height: 1rem;
+  font-size: var(--ts-micro);
+  line-height: var(--ts-micro-lh);
 }
 
 .dashboard-readable .text-\[11px\] {
-  font-size: 12.5px;
-  line-height: 1.1rem;
+  font-size: var(--ts-label);
+  line-height: var(--ts-label-lh);
 }
 
 .dashboard-readable .text-\[12px\],
 .dashboard-readable .text-xs {
-  font-size: 13.5px;
-  line-height: 1.25rem;
+  font-size: var(--ts-caption);
+  line-height: var(--ts-caption-lh);
 }
 
 .dashboard-readable .text-\[13px\] {
-  font-size: 14px;
-  line-height: 1.35rem;
-}
-
-.dashboard-readable input,
-.dashboard-readable textarea,
-.dashboard-readable select,
-.dashboard-readable button {
-  font-size-adjust: 0.52;
+  font-size: var(--ts-sm);
+  line-height: var(--ts-sm-lh);
 }
 
 /* ─── Custom Scrollbar ─── */

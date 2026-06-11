@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useHabits } from '@/hooks/use-habits';
 import { ROLES } from '@/core/constants';
 import { getHabitCadenceLabel, getHabitProgressSnapshot, isHabitCompletedOnDate, isHabitExpectedOnDate, isScheduledHabit } from '@/lib/habits';
+import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
 
 const dayLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
@@ -33,14 +34,7 @@ export function WidgetHabits() {
   const totalCompleted = progressSnapshots.reduce((total, snapshot) => total + snapshot.completed, 0);
 
   if (isLoading) {
-    return (
-      <div className="widget-card flex h-full min-h-[300px] items-center justify-center rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-        <div className="flex animate-pulse flex-col items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-muted" />
-          <div className="h-4 w-24 rounded bg-muted" />
-        </div>
-      </div>
-    );
+    return <WidgetSkeleton rows={3} showStats={false} />;
   }
 
   return (
@@ -51,7 +45,7 @@ export function WidgetHabits() {
             <Flame className="h-5 w-5" strokeWidth={2} />
           </div>
           <div>
-            <h2 className="text-[16px] font-semibold text-foreground">Kebiasaan</h2>
+            <h2 className="ts-title text-foreground">Kebiasaan</h2>
             <p className="text-[12px] text-muted-foreground">{activeHabits.length} kebiasaan aktif</p>
           </div>
         </div>

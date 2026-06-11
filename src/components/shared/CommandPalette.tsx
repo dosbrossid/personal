@@ -65,6 +65,15 @@ export function CommandPalette() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  // Open via custom event (e.g. from sidebar search trigger)
+  useEffect(() => {
+    function onOpen() {
+      setOpen(true);
+    }
+    window.addEventListener('open-command-palette', onOpen);
+    return () => window.removeEventListener('open-command-palette', onOpen);
+  }, []);
+
   // Reset on open
   useEffect(() => {
     if (open) {
