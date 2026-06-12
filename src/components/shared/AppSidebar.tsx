@@ -15,7 +15,6 @@ import {
   Settings,
   HelpCircle,
   LogOut,
-  Search,
   Sparkles,
   Menu,
   X,
@@ -65,10 +64,6 @@ const bottomItems = [
   { href: '/settings', label: 'Pengaturan', icon: Settings },
   { href: '/help', label: 'Bantuan', icon: HelpCircle },
 ];
-
-function openCommandPalette() {
-  window.dispatchEvent(new Event('open-command-palette'));
-}
 
 
 
@@ -136,26 +131,7 @@ export function AppSidebar() {
         )}
       </div>
 
-      <div className="mb-4 px-4">
-        <button
-          type="button"
-          onClick={() => {
-            if (mobile) setMobileOpen(false);
-            openCommandPalette();
-          }}
-          className="flex w-full items-center gap-2.5 rounded-xl border border-border/60 bg-muted/50 px-3.5 py-3 text-left shadow-sm shadow-black/5 transition-all duration-200 hover:border-primary/40 hover:bg-background dark:border-white/[0.07] dark:bg-white/[0.04] dark:shadow-none dark:hover:border-primary/35 dark:hover:bg-white/[0.055]"
-        >
-          <Search className="h-4.5 w-4.5 text-muted-foreground dark:text-slate-400" />
-          <span className="flex-1 text-[14px] text-muted-foreground/60 dark:text-slate-500">
-            Search...
-          </span>
-          <kbd className="rounded-md border border-border/50 bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground/50 dark:border-white/[0.08] dark:bg-white/[0.06] dark:text-slate-400">
-            ⌘K
-          </kbd>
-        </button>
-      </div>
-
-      <div className="scrollbar-thin flex-1 space-y-7 overflow-y-auto px-3">
+      <div className="scrollbar-thin flex-1 space-y-7 overflow-y-auto px-3 pt-2">
         {resolvedMenuGroups.map((group, idx) => (
           <div key={idx} className="space-y-1.5">
             <p className="px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70 dark:text-slate-400/75">
