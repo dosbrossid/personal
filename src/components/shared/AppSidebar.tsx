@@ -11,6 +11,7 @@ import {
   CalendarDays,
   BookOpenCheck,
   GraduationCap,
+  LibraryBig,
   PenSquare,
   Settings,
   HelpCircle,
@@ -52,9 +53,10 @@ const menuGroups: SidebarMenuGroup[] = [
   {
     title: 'FEATURES',
     items: [
-      { href: '/classes', label: 'Kelas', icon: BookOpenCheck },
+      { href: '/knowledge', label: 'Knowledge', icon: LibraryBig },
+      { href: '/classes', label: 'Kelas', icon: GraduationCap },
       { href: '/calendar', label: 'Kalender', icon: CalendarDays },
-      { href: '/vault', label: 'Vault', icon: GraduationCap },
+      { href: '/vault', label: 'Vault', icon: BookOpenCheck },
       { href: '/blog', label: 'Blog CMS', icon: PenSquare },
     ],
   },
@@ -87,6 +89,10 @@ export function AppSidebar() {
       if (!stats) return item;
 
       if (item.href === '/notes') {
+        return { ...item, count: stats.totalNotes };
+      }
+
+      if (item.href === '/knowledge') {
         return { ...item, count: stats.totalNotes };
       }
 
