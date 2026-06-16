@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import { Settings, User as UserIcon, Bell, HardDrive, Zap, MessageCircle, CheckCircle2, Save, Send, LogOut, MoonStar, Sun, MonitorSmartphone, Activity, Download } from 'lucide-react';
+import { Settings, User as UserIcon, Bell, HardDrive, Zap, MessageCircle, CheckCircle2, Save, Send, LogOut, MoonStar, Sun, MonitorSmartphone, Activity, Download, KeyRound, Copy, Trash2, Plus, Clock, RefreshCw, Check } from 'lucide-react';
 import { mutate as mutateGlobal } from 'swr';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
@@ -23,6 +23,9 @@ import type { RoleContext } from '@/core/constants';
 import type { AcademicVaultItem, AIUsageStats, User as AppUser, UserPreferences } from '@/core/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { generateApiKey, revokeApiKey } from '@/actions/api-keys.actions';
+import type { ApiKeyRow } from '@/actions/api-keys.actions';
 import { logoutAction } from '@/actions/auth.actions';
 
 const DEFAULT_NOTIFICATION_PREFS: NonNullable<UserPreferences['notifications']> = {
@@ -113,6 +116,207 @@ export default function SettingsPage() {
       aiUsage={aiUsage}
       mutateUser={mutateUser}
     />
+  );
+}
+
+function ApiKeysSection() {
+  const [keys, setKeys] = useState<ApiKeyRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tableReady, setTableReady] = useState(true);
+  const [newKey, setNewKey] = useState<{ key: string; row: ApiKeyRow } | null>(null);
+  const [keyName, setKeyName] = useState('');
+  const [generating, startGenerating] = useTransition();
+  const [revoking, setRevoking] = useState<string | null>(null);
+  const [setupSql, setSetupSql] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  async function fetchKeys() {
+    try {
+      const res = await fetch('/api/setup');
+      const setup = await res.json();
+      if (!setup.ready) { setTableReady(false); setSetupSql(setup.sql || ''); setLoading(false); return; }
+
+      setTableReady(true);
+      const r = await fetch('/api/api-keys');
+      if (r.ok) {
+        const data = await r.json();
+        setKeys(data.keys || []);
+      }
+    } catch { /* ignore */ }
+    setLoading(false);
+  }
+
+  useEffect(() => { void fetchKeys(); }, []);
+
+  async function handleGenerate() {
+    if (!keyName.trim()) { toast.error('Nama key wajib diisi'); return; }
+    startGenerating(async () => {
+      const result = await generateApiKey(keyName.trim());
+      if (result.error) { toast.error(result.error); return; }
+      if (result.data) {
+        setNewKey(result.data);
+        setKeyName('');
+        toast.success('API key dibuat — salin sekarang!');
+      }
+      void fetchKeys();
+    });
+  }
+
+  async function handleRevoke(id: string) {
+    if (!confirm('Revoke API key ini?')) return;
+    setRevoking(id);
+    const result = await revokeApiKey(id);
+    setRevoking(null);
+    if (result.error) { toast.error(result.error); return; }
+    toast.success('API key di-revoke');
+    void fetchKeys();
+  }
+
+  function copyKey(key: string) {
+    navigator.clipboard.writeText(key);
+    setCopied(true);
+    toast.success('Key disalin ke clipboard');
+    setTimeout(() => setCopied(false), 3000);
+  }
+
+  if (loading) return null;
+
+  if (!tableReady) {
+    return (
+      <section className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6">
+        <div className="mb-5 flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
+            <KeyRound className="h-4 w-4 text-amber-500" />
+          </div>
+          <h2 className="ts-title text-foreground">API Keys — Setup Diperlukan</h2>
+        </div>
+        <p className="ts-sm text-muted-foreground mb-3">
+          Jalankan SQL berikut di <strong>Supabase SQL Editor</strong> untuk mengaktifkan API keys:
+        </p>
+        <div className="relative rounded-xl border border-border/60 bg-muted/20 p-4">
+          <button
+            type="button"
+            onClick={() => { navigator.clipboard.writeText(setupSql); toast.success('SQL disalin'); }}
+            className="absolute right-3 top-3 flex h-7 items-center gap-1 rounded-lg bg-background px-2 text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            <Copy className="h-3 w-3" /> Salin
+          </button>
+          <pre className="text-[11px] text-muted-foreground whitespace-pre-wrap overflow-x-auto pr-16">{setupSql}</pre>
+        </div>
+        <button type="button" onClick={() => void fetchKeys()} className="ts-sm mt-3 inline-flex items-center gap-1.5 text-primary hover:underline">
+          <RefreshCw className="h-3.5 w-3.5" /> Cek ulang setelah menjalankan SQL
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <>
+      {/* New key display (one-time) */}
+      {newKey && (
+        <section className="rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 to-cyan-500/5 p-6">
+          <div className="mb-4 flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            </div>
+            <h2 className="ts-title text-foreground">API Key Dibuat — "{newKey.row.name}"</h2>
+          </div>
+          <p className="ts-caption text-muted-foreground mb-3">
+            Salin key ini sekarang. Key TIDAK akan ditampilkan lagi setelah ditutup.
+          </p>
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-background p-3">
+            <code className="ts-sm flex-1 break-all font-mono text-foreground">{newKey.key}</code>
+            <Button size="sm" onClick={() => copyKey(newKey.key)} variant={copied ? 'ghost' : 'default'} className="shrink-0">
+              {copied ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+              {copied ? 'Tersalin' : 'Salin'}
+            </Button>
+          </div>
+          <p className="ts-micro text-muted-foreground mt-2">
+            Header: <code className="rounded bg-muted px-1 py-0.5">Authorization: Bearer {newKey.key.slice(0, 10)}...</code>
+          </p>
+          <button type="button" onClick={() => { setNewKey(null); void fetchKeys(); }} className="ts-sm mt-3 text-primary hover:underline">Tutup</button>
+        </section>
+      )}
+
+      {/* Main API Keys section */}
+      <section className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <div className="mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+              <KeyRound className="h-4.5 w-4.5 text-primary" />
+            </div>
+            <div>
+              <h2 className="ts-title text-foreground">API Keys</h2>
+              <p className="ts-caption text-muted-foreground">{keys.filter(k => !k.is_revoked).length} key aktif · kelola akses MCP & API</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Generate new key */}
+        <div className="mb-5 flex items-center gap-2">
+          <Input
+            value={keyName}
+            onChange={e => setKeyName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void handleGenerate(); } }}
+            placeholder="Nama key (contoh: Cursor IDE, Claude Desktop)..."
+            className="ts-sm h-10 flex-1"
+          />
+          <Button onClick={() => void handleGenerate()} disabled={generating || !keyName.trim()} size="sm" className="h-10">
+            <Plus className="h-4 w-4 mr-1" /> Generate
+          </Button>
+        </div>
+
+        {/* Keys list */}
+        {keys.length === 0 ? (
+          <p className="ts-caption text-muted-foreground py-4 text-center">Belum ada API key. Generate satu untuk mulai.</p>
+        ) : (
+          <div className="space-y-2">
+            {keys.map(k => (
+              <div key={k.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="ts-sm font-semibold text-foreground">{k.name}</p>
+                    <Badge variant={k.is_revoked ? 'destructive' : 'default'} className="text-[10px]">
+                      {k.is_revoked ? 'Revoked' : 'Active'}
+                    </Badge>
+                  </div>
+                  <p className="ts-micro text-muted-foreground mt-0.5 font-mono">
+                    {k.key_prefix}••••••••••
+                    <span className="ml-3 inline-flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Dibuat {new Date(k.created_at).toLocaleDateString('id-ID')}
+                    </span>
+                    {k.last_used_at && (
+                      <span className="ml-2 text-emerald-600 dark:text-emerald-400">
+                        · Terakhir: {new Date(k.last_used_at).toLocaleDateString('id-ID')}
+                      </span>
+                    )}
+                    {!k.last_used_at && !k.is_revoked && (
+                      <span className="ml-2 text-muted-foreground">· Belum dipakai</span>
+                    )}
+                  </p>
+                </div>
+                {!k.is_revoked && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void handleRevoke(k.id)}
+                    disabled={revoking === k.id}
+                    className="h-8 text-[11px] text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Revoke
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className="ts-micro text-muted-foreground mt-3">
+          Gunakan di MCP endpoint: <code className="rounded bg-muted px-1.5 py-0.5 font-mono">POST /api/mcp</code> dengan header <code className="rounded bg-muted px-1.5 py-0.5 font-mono">Authorization: Bearer {'<key>'}</code>
+        </p>
+      </section>
+    </>
   );
 }
 
@@ -700,6 +904,7 @@ function SettingsContent({ user, vaultItems, aiUsage, mutateUser }: SettingsCont
           </form>
         </div>
       </section>
+      <ApiKeysSection />
     </div>
   );
 }
