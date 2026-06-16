@@ -3,16 +3,26 @@
  *
  * Endpoint: POST /api/mcp
  * Transport: WebStandardStreamableHTTPServerTransport (SSE + JSON)
+ * Auth: Authorization: Bearer <MCP_API_KEY>
  * Kompatibel dengan Cursor, Claude Desktop (HTTP mode), Continue.dev, dll.
  */
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp';
 import { createKnowledgeMcpServer } from '@/mcp/server';
 import { createMcpClient } from '@/mcp/client';
 
 let serverInstance: ReturnType<typeof createKnowledgeMcpServer> | null = null;
+
+function checkAuth(req: NextRequest): boolean {
+  const apiKey = process.env.MCP_API_KEY;
+  if (!apiKey) return true; // No API key configured = open (dev mode)
+  const auth = req.headers.get('authorization');
+  if (!auth) return false;
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth;
+  return token === apiKey;
+}
 
 async function getServer(): Promise<ReturnType<typeof createKnowledgeMcpServer>> {
   if (serverInstance) return serverInstance;
@@ -30,6 +40,10 @@ async function getServer(): Promise<ReturnType<typeof createKnowledgeMcpServer>>
 }
 
 export async function POST(req: NextRequest) {
+  if (!checkAuth(req)) {
+    return NextResponse.json({ error: 'Unauthorized — set MCP_API_KEY di .env.local, lalu kirim Authorization: Bearer <key>' }, { status: 401 });
+  }
+
   const server = await getServer();
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
@@ -48,7 +62,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  // GET is used for SSE stream connection
+  if (!checkAuth(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const server = await getServer();
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
@@ -59,7 +76,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  // DELETE closes the session
+  if (!checkAuth(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const server = await getServer();
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
