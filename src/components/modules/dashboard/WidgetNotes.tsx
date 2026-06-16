@@ -11,6 +11,7 @@ import { ROLES, NOTE_TYPES } from '@/core/constants';
 import { formatRelativeTime } from '@/lib/utils';
 import { stripNoteContent } from '@/lib/notes';
 import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
+import { WidgetError } from '@/components/modules/dashboard/WidgetSkeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
 import Link from 'next/link';
 
@@ -22,7 +23,7 @@ const noteTypeColors: Record<string, string> = {
 };
 
 export function WidgetNotes() {
-  const { notes, isLoading, mutate } = useNotes();
+  const { notes, isLoading, isError, error, mutate } = useNotes();
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [title, setTitle] = useState('');
   const [isPinnedDraft, setIsPinnedDraft] = useState(false);
@@ -89,6 +90,10 @@ export function WidgetNotes() {
 
   if (isLoading) {
     return <WidgetSkeleton rows={3} showStats />;
+  }
+
+  if (isError) {
+    return <WidgetError message={error?.message || 'Gagal memuat catatan'} onRetry={() => mutate()} />;
   }
 
   return (

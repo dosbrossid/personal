@@ -1,6 +1,30 @@
 'use client';
 
 import { Skeleton } from '@/components/ui/skeleton';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+
+/**
+ * WidgetError — ditampilkan saat SWR fetch gagal.
+ * User bisa retry dengan mutate().
+ */
+export function WidgetError({ message, onRetry }: { message?: string; onRetry: () => void }) {
+  return (
+    <div className="widget-card flex h-full min-h-[200px] flex-col items-center justify-center gap-3 rounded-2xl border border-red-500/10 bg-[linear-gradient(135deg,rgba(239,68,68,0.04),rgba(239,68,68,0.02))] p-5 shadow-sm">
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10">
+        <AlertTriangle className="h-6 w-6 text-red-500" strokeWidth={1.75} />
+      </div>
+      <p className="ts-sm font-semibold text-foreground">{message || 'Gagal memuat data'}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-4 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+      >
+        <RefreshCw className="h-3.5 w-3.5" />
+        Coba lagi
+      </button>
+    </div>
+  );
+}
 
 /**
  * Skeleton loading state seragam untuk semua widget dashboard.

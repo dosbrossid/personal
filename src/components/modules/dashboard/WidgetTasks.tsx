@@ -12,6 +12,7 @@ import { createTask, updateTask } from '@/actions/tasks.actions';
 import { PRIORITIES, ROLES } from '@/core/constants';
 import type { Task } from '@/core/types';
 import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
+import { WidgetError } from '@/components/modules/dashboard/WidgetSkeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
 import Link from 'next/link';
 
@@ -22,7 +23,7 @@ const statusIcons = {
 };
 
 export function WidgetTasks() {
-  const { tasks, isLoading, mutate } = useTasks();
+  const { tasks, isLoading, isError, error, mutate } = useTasks();
   const { events } = useCalendarEvents();
   const { user } = useUser();
   const timezone = user?.preferences?.timezone || 'Asia/Jakarta';
@@ -103,6 +104,10 @@ export function WidgetTasks() {
 
   if (isLoading) {
     return <WidgetSkeleton rows={3} showStats showInput />;
+  }
+
+  if (isError) {
+    return <WidgetError message={error?.message || 'Gagal memuat tugas'} onRetry={() => mutate()} />;
   }
 
   return (

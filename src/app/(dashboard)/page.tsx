@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition } from 'react';
-import { Download, Calendar, CheckSquare, Brain, Flame, CalendarDays, Loader2 } from 'lucide-react';
+import { Download, Calendar, CheckSquare, Brain, Flame, CalendarDays, Loader2, AlertTriangle } from 'lucide-react';
 import { WidgetTasks } from '@/components/modules/dashboard/WidgetTasks';
 import { WidgetCalendar } from '@/components/modules/dashboard/WidgetCalendar';
 import { WidgetHabits } from '@/components/modules/dashboard/WidgetHabits';
@@ -30,7 +30,7 @@ function getGreeting(timezone: string): { text: string; emoji: string } {
 }
 
 export default function DashboardPage() {
-  const { stats, isLoading } = useDashboardStats();
+  const { stats, isLoading, isError, error } = useDashboardStats();
   const { user, isLoading: isUserLoading } = useUser();
   const [isExporting, startExport] = useTransition();
 
@@ -109,6 +109,18 @@ export default function DashboardPage() {
 
   if (isLoading || isUserLoading) {
     return <PageSkeleton statCount={4} contentRows={5} />;
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-[50vh] flex-col items-center justify-center gap-3">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10">
+          <AlertTriangle className="h-7 w-7 text-red-500" strokeWidth={1.75} />
+        </div>
+        <p className="ts-title text-foreground">Gagal memuat dashboard</p>
+        <p className="ts-caption text-muted-foreground">{error?.message || 'Coba refresh halaman ini.'}</p>
+      </div>
+    );
   }
 
   return (

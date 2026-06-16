@@ -5,14 +5,19 @@ import { Activity, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDashboardActivity } from '@/hooks/use-dashboard-activity';
 import { formatRelativeTime } from '@/lib/utils';
 import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
+import { WidgetError } from '@/components/modules/dashboard/WidgetSkeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
 
 export function WidgetActivityFeed() {
   const [page, setPage] = useState(1);
-  const { items, isLoading, hasMore } = useDashboardActivity({ page, limit: 5 });
+  const { items, isLoading, isError, error, hasMore, mutate } = useDashboardActivity({ page, limit: 5 });
 
   if (isLoading) {
     return <WidgetSkeleton rows={5} showStats={false} />;
+  }
+
+  if (isError) {
+    return <WidgetError message={error?.message || 'Gagal memuat aktivitas'} onRetry={() => mutate()} />;
   }
 
   return (

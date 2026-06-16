@@ -7,6 +7,7 @@ import { useCalendarEvents } from '@/hooks/use-calendar';
 import { useUser } from '@/hooks/use-user';
 import { ROLES } from '@/core/constants';
 import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
+import { WidgetError } from '@/components/modules/dashboard/WidgetSkeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
 import Link from 'next/link';
 const roleColors: Record<string, string> = {
@@ -24,7 +25,7 @@ function getReminderLabel(reminderMinutes: number | null) {
 }
 
 export function WidgetCalendar() {
-  const { events, isLoading } = useCalendarEvents();
+  const { events, isLoading, isError, error, mutate } = useCalendarEvents();
   const { user } = useUser();
   const timezone = user?.preferences?.timezone || 'Asia/Jakarta';
 
@@ -75,6 +76,10 @@ export function WidgetCalendar() {
 
   if (isLoading) {
     return <WidgetSkeleton rows={4} showStats />;
+  }
+
+  if (isError) {
+    return <WidgetError message={error?.message || 'Gagal memuat agenda'} onRetry={() => mutate()} />;
   }
 
   return (

@@ -8,6 +8,7 @@ import { useHabits } from '@/hooks/use-habits';
 import { ROLES } from '@/core/constants';
 import { getHabitCadenceLabel, getHabitProgressSnapshot, isHabitCompletedOnDate, isHabitExpectedOnDate, isScheduledHabit } from '@/lib/habits';
 import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
+import { WidgetError } from '@/components/modules/dashboard/WidgetSkeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
 
 const dayLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
@@ -21,7 +22,7 @@ const roleBarColors: Record<string, string> = {
 };
 
 export function WidgetHabits() {
-  const { habits, isLoading } = useHabits();
+  const { habits, isLoading, isError, error, mutate } = useHabits();
   const activeHabits = habits.filter((habit) => habit.is_active).slice(0, 3);
 
   const progressSnapshots = activeHabits
@@ -36,6 +37,10 @@ export function WidgetHabits() {
 
   if (isLoading) {
     return <WidgetSkeleton rows={3} showStats={false} />;
+  }
+
+  if (isError) {
+    return <WidgetError message={error?.message || 'Gagal memuat habit'} onRetry={() => mutate()} />;
   }
 
   return (

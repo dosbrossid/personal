@@ -8,12 +8,13 @@ import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/use-notifications';
 import { formatRelativeTime } from '@/lib/utils';
 import { WidgetSkeleton } from '@/components/modules/dashboard/WidgetSkeleton';
+import { WidgetError } from '@/components/modules/dashboard/WidgetSkeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
 import Link from 'next/link';
 
 
 export function WidgetNotifications() {
-  const { notifications: allNotifications, isLoading, mutate } = useNotifications();
+  const { notifications: allNotifications, isLoading, isError, error, mutate } = useNotifications();
   const [isMarking, startMarking] = useTransition();
 
   const notifications = allNotifications.slice(0, 4);
@@ -38,6 +39,10 @@ export function WidgetNotifications() {
 
   if (isLoading) {
     return <WidgetSkeleton rows={4} showStats={false} />;
+  }
+
+  if (isError) {
+    return <WidgetError message={error?.message || 'Gagal memuat notifikasi'} onRetry={() => mutate()} />;
   }
 
   return (
